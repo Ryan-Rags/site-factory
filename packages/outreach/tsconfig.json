@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node"]
   },
+  // No project references: pnpm builds workspace dependencies first, so this
+  // package resolves them through their emitted dist/*.d.ts.
   "include": ["src/**/*.ts"]
 }

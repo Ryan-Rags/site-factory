@@ -1,4 +1,4 @@
-name,url,niche,city,phone,source,notes
-Northgate Dental Studio,https://northgate-dental.example.com,dentist,Leeds,+44 113 496 0117,sample,No mobile layout; hours only in a PDF
-Ferris & Sons Plumbing,https://ferrisandsons.example.net,plumber,Sheffield,+44 114 496 0142,sample,Site is one image; no contact form
-Ivywood Grooming Co,,pet groomer,York,+44 1904 496 0188,sample,Facebook page only; no website
+name,url,niche,city,phone,source,notes,place_id,rating,review_count,address,discovered_at
+Northgate Dental Studio,https://northgate-dental.example.com,dentist,Leeds,+44 113 496 0117,sample,No mobile layout; hours only in a PDF,,,,,
+Ferris & Sons Plumbing,https://ferrisandsons.example.net,plumber,Sheffield,+44 114 496 0142,sample,Site is one image; no contact form,,,,,
+Ivywood Grooming Co,,pet groomer,York,+44 1904 496 0188,sample,Facebook page only; no website,,,,,

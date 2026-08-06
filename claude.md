@@ -7,6 +7,8 @@
 - Never fabricate audit data. Failed checks are marked "unavailable".
 - Secrets live in .env (gitignored). Never commit keys, tokens, or client data.
 - Stack: Node 20, TypeScript strict, pnpm workspaces. No other package managers.
-- Audits are read-only GETs, max 1 req/sec/domain, max 10 pages/site.
+- Audits are read-only GETs. The rate limit governs crawler page navigations:
+  max 1 page navigation/sec/domain, max 10 page navigations/site. A single
+  Lighthouse run counts as one page navigation.
 - This is a solo repo: commit to main only in the foundation phase;
   after worktrees exist, work stays on your assigned branch.

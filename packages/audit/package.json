@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Read-only site audits: performance, mobile, SEO, contactability.",
+  "description": "Read-only audit of an existing business site.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,7 +20,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
   },
+  "dependencies": {
+    "@site-factory/discover": "workspace:*",
+    "lighthouse": "^12.3.0",
+    "playwright": "^1.49.1"
+  },
   "devDependencies": {
+    "@types/node": "^22.10.5",
     "typescript": "^5.7.3"
   }
 }

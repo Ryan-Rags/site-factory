@@ -141,3 +141,17 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- site-factory generated artifacts ---
+# Audit and outreach outputs are third-party business data, and CLAUDE.md
+# forbids committing client data. The generic `out` and `dist` rules above
+# already match some of these by accident; these entries are anchored to the
+# repo root and state the intent explicitly, so the behaviour survives any
+# future edit to the framework blocks above.
+/audit/
+/outreach/
+
+# Real lead data. Only the fixture sample is ever tracked.
+/data/businesses.csv
+/data/no-site.csv
+!/data/businesses.sample.csv
