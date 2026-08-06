@@ -6,6 +6,21 @@ import PageHeader from '../components/PageHeader.astro';
 import Icon from '../components/Icon.astro';
 
 const { business, forms, services } = site;
+const hours = business.hours ?? [];
+
+// `mailto` needs an inbox to send to. A config that asks for it without a
+// confirmed email is a configuration error, not something to paper over with
+// a dead form — fail the build loudly instead.
+if (forms.mode === 'mailto' && !business.email) {
+  throw new Error(
+    `forms.mode is "mailto" but business.email is not set. Set an email or use forms.mode "disabled".`,
+  );
+}
+if (forms.mode === 'worker' && forms.workerEndpoint === '') {
+  // Not fatal: this is the normal pre-deploy state for a mockup. The form
+  // renders and validates but reports that submission is not wired up.
+  console.warn(`[${site.business.name}] forms.mode "worker" with no endpoint — form is inert.`);
+}
 
 const fmt = (t: string) => {
   const [hStr = '0', m = '00'] = t.split(':');
@@ -16,14 +31,8 @@ const fmt = (t: string) => {
 };
 ---
 
-<BaseLayout
-  title="Contact"
-  description={`Call, email or send a photo of your part to ${business.name} in ${business.address.locality}, ${business.address.region}.`}
->
-  <PageHeader
-    title="Tell us about the job"
-    intro="Send a photo and the dimensions and we will tell you what it takes and what it costs. No charge for the conversation."
-  />
+<BaseLayout title="Contact" description={site.pages.contact.metaDescription}>
+  <PageHeader title={site.pages.contact.title} intro={site.pages.contact.intro} />
 
   <section class="section">
     <div class="container-page">
@@ -42,22 +51,26 @@ const fmt = (t: string) => {
                   >
                 </span>
               </li>
-              <li class="flex items-start gap-3">
-                <span class="mt-1 shrink-0 text-accent-dark"><Icon name="badge" class="h-5 w-5" /></span>
-                <span class="min-w-0">
-                  <span class="block text-sm font-bold text-slate-900">Email</span>
-                  <a
-                    class="break-words text-primary underline-offset-4 hover:underline"
-                    href={`mailto:${business.email}`}>{business.email}</a
-                  >
-                </span>
-              </li>
+              {
+                business.email && (
+                  <li class="flex items-start gap-3">
+                    <span class="mt-1 shrink-0 text-accent-dark"><Icon name="badge" class="h-5 w-5" /></span>
+                    <span class="min-w-0">
+                      <span class="block text-sm font-bold text-slate-900">Email</span>
+                      <a
+                        class="break-words text-primary underline-offset-4 hover:underline"
+                        href={`mailto:${business.email}`}>{business.email}</a
+                      >
+                    </span>
+                  </li>
+                )
+              }
               <li class="flex items-start gap-3">
                 <span class="mt-1 shrink-0 text-accent-dark"><Icon name="truck" class="h-5 w-5" /></span>
                 <span>
                   <span class="block text-sm font-bold text-slate-900">Drop off &amp; collect</span>
                   <address class="mt-1 not-italic text-slate-700">
-                    {business.address.street}<br />
+                    {business.address.street && <Fragment>{business.address.street}<br /></Fragment>}
                     {business.address.locality}, {business.address.region}
                     {business.address.postalCode}
                   </address>
@@ -78,42 +91,50 @@ const fmt = (t: string) => {
             </ul>
           </div>
 
-          <div>
-            <h2 class="text-2xl">Shop hours</h2>
-            <dl class="mt-4 divide-y divide-slate-200 border-y border-slate-200">
-              {
-                business.hours.map((h) => (
-                  <div class="flex justify-between gap-4 py-2.5 text-sm">
-                    <dt class="font-semibold text-slate-800">{h.day}</dt>
-                    <dd class="text-slate-600">
-                      {h.closed || !h.opens || !h.closes
-                        ? 'Closed'
-                        : `${fmt(h.opens)} – ${fmt(h.closes)}`}
-                    </dd>
-                  </div>
-                ))
-              }
-            </dl>
-          </div>
+          {
+            hours.length > 0 && (
+              <div>
+                <h2 class="text-2xl">Shop hours</h2>
+                <dl class="mt-4 divide-y divide-slate-200 border-y border-slate-200">
+                  {hours.map((h) => (
+                    <div class="flex justify-between gap-4 py-2.5 text-sm">
+                      <dt class="font-semibold text-slate-800">{h.day}</dt>
+                      <dd class="text-slate-600">
+                        {h.closed || !h.opens || !h.closes
+                          ? 'Closed'
+                          : `${fmt(h.opens)} – ${fmt(h.closes)}`}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )
+          }
         </div>
 
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-5 sm:p-8">
-          <h2 class="text-2xl">Send us your part</h2>
-          <p class="mt-2 text-base text-slate-600">
-            Fields marked <span class="font-bold text-red-700">*</span> are required.
-          </p>
+        {
+          forms.mode !== 'disabled' && (
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-5 sm:p-8">
+              <h2 class="text-2xl">{site.cta.buttonText}</h2>
+              <p class="mt-2 text-base text-slate-600">
+                Fields marked <span class="font-bold text-red-700">*</span> are required.
+              </p>
 
-          <div class="mt-6">
-            <ContactForm
-              client:visible
-              services={services.map((s) => ({ slug: s.slug, title: s.title }))}
-              endpoint={forms.workerEndpoint}
-              maxUploadMB={forms.maxUploadMB}
-              acceptedFileTypes={forms.acceptedFileTypes}
-              turnstileSiteKey={forms.turnstileSiteKey}
-            />
-          </div>
-        </div>
+              <div class="mt-6">
+                <ContactForm
+                  client:visible
+                  mode={forms.mode}
+                  mailto={business.email ?? ''}
+                  services={services.map((s) => ({ slug: s.slug, title: s.title }))}
+                  endpoint={forms.workerEndpoint}
+                  maxUploadMB={forms.maxUploadMB}
+                  acceptedFileTypes={forms.acceptedFileTypes}
+                  turnstileSiteKey={forms.turnstileSiteKey}
+                />
+              </div>
+            </div>
+          )
+        }
       </div>
     </div>
   </section>

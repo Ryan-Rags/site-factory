@@ -12,7 +12,7 @@ import { site } from '../../site.config';
  */
 const { business, brand, seo } = site;
 
-const openingHours = business.hours
+const openingHours = (business.hours ?? [])
   .filter((h) => !h.closed && h.opens && h.closes)
   .map((h) => ({
     '@type': 'OpeningHoursSpecification',
@@ -30,16 +30,21 @@ const jsonLd = {
   description: seo.defaultDescription,
   url: new URL('/', seo.siteUrl).href,
   telephone: business.phone,
-  email: business.email,
-  foundingDate: String(business.foundedYear),
+  // Unconfirmed fields are omitted from the graph entirely rather than
+  // emitted empty. Structured data is read as a factual claim; `email: ""`
+  // or `postalCode: "[verify with client]"` would be a false one.
+  ...(business.email ? { email: business.email } : {}),
+  ...(business.foundedYear !== undefined
+    ? { foundingDate: String(business.foundedYear) }
+    : {}),
   image: new URL(brand.ogImage, seo.siteUrl).href,
   logo: new URL(brand.logo, seo.siteUrl).href,
   address: {
     '@type': 'PostalAddress',
-    streetAddress: business.address.street,
+    ...(business.address.street ? { streetAddress: business.address.street } : {}),
     addressLocality: business.address.locality,
     addressRegion: business.address.region,
-    postalCode: business.address.postalCode,
+    ...(business.address.postalCode ? { postalCode: business.address.postalCode } : {}),
     addressCountry: business.address.country,
   },
   areaServed: business.serviceArea.map((name) => ({ '@type': 'Place', name })),

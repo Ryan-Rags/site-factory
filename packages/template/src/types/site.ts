@@ -5,11 +5,40 @@
  * template through this shape. No `.astro` file may hard-code client content.
  */
 
+/**
+ * The marker for any value we have not confirmed with the client.
+ *
+ * Write it inline in the copy where the unconfirmed value would go, e.g.
+ * `'Tolerances to [verify with client]'`. It is deliberately conspicuous:
+ * a reader cannot mistake it for real content, and `scripts/check-markers.mjs`
+ * refuses to let a build carrying it go live.
+ *
+ * Prefer omitting an optional field over marking it. An absent `hours` renders
+ * no hours block at all, which is honest; a marked one renders a table full of
+ * `[verify with client]`, which is noise. Mark only where the surrounding copy
+ * needs the value to make sense.
+ */
+export const VERIFY_MARKER = '[verify with client]';
+
+/**
+ * The older marker, kept for one reason only: the K-H Machine Works config
+ * predates `VERIFY_MARKER` and its build output is byte-locked as the
+ * refactor's equivalence proof. Do not use it in any new config — the marker
+ * check treats both as equally disqualifying for a live build.
+ *
+ * @deprecated Use {@link VERIFY_MARKER}.
+ */
+export const LEGACY_MARKER = 'PLACEHOLDER';
+
 export interface Address {
-  street: string;
+  /** Optional: omitted when unconfirmed. The address block degrades to
+   *  locality/region, which is still enough to place the business. */
+  street?: string;
   locality: string;
   region: string;
-  postalCode: string;
+  /** Optional: omitted when unconfirmed. Dropped from the rendered address
+   *  line and from `PostalAddress` JSON-LD rather than emitted empty. */
+  postalCode?: string;
   country: string;
 }
 
@@ -27,14 +56,27 @@ export interface Business {
   name: string;
   legalName: string;
   tagline: string;
-  foundedYear: number;
+  /**
+   * Optional. The single source of truth for the business's age.
+   *
+   * NEVER hard-code an age or a decade count in copy — "38 years of trust"
+   * and "four decades" are both wrong the moment a year turns. Write the
+   * founding year (`Since 1987`) or derive from this field at render time
+   * via `yearsInBusiness()`. Copy that needs an age and has no `foundedYear`
+   * to derive from must be rewritten, not guessed at.
+   */
+  foundedYear?: number;
   phone: string;
   /** Digits only, E.164 without punctuation — used for `tel:` links. */
   phoneHref: string;
-  email: string;
+  /** Optional: omitted when unconfirmed. Hides the email row in the footer
+   *  and drops `email` from JSON-LD. `forms.mode: 'mailto'` requires it. */
+  email?: string;
   address: Address;
   serviceArea: string[];
-  hours: Hours[];
+  /** Optional: omitted when unconfirmed. The whole hours block and the
+   *  `openingHoursSpecification` JSON-LD are skipped, not emitted empty. */
+  hours?: Hours[];
   /**
    * Optional plain link to a map listing. Rendered as a normal anchor only —
    * the template never embeds a map iframe or calls any map API.
@@ -179,13 +221,75 @@ export interface Features {
   gallery: boolean;
 }
 
+/** One shop-news entry. The updates section renders newest-first. */
+export interface Update {
+  /** ISO `YYYY-MM-DD`. Rendered via `<time datetime>`. */
+  date: string;
+  title: string;
+  /** One short paragraph. Plain text — no markup is parsed. */
+  body: string;
+}
+
+/** One machine or capability on the shop floor. */
+export interface EquipmentItem {
+  name: string;
+  /** Capacity in the shop's own words, e.g. `60" swing, 3-jaw`. */
+  detail?: string;
+}
+
+/**
+ * How the contact form behaves.
+ *
+ * - `worker`   — POST to `workerEndpoint`. Requires a non-empty endpoint.
+ * - `mailto`   — no backend; the form composes a `mailto:` to `business.email`.
+ *                Requires `business.email`.
+ * - `disabled` — the form is not rendered. The contact page still shows phone,
+ *                address and hours. Use when neither a worker nor a confirmed
+ *                inbox exists, rather than shipping a form that silently fails.
+ */
+export type FormsMode = 'worker' | 'mailto' | 'disabled';
+
 export interface Forms {
-  /** Cloudflare Worker URL that receives the contact form POST. */
+  mode: FormsMode;
+  /** Cloudflare Worker URL that receives the contact form POST.
+   *  Required when `mode` is `worker`, ignored otherwise. */
   workerEndpoint: string;
   maxUploadMB: number;
   acceptedFileTypes: string[];
   /** Cloudflare Turnstile site key. Empty string disables the widget. */
   turnstileSiteKey: string;
+}
+
+/**
+ * Per-page headings and meta descriptions.
+ *
+ * These used to be literals inside the `.astro` pages, which was invisible
+ * until there was a second client: "Four things, done properly" and
+ * "Machining, repair and fabrication under one roof" are K-H's words, not
+ * every client's. A welding shop with two services rendered both as lies.
+ * Copy that names a trade, a count, or a service belongs here.
+ */
+export interface PageCopy {
+  home: {
+    servicesHeading: string;
+    servicesIntro: string;
+  };
+  services: {
+    title: string;
+    intro: string;
+    metaDescription: string;
+  };
+  about: {
+    /** Sub-line under the about heading, e.g. `Acme Ltd · Leeds · Est. 1990`.
+     *  Write the founding year, never a computed age. */
+    eyebrow: string;
+    metaDescription: string;
+  };
+  contact: {
+    title: string;
+    intro: string;
+    metaDescription: string;
+  };
 }
 
 export interface SiteConfig {
@@ -198,7 +302,12 @@ export interface SiteConfig {
   about: About;
   testimonials: Testimonial[];
   certifications: Certification[];
+  /** Optional shop news. Absent or empty renders no updates section. */
+  updates?: Update[];
+  /** Optional capability list. Absent or empty renders no equipment section. */
+  equipment?: EquipmentItem[];
   cta: CtaBand;
+  pages: PageCopy;
   seo: Seo;
   features: Features;
   forms: Forms;

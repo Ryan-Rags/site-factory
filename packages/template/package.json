@@ -9,9 +9,11 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/check-markers.mjs",
+    "build:all": "node scripts/build-all.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
+    "check:markers": "node scripts/check-markers.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:overflow": "node scripts/check-overflow.mjs",
     "gen:placeholders": "node scripts/gen-placeholders.mjs",

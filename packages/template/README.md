@@ -3,27 +3,43 @@
 A config-driven static site for a local business. Astro 5, Tailwind, static
 output, zero JavaScript except the contact form.
 
-A new client is `site.config.ts` + `src/content/*.md` + images. **No
-client-specific string appears in any `.astro` file** — if you find yourself
-about to type a business name into a component, put it in the config instead.
+A new client is `clients/<slug>.config.ts` + `src/content/*/<slug>/*.md` +
+images. **No client-specific string appears in any `.astro` file** — if you
+find yourself about to type a business name, a trade, or a number of services
+into a component, put it in the config instead.
 
-Currently seeded with **K-H Machine Works Inc**, North Bergen NJ, as a pitch
-mockup. `seo.noindex` is `true`, so nothing here is indexable.
+One package builds every client:
+
+```sh
+pnpm build                                  # the default client
+SITE_CLIENT=kts-machine-shop pnpm build     # one named client → dist/kts-machine-shop/
+pnpm build:all                              # every client, each to dist/<slug>/
+```
+
+All current clients are pitch mockups with `seo.noindex: true`, so none of
+them is indexable. `clients/EQUIVALENCE.md` records the proof that adding the
+multi-client layer left the original client's built output unchanged.
 
 ---
 
 ## New client in 30 minutes
 
-### 1. Copy the package (2 min)
+### 1. Add a client config (2 min)
+
+Do **not** copy the package. Copy the nearest existing config instead:
 
 ```sh
-cp -r packages/template packages/<client-slug>
-cd packages/<client-slug>
-pnpm install
+cp clients/kts-machine-shop.config.ts clients/<slug>.config.ts
+mkdir -p src/content/about/<slug> src/content/services/<slug>
 ```
 
-Change `name` in `package.json`, then add the new path to
-`pnpm-workspace.yaml` at the repo root.
+Then register it in `clients/index.ts` — one import, one line in the `clients`
+map. The slug must match the discovery pipeline's slug for that business: it
+is also the `dist/<slug>/` output directory and the key the mockup bridge uses
+to find `audit/out/<slug>/` screenshots.
+
+`pnpm build:all` fails if a config exists that nobody registered, so a
+half-added client cannot sit there unnoticed.
 
 ### 2. Fill in `site.config.ts` (10 min)
 
@@ -179,8 +195,24 @@ That one flag controls three things at once, so they cannot drift apart:
 - whether `@astrojs/sitemap` runs at all.
 
 **Only flip it with the client's sign-off.** While it is `true`, Lighthouse
-scores SEO 69 instead of 100 — that is the lock working, not a defect. See
-"Scores" below.
+scores SEO below 100 — that is the lock working, not a defect. See "Scores"
+below.
+
+#### The marker check will stop you
+
+`pnpm build` runs `scripts/check-markers.mjs` after every build. Its rule:
+
+| `seo.noindex` | Markers in the output |
+|---|---|
+| `true` | fine — that is what a mockup is for |
+| `false` | **build fails**, listing every file and line |
+
+Both `[verify with client]` and the legacy `PLACEHOLDER` count. So the moment
+you flip `noindex` to `false`, every unconfirmed value on the site becomes a
+build error with a file and line number, and you cannot publish a site with
+somebody's guessed phone number on it by forgetting to re-read it.
+
+Fix the values, or flip `noindex` back. **Do not delete the check.**
 
 ### 9. Verify
 
@@ -279,12 +311,17 @@ Constraints, not omissions:
 ## Structure
 
 ```
-site.config.ts              every client-specific value
+clients/
+  index.ts                  the client registry + SITE_CLIENT resolution
+  <slug>.config.ts          one per client — every client-specific value
+  EQUIVALENCE.md            byte-equivalence proof for the K-H refactor
+site.config.ts              resolves the active client; components import this
 src/types/site.ts           the SiteConfig contract
+src/lib/business.ts         yearsInBusiness() — never hard-code an age
 src/content.config.ts       content collection schemas
 src/content/
-  about/about.md            the story
-  services/<slug>.md        one per service
+  about/<client>/about.md         the story, per client
+  services/<client>/<slug>.md     one per service, per client
 src/layouts/BaseLayout.astro   head, theme custom properties, skip link, chrome
 src/components/
   Seo.astro                 title, description, canonical, OG, Twitter, robots
@@ -294,12 +331,16 @@ src/components/
   PageHeader.astro          the dark band at the top of every inner page
   Hero.astro TrustStrip.astro ServicesGrid.astro StoryTeaser.astro
   Testimonials.astro CtaBand.astro Icon.astro
+  Equipment.astro           renders nothing when equipment is absent
+  Updates.astro             renders nothing when updates is absent
   ContactForm.tsx           the only JavaScript on the site
 src/pages/
   index.astro services.astro about.astro contact.astro 404.astro
   gallery/[...slug].astro   built only when features.gallery is true
   robots.txt.ts             generated from seo.noindex
 scripts/
+  build-all.mjs             builds every registered client
+  check-markers.mjs         blocks a live build carrying unconfirmed values
   check-contrast.mjs        WCAG AA assertion for the two brand colours
   check-overflow.mjs        horizontal overflow check at 320px and 390px
   gen-placeholders.mjs      regenerates public/images placeholders
@@ -311,7 +352,9 @@ worker/                     Cloudflare Worker for the contact form
 | Command | Does |
 |---|---|
 | `pnpm dev` | Dev server on :4321 |
-| `pnpm build` | Static build to `dist/` |
+| `pnpm build` | Build the client in `SITE_CLIENT` (default K-H) to `dist/<slug>/`, then run the marker check |
+| `pnpm build:all` | Build and check every registered client |
+| `pnpm check:markers` | Marker check alone — `--all` for every built client |
 | `pnpm preview` | Serve `dist/` — what Lighthouse should measure |
 | `pnpm typecheck` | `astro check` |
 | `pnpm check:contrast` | WCAG AA assertion on the two brand colours |

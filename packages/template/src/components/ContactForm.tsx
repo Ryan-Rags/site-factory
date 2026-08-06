@@ -8,6 +8,14 @@ import { useEffect, useId, useRef, useState } from 'react';
  */
 
 export interface ContactFormProps {
+  /**
+   * `worker` posts to `endpoint`; `mailto` composes a message to `mailto`
+   * instead. The page does not render this component at all when the config
+   * says `disabled`, so that case never reaches here.
+   */
+  mode: 'worker' | 'mailto';
+  /** Inbox for `mode: 'mailto'`. Ignored in `worker` mode. */
+  mailto: string;
   services: { slug: string; title: string }[];
   /** Worker URL. Empty string means the backend is not deployed yet. */
   endpoint: string;
@@ -20,7 +28,7 @@ export interface ContactFormProps {
 type Status =
   | { kind: 'idle' }
   | { kind: 'submitting' }
-  | { kind: 'success' }
+  | { kind: 'success'; note?: string | undefined }
   | { kind: 'error'; message: string };
 
 /**
@@ -46,11 +54,15 @@ function extensionsFor(mimeTypes: string[]): string {
     'image/heic': 'HEIC',
     'image/webp': 'WEBP',
     'application/pdf': 'PDF',
+    'model/step': 'STEP',
+    'application/dxf': 'DXF',
   };
   return mimeTypes.map((t) => map[t] ?? t).join(', ');
 }
 
 export default function ContactForm({
+  mode,
+  mailto,
   services,
   endpoint,
   maxUploadMB,
@@ -156,6 +168,30 @@ export default function ContactForm({
       return;
     }
 
+    // No backend: hand the message to the visitor's mail client. The file
+    // cannot ride along on a mailto:, so we say so rather than dropping it
+    // silently — the visitor can attach it themselves.
+    if (mode === 'mailto') {
+      const lines = [
+        `Name: ${String(data.get('name') ?? '')}`,
+        `Phone: ${String(data.get('phone') ?? '')}`,
+        `Email: ${String(data.get('email') ?? '')}`,
+        `Service: ${String(data.get('service') ?? '')}`,
+        '',
+        String(data.get('message') ?? ''),
+        ...(file ? ['', `(Attachment to add manually: ${file.name})`] : []),
+      ];
+      window.location.href =
+        `mailto:${mailto}` +
+        `?subject=${encodeURIComponent('Website enquiry')}` +
+        `&body=${encodeURIComponent(lines.join('\n'))}`;
+      setStatus({
+        kind: 'success',
+        ...(file ? { note: 'Add your photo as an attachment before sending.' } : {}),
+      });
+      return;
+    }
+
     if (!endpoint) {
       setStatus({
         kind: 'error',
@@ -204,6 +240,9 @@ export default function ContactForm({
           We read everything that comes in and reply during shop hours, usually the same day. If it
           is urgent, calling is always faster.
         </p>
+        {status.note && (
+          <p className="mt-3 text-base font-semibold leading-relaxed text-slate-900">{status.note}</p>
+        )}
         <button
           type="button"
           className="btn-outline mt-6"

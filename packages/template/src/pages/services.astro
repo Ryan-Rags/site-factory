@@ -1,6 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
-import { site } from '../../site.config';
+import { site, clientSlug } from '../../site.config';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Icon from '../components/Icon.astro';
 import PageHeader from '../components/PageHeader.astro';
@@ -13,10 +13,10 @@ const byId = new Map(entries.map((e) => [e.id, e]));
 // markdown file is a build error rather than a silently missing section.
 const services = await Promise.all(
   site.services.map(async (service) => {
-    const entry = byId.get(service.slug);
+    const entry = byId.get(`${clientSlug}/${service.slug}`);
     if (!entry) {
       throw new Error(
-        `site.config.ts lists service "${service.slug}" but src/content/services/${service.slug}.md does not exist.`,
+        `${clientSlug}: services lists "${service.slug}" but src/content/services/${clientSlug}/${service.slug}.md does not exist.`,
       );
     }
     const { Content } = await render(entry);
@@ -25,14 +25,8 @@ const services = await Promise.all(
 );
 ---
 
-<BaseLayout
-  title="Services"
-  description={`Precision machining, repairs, custom fabrication and welding from ${site.business.name} in ${site.business.address.locality}, ${site.business.address.region}.`}
->
-  <PageHeader
-    title="What we do"
-    intro="Four things, done properly, by the same people who quoted the job. Everything below is available as a one-off — there is no minimum order."
-  />
+<BaseLayout title="Services" description={site.pages.services.metaDescription}>
+  <PageHeader title={site.pages.services.title} intro={site.pages.services.intro} />
 
   <nav aria-label="Services" class="border-b border-slate-200 bg-primary-wash">
     <div class="container-page">

@@ -1,5 +1,5 @@
 ---
-title: Four decades on the same shop floor
+title: On the same shop floor since 1978
 ---
 
 K-H Machine Works has been making and fixing parts in North Bergen since 1978.
