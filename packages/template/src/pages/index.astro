@@ -1,18 +1,22 @@
 ---
 import { getEntry } from 'astro:content';
-import { site } from '../../site.config';
+import { site, clientSlug } from '../../site.config';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import TrustStrip from '../components/TrustStrip.astro';
 import ServicesGrid from '../components/ServicesGrid.astro';
 import StoryTeaser from '../components/StoryTeaser.astro';
 import Testimonials from '../components/Testimonials.astro';
+import Equipment from '../components/Equipment.astro';
+import Updates from '../components/Updates.astro';
 import CtaBand from '../components/CtaBand.astro';
 
-const story = await getEntry('about', site.about.entry);
+// Content is namespaced by client: `src/content/about/<slug>/<entry>.md`.
+// Without the prefix every client would share one shop's prose.
+const story = await getEntry('about', `${clientSlug}/${site.about.entry}`);
 if (!story) {
   throw new Error(
-    `site.config.ts about.entry is "${site.about.entry}" but no such file exists in src/content/about/.`,
+    `${clientSlug}: about.entry is "${site.about.entry}" but src/content/about/${clientSlug}/${site.about.entry}.md does not exist.`,
   );
 }
 
@@ -28,10 +32,12 @@ const excerpt = story.body?.split(/\n{2,}/).slice(0, 1).join(' ').replace(/\s+/g
   <Hero />
   <TrustStrip />
   <ServicesGrid
-    heading="Machining, repair and fabrication under one roof"
-    intro="Whatever the job, you deal with the same shop from quote to collection."
+    heading={site.pages.home.servicesHeading}
+    intro={site.pages.home.servicesIntro}
   />
   <StoryTeaser excerpt={excerpt} />
+  <Equipment />
   <Testimonials />
+  <Updates />
   <CtaBand />
 </BaseLayout>

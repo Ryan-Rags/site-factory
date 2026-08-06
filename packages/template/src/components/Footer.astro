@@ -11,8 +11,18 @@ const links = [
   { href: '/contact', label: 'Contact' },
 ];
 
-const openDays = business.hours.filter((h) => !h.closed);
-const closedDays = business.hours.filter((h) => h.closed);
+const hours = business.hours ?? [];
+
+/**
+ * A note on the address block below: it is written as one unbroken line, and
+ * the space after the `<br>` is an explicit `{' '}`. Whitespace between
+ * expressions in the template becomes whitespace in the output, so a newline
+ * added for readability shows up as a stray space — and the optional street
+ * and postcode must leave nothing behind when they are absent. Do not
+ * reformat it.
+ */
+const openDays = hours.filter((h) => !h.closed);
+const closedDays = hours.filter((h) => h.closed);
 const fmt = (t: string) => {
   const [hStr = '0', m = '00'] = t.split(':');
   const h = Number(hStr);
@@ -41,15 +51,18 @@ const fmt = (t: string) => {
               {business.phone}
             </a>
           </li>
-          <li>
-            <a class="text-white/80 underline-offset-4 hover:underline" href={`mailto:${business.email}`}>
-              {business.email}
-            </a>
-          </li>
+          {
+            business.email && (
+              <li>
+                <a class="text-white/80 underline-offset-4 hover:underline" href={`mailto:${business.email}`}>
+                  {business.email}
+                </a>
+              </li>
+            )
+          }
           <li>
             <address class="not-italic text-white/75">
-              {business.address.street}<br />
-              {business.address.locality}, {business.address.region} {business.address.postalCode}
+              {business.address.street ? <Fragment>{business.address.street}<br />{' '}</Fragment> : null}{business.address.locality}, {business.address.region}{business.address.postalCode ? ` ${business.address.postalCode}` : ''}
             </address>
           </li>
         </ul>

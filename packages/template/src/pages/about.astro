@@ -1,29 +1,23 @@
 ---
 import { getEntry, render } from 'astro:content';
-import { site } from '../../site.config';
+import { site, clientSlug } from '../../site.config';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import CtaBand from '../components/CtaBand.astro';
 
 const { business, about, certifications } = site;
 
-const story = await getEntry('about', about.entry);
+const story = await getEntry('about', `${clientSlug}/${about.entry}`);
 if (!story) {
   throw new Error(
-    `site.config.ts about.entry is "${about.entry}" but no such file exists in src/content/about/.`,
+    `${clientSlug}: about.entry is "${about.entry}" but src/content/about/${clientSlug}/${about.entry}.md does not exist.`,
   );
 }
 const { Content } = await render(story);
 ---
 
-<BaseLayout
-  title="About"
-  description={`${business.legalName} has been machining and repairing parts in ${business.address.locality}, ${business.address.region} since ${business.foundedYear}.`}
->
-  <PageHeader
-    title={about.headline}
-    intro={`${business.legalName} · ${business.address.locality}, ${business.address.region} · Est. ${business.foundedYear}`}
-  />
+<BaseLayout title="About" description={site.pages.about.metaDescription}>
+  <PageHeader title={about.headline} intro={site.pages.about.eyebrow} />
 
   <section class="section">
     <div class="container-page">
