@@ -1,8 +1,8 @@
 ---
-title: On the same shop floor since 1978
+title: The same family keeping things running since 1918
 ---
 
-K-H Machine Works has been making and fixing parts in North Bergen since 1978.
+K-H Machine Works has been making and fixing parts in North Bergen since 1918.
 It started as a two-man shop taking the jobs the bigger outfits did not want,
 and that is still most of what walks through the door: the one-off bracket, the
 shaft nobody makes any more, the pump housing that has to be back on the line

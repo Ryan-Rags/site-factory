@@ -33,7 +33,12 @@ The comparison separates two things that a plain hash conflates:
 | `about/index.html` | 1 intended change (same string) |
 | `contact/index.html` | 3 mechanical tokens |
 
-### The one intended content change
+This table is the refactor's own diff, at the commit it landed. Intended
+change 2 below came later, as its own fix, and is recorded here because it
+supersedes the string change 1 introduced — not because it was part of the
+refactor build.
+
+### Intended content change 1 — the hard-coded age
 
 ```
 - Four decades on the same shop floor.
@@ -43,12 +48,51 @@ The comparison separates two things that a plain hash conflates:
 Appears twice: `about.headline` in the config (rendered into `index.html` and
 `about/index.html`) and the `title` of `src/content/about/kh-machine-works/about.md`.
 
-"Four decades" is a hard-coded age. K-H was founded in 1978, so it was already
-wrong at the time of writing — 2026 makes it nearly five decades — and it would
-have gone on drifting. The replacement states the founding year, which is a
-fact that never goes stale. This is the one string the refactor deliberately
-changed, and the reason the whole class of hard-coded ages is now banned by
+"Four decades" is a hard-coded age: correct for at most twelve months and
+silently wrong afterwards. Replacing it with a year removed that drift, and is
+the reason the whole class of hard-coded ages is now banned by
 `business.foundedYear`'s doc comment and `yearsInBusiness()`.
+
+The year it replaced it with was wrong. See change 2.
+
+### Intended content change 2 — the founding year itself
+
+```
+- On the same shop floor since 1978.
++ The same family keeping things running since 1918.
+```
+
+Same two places as change 1, plus every other string that named the year:
+`hero.subhead`, the `Family-run since …` trust badge, `pages.about.eyebrow`,
+`pages.about.metaDescription` and `seo.defaultDescription`.
+
+Two separate errors were folded together here, and change 1 fixed only the
+visible half.
+
+**The year was wrong.** K-H was founded in **1918**, not 1978. The original
+copy said "four decades", which was never the company's age — it was the
+*owner's* personal time on the floor. Change 1 read that ~40-year span as the
+company's age, back-solved a founding year from it, and wrote 1978 into
+`business.foundedYear`. So the schema, the SEO descriptions and the trust
+badge all inherited a fabricated date from a misread sentence.
+
+**The claim was wrong.** Even with the right year, "on the same shop floor
+since 1918" asserts that somebody has personally stood at a machine for over a
+century. The replacement makes the subject the family, which is what actually
+persisted — and is the claim the shop can stand behind.
+
+`foundedYear` is now derived from one `FOUNDED_YEAR` constant at the top of
+`kh-machine-works.config.ts`, and every string that names the year interpolates
+it. Six copies of a date that could disagree with each other are now one.
+`about.md` is the exception — content-collection markdown cannot interpolate,
+so its two mentions are literal and must be updated by hand if the year ever
+changes again.
+
+The lesson change 1 missed: an evergreen format does not make the underlying
+fact true. Deriving copy from `foundedYear` only helps once `foundedYear` is
+right, and this one was never confirmed with the client. It remains
+unconfirmed — like the `PLACEHOLDER` fields, it should be checked before this
+mockup goes in front of anybody.
 
 ### The three mechanical tokens on the contact page
 
