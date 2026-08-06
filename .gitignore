@@ -151,7 +151,9 @@ vite.config.ts.timestamp-*
 /audit/
 /outreach/
 
-# Real lead data. Only the fixture sample is ever tracked.
-/data/businesses.csv
-/data/no-site.csv
+# Real lead data. Ignore the whole category — every lead CSV, current and
+# future — and re-admit only the tracked fixture. Naming individual files here
+# meant each new lead CSV was tracked by default until someone remembered to
+# add it; this inverts that default.
+/data/*.csv
 !/data/businesses.sample.csv
