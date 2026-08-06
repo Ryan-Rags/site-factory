@@ -90,9 +90,23 @@ changes again.
 
 The lesson change 1 missed: an evergreen format does not make the underlying
 fact true. Deriving copy from `foundedYear` only helps once `foundedYear` is
-right, and this one was never confirmed with the client. It remains
-unconfirmed — like the `PLACEHOLDER` fields, it should be checked before this
-mockup goes in front of anybody.
+right.
+
+#### Provenance of 1918 (resolved)
+
+1918 is no longer unconfirmed. It is externally verified from two independent
+sources, retrieved August 2026:
+
+- **K-H's own live site.** The hero on khmachineworks.com reads "Keeping
+  Things Running Since 1918" — the company's own public claim about itself.
+- **Third-party business listings.** D&B and Manta both show est. 1918 /
+  ~108 years in business.
+
+So `FOUNDED_YEAR` is the one field in this config that was wrong, was fixed,
+and is now sourced — unlike the `PLACEHOLDER` fields, it does not need
+checking with the client before the mockup is shown. The provenance is
+recorded on `FOUNDED_YEAR`'s doc comment in `kh-machine-works.config.ts` so
+it travels with the value rather than only living here.
 
 ### The three mechanical tokens on the contact page
 
