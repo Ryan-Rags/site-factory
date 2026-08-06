@@ -9,8 +9,20 @@ import type { SiteConfig } from '../src/types/site';
  * Anything reading `PLACEHOLDER` is a value we have not confirmed with the
  * client. Every one of them is listed in README step 2 and must be filled in
  * before this is shown to anybody outside the shop. They are deliberately
- * loud rather than plausible-looking, so a stale one cannot slip through: the
- * phone number uses the reserved 555-01xx range that can never connect.
+ * loud rather than plausible-looking, so a stale one cannot slip through.
+ *
+ * What is left unconfirmed, and why each one is still a marker:
+ *   - `testimonials[].attribution` — the quotes are our paraphrase of what
+ *     the client described. No customer said these words. Needs sign-off from
+ *     the client, and no public source could ever substitute for it.
+ *   - `certifications[].label` — no source found. Do not guess a cert.
+ *   - `forms.workerEndpoint` / `forms.turnstileSiteKey` — not a fact about
+ *     the business at all. The infrastructure does not exist yet; these fill
+ *     in at deploy time (README steps 7–8), not from research.
+ *
+ * Everything else — founding year, phone, email, address, domain — is now
+ * sourced from K-H's own public statements. Each carries its provenance
+ * inline, so a later reader can check the claim instead of trusting it.
  */
 /**
  * The single source of truth for K-H's age. `business.foundedYear` reads from
@@ -41,14 +53,20 @@ export const site: SiteConfig = {
     legalName: 'K-H Machine Works Inc',
     tagline: 'Precision machining and repair for the people who keep things running.',
     foundedYear: FOUNDED_YEAR,
-    phone: '(201) 555-0142', // PLACEHOLDER — reserved test range, confirm real number
-    phoneHref: '+12015550142', // PLACEHOLDER
-    email: 'PLACEHOLDER@example.com', // PLACEHOLDER — confirm contact inbox
+    // PROVENANCE for phone, email and address — all four values are published
+    // by K-H themselves on khmachineworks.com and corroborated by directory
+    // listings (retrieved Aug 2026). Same standard as FOUNDED_YEAR above:
+    // sourced from the client's own public statements, not inferred, and so
+    // no longer PLACEHOLDER. They are still worth reading back to the client
+    // at first contact — a live site can be stale — but they are not fakes.
+    phone: '(201) 867-2338',
+    phoneHref: '+12018672338',
+    email: 'KHCanDo@optonline.net',
     address: {
-      street: 'PLACEHOLDER — confirm street address',
+      street: '4322 Grand Ave',
       locality: 'North Bergen',
       region: 'NJ',
-      postalCode: 'PLACEHOLDER', // PLACEHOLDER — confirm ZIP
+      postalCode: '07047',
       country: 'US',
     },
     serviceArea: [
@@ -247,8 +265,18 @@ export const site: SiteConfig = {
     titleTemplate: '%s | K-H Machine Works',
     defaultDescription:
       `K-H Machine Works is a family-run precision machine shop in North Bergen, NJ, serving Hudson County and the New York metro area since ${FOUNDED_YEAR}.`,
-    // PLACEHOLDER — no domain is registered or pointed at this build.
-    siteUrl: 'https://example.invalid',
+    // K-H's real, verified-live domain (retrieved Aug 2026). Set now rather
+    // than at go-live so canonicals and JSON-LD `@id` point at the business's
+    // actual identity instead of a fake one.
+    //
+    // Note what this does NOT mean: this build is not deployed there. Astro
+    // resolves absolute URLs (og:image, logo, JSON-LD) against it, so those
+    // point at paths that do not exist on the live site. Harmless while
+    // `noindex` is true — nothing crawls them — but if this mockup is ever
+    // hosted at a preview URL for the client to click through, the OG preview
+    // image will not resolve. Fix that by pointing siteUrl at the preview
+    // host, not by reverting this.
+    siteUrl: 'https://www.khmachineworks.com',
     // MOCKUP LOCK. While true: every page emits noindex,nofollow and
     // robots.txt disallows everything. README step 8 is the only place this
     // should ever be flipped, and only with client sign-off.

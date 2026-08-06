@@ -188,6 +188,12 @@ seo: {
 }
 ```
 
+The two are independent, and only `noindex` is the lock. Set `siteUrl` as
+soon as the client's real domain is verified — canonicals and JSON-LD `@id`
+are better off naming the business's actual identity than a fake one, and
+`noindex` keeps the build out of the index either way. K-H and AMS already
+have theirs set while still locked.
+
 That one flag controls three things at once, so they cannot drift apart:
 
 - the `<meta name="robots" content="noindex,nofollow">` on every page,
