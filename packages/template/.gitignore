@@ -1,0 +1,7 @@
+# Astro's generated types and content cache. Regenerated on every build.
+.astro/
+
+# Cloudflare local state, if anyone runs `wrangler dev` in worker/.
+worker/.wrangler/
+
+# `dist/` is already covered by the root .gitignore.

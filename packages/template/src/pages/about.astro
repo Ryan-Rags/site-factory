@@ -1,0 +1,96 @@
+---
+import { getEntry, render } from 'astro:content';
+import { site } from '../../site.config';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import CtaBand from '../components/CtaBand.astro';
+
+const { business, about, certifications } = site;
+
+const story = await getEntry('about', about.entry);
+if (!story) {
+  throw new Error(
+    `site.config.ts about.entry is "${about.entry}" but no such file exists in src/content/about/.`,
+  );
+}
+const { Content } = await render(story);
+---
+
+<BaseLayout
+  title="About"
+  description={`${business.legalName} has been machining and repairing parts in ${business.address.locality}, ${business.address.region} since ${business.foundedYear}.`}
+>
+  <PageHeader
+    title={about.headline}
+    intro={`${business.legalName} · ${business.address.locality}, ${business.address.region} · Est. ${business.foundedYear}`}
+  />
+
+  <section class="section">
+    <div class="container-page">
+      <div class="grid gap-10 lg:grid-cols-[1fr_minmax(0,26rem)] lg:gap-14">
+        <div class="story max-w-prose space-y-5 text-lg leading-relaxed text-slate-700">
+          <Content />
+        </div>
+
+        <div class="lg:sticky lg:top-24 lg:self-start">
+          <img
+            src={about.image}
+            alt={about.imageAlt}
+            width="1200"
+            height="800"
+            loading="lazy"
+            decoding="async"
+            class="w-full rounded-lg border border-slate-200 shadow-md"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section bg-slate-50" aria-labelledby="creds-heading">
+    <div class="container-page">
+      <div class="grid gap-10 lg:grid-cols-2 lg:gap-14">
+        <div>
+          <p class="eyebrow">Credentials</p>
+          <h2 id="creds-heading" class="mt-3 text-3xl">What we carry</h2>
+          <dl class="mt-6 space-y-5">
+            {
+              certifications.map((c) => (
+                <div class="rounded-lg border border-slate-200 bg-white p-5">
+                  <dt class="font-heading text-base font-bold text-slate-900">{c.label}</dt>
+                  <dd class="mt-1 text-sm leading-relaxed text-slate-600">{c.detail}</dd>
+                </div>
+              ))
+            }
+          </dl>
+        </div>
+
+        <div>
+          <p class="eyebrow">Coverage</p>
+          <h2 class="mt-3 text-3xl">Where we work</h2>
+          <p class="mt-4 text-base leading-relaxed text-slate-600">
+            Most customers drop off and collect at the shop. We cover the following areas and will
+            travel further for the right job — ask.
+          </p>
+          <ul class="mt-6 flex flex-wrap gap-2">
+            {
+              business.serviceArea.map((area) => (
+                <li class="rounded-full border border-primary/25 bg-white px-4 py-2 text-sm font-semibold text-primary">
+                  {area}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</BaseLayout>
+
+<style>
+  .story :global(p) {
+    margin-block: 0;
+  }
+</style>
