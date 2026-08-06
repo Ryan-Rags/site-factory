@@ -29,3 +29,14 @@
 # Stream ownership
 - feat/pipeline: packages/discover, packages/audit, packages/outreach, PLAN-pipeline.md
 - feat/template: packages/template, PLAN-template.md
+
+# PR-based self-merge (supersedes direct-merge clause)
+- Streams ship via PR: push feat/<stream>, open a PR with gh, and merge
+  your own PR — no human approval needed — when ALL hold:
+  (1) diff touches only owned paths + granted shared files;
+  (2) branch is rebased on latest main, conflict-free (any conflict → STOP);
+  (3) pnpm install && pnpm -r build && pnpm -r typecheck green on the
+      rebased branch before merging;
+  (4) PR body lists any shared files touched + the grant that covers them.
+- Squash-merge, delete the branch, report the merge SHA and PR number.
+- Conflicts, failed checks, or ungranted shared files are still hard stops.

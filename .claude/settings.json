@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm -v)",
+      "Bash(git -C /d/site-factory branch --show-current)",
+      "PowerShell(pnpm -v)"
+    ]
+  }
+}
