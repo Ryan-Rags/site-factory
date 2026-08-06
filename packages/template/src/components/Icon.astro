@@ -1,0 +1,46 @@
+---
+import type { IconName } from '../types/site';
+
+interface Props {
+  name: IconName;
+  class?: string;
+}
+
+const { name, class: className = 'h-6 w-6' } = Astro.props;
+
+/**
+ * Inline single-path icons. Inline rather than sprited so they cost no extra
+ * request and inherit `currentColor`. Decorative by default — every icon in
+ * this template sits next to a visible text label, so it is hidden from
+ * assistive tech rather than double-announced.
+ */
+const paths: Record<IconName, string> = {
+  precision:
+    'M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
+  clock: 'M12 7v5l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  shield: 'M12 3l7.5 3v5.25c0 4.5-3 8.4-7.5 9.75-4.5-1.35-7.5-5.25-7.5-9.75V6L12 3Zm-2.25 9 1.5 1.5 3-3.75',
+  wrench:
+    'M14.7 6.3a4.5 4.5 0 0 0 5.86 5.86l-8.4 8.4a2.4 2.4 0 0 1-3.4-3.4l8.4-8.4-2.46-2.46ZM14.7 6.3 17.16 3.84',
+  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.5-3a7.5 7.5 0 0 1-.1 1.2l2 1.55-1.9 3.3-2.36-.95a7.5 7.5 0 0 1-2.08 1.2l-.36 2.5h-3.8l-.36-2.5a7.5 7.5 0 0 1-2.08-1.2l-2.36.95-1.9-3.3 2-1.55a7.6 7.6 0 0 1 0-2.4l-2-1.55 1.9-3.3 2.36.95a7.5 7.5 0 0 1 2.08-1.2l.36-2.5h3.8l.36 2.5c.75.28 1.45.69 2.08 1.2l2.36-.95 1.9 3.3-2 1.55c.07.39.1.79.1 1.2Z',
+  truck:
+    'M2.25 7.5h11.5v9H2.25v-9Zm11.5 3h3.6l3.4 3v3h-7v-6Zm-8 6a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0Zm10 0a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0Z',
+  badge:
+    'M12 3l2.4 1.8 3-.15.9 2.85 2.4 1.8-1.2 2.7 1.2 2.7-2.4 1.8-.9 2.85-3-.15L12 21l-2.4-1.8-3 .15-.9-2.85-2.4-1.8 1.2-2.7-1.2-2.7 2.4-1.8.9-2.85 3 .15L12 3Zm-2.25 9 1.5 1.5 3-3.75',
+  phone:
+    'M4.5 4.5h3.75l1.5 4.5-2.25 1.5a12 12 0 0 0 6 6l1.5-2.25 4.5 1.5v3.75a1.5 1.5 0 0 1-1.5 1.5C10.6 21 3 13.4 3 6a1.5 1.5 0 0 1 1.5-1.5Z',
+};
+---
+
+<svg
+  class={className}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path d={paths[name]} />
+</svg>

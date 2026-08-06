@@ -1,0 +1,56 @@
+---
+import { site } from '../../../site.config';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import CtaBand from '../../components/CtaBand.astro';
+
+/**
+ * Optional page, gated on `features.gallery`.
+ *
+ * It is a catch-all route purely so `getStaticPaths` can return an empty array
+ * when the feature is off — that way the build emits no /gallery HTML at all,
+ * rather than shipping a hidden page. The nav link is gated on the same flag.
+ */
+export function getStaticPaths() {
+  if (!site.features.gallery) return [];
+  return [{ params: { slug: undefined } }];
+}
+
+// Swap these for real work photos and describe the actual job in each alt.
+const shots = [
+  { src: '/images/gallery-1.svg', alt: 'Placeholder — replace with a photo of finished work' },
+  { src: '/images/gallery-2.svg', alt: 'Placeholder — replace with a photo of finished work' },
+  { src: '/images/gallery-3.svg', alt: 'Placeholder — replace with a photo of finished work' },
+  { src: '/images/gallery-4.svg', alt: 'Placeholder — replace with a photo of finished work' },
+  { src: '/images/gallery-5.svg', alt: 'Placeholder — replace with a photo of finished work' },
+  { src: '/images/gallery-6.svg', alt: 'Placeholder — replace with a photo of finished work' },
+];
+---
+
+<BaseLayout title="Gallery" description={`Recent work from ${site.business.name}.`}>
+  <PageHeader title="Recent work" intro="A few of the jobs that have come through the shop." />
+
+  <section class="section">
+    <div class="container-page">
+      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          shots.map((shot) => (
+            <li>
+              <img
+                src={shot.src}
+                alt={shot.alt}
+                width="800"
+                height="800"
+                loading="lazy"
+                decoding="async"
+                class="aspect-square w-full rounded-lg border border-slate-200 object-cover"
+              />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <CtaBand />
+</BaseLayout>

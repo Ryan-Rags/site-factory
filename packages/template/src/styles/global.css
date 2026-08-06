@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * Nothing in this file names a client. Colours and fonts arrive as custom
+   * properties emitted by BaseLayout from site.config.ts.
+   */
+
+  html {
+    scroll-behavior: smooth;
+    /* Anchored headings clear the sticky header. */
+    scroll-padding-top: 5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: theme('fontFamily.body');
+    @apply bg-white text-slate-800 antialiased;
+    /* Belt and braces against horizontal overflow: no child may widen the
+       page, whatever a long unbroken string or a wide media element does. */
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: theme('fontFamily.heading');
+    @apply font-bold tracking-tight text-slate-900;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Long unbroken tokens (URLs, part numbers) wrap instead of pushing the
+     viewport wider on a 390px phone. */
+  p,
+  li,
+  dd,
+  dt,
+  address {
+    overflow-wrap: break-word;
+  }
+
+  /* Images and embedded media never exceed their container. */
+  img,
+  svg,
+  video,
+  canvas,
+  iframe {
+    @apply block max-w-full;
+    height: auto;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-accent-dark;
+  }
+
+  /* Only suppress the default ring where we draw our own. */
+  :focus:not(:focus-visible) {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3
+      text-base font-semibold leading-tight transition-colors
+      motion-safe:duration-150;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-dark;
+  }
+
+  .btn-secondary {
+    @apply btn border-2 border-white/70 bg-transparent text-white hover:bg-white/10;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-primary bg-white text-primary hover:bg-primary-wash;
+  }
+
+  .section {
+    @apply py-14 sm:py-20;
+  }
+
+  .eyebrow {
+    @apply text-sm font-bold uppercase tracking-widest text-accent-dark;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

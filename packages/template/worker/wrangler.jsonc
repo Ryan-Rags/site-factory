@@ -1,0 +1,39 @@
+{
+  // Cloudflare Worker that receives the contact form POST.
+  //
+  // Every id below is a PLACEHOLDER. This file cannot deploy anywhere as
+  // written — `wrangler deploy` will reject the placeholder ids rather than
+  // publish to somebody else's account. Fill them in from your own dashboard.
+  //
+  // NOTHING SECRET GOES IN THIS FILE. It is committed. Secrets are set with
+  // `wrangler secret put NAME` and live only in Cloudflare. See README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "PLACEHOLDER-client-contact-form",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "vars": {
+    // Non-secret configuration. The Worker refuses any request whose Origin
+    // is not on this list, so a form on someone else's site cannot use it.
+    "ALLOWED_ORIGINS": "http://localhost:4321,https://PLACEHOLDER.example.com",
+    "MAIL_TO": "PLACEHOLDER@example.com",
+    "MAIL_FROM": "website@PLACEHOLDER.example.com",
+    "MAX_UPLOAD_MB": "10"
+  },
+
+  "kv_namespaces": [
+    {
+      // Every submission is written here before the email is attempted, so a
+      // mail outage never loses a lead.
+      "binding": "SUBMISSIONS",
+      "id": "PLACEHOLDER_KV_NAMESPACE_ID"
+    }
+  ]
+
+  // Optional: uncomment and create the bucket to keep the uploaded photo
+  // itself rather than only its metadata. See README.md "Attachments".
+  // "r2_buckets": [
+  //   { "binding": "UPLOADS", "bucket_name": "PLACEHOLDER-contact-uploads" }
+  // ]
+}

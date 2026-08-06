@@ -1,0 +1,23 @@
+---
+interface Props {
+  title: string;
+  intro?: string | undefined;
+}
+
+const { title, intro } = Astro.props;
+---
+
+{/*
+  The dark band at the top of every inner page.
+
+  `text-white` on the <h1> is not redundant with the parent: global.css gives
+  h1–h4 an explicit `text-slate-900`, which beats inheritance. Without it the
+  heading renders near-black on the brand blue and fails contrast. Keeping the
+  band in one component is what stops that regressing on the next new page.
+*/}
+<section class="bg-primary text-white">
+  <div class="container-page py-12 sm:py-16">
+    <h1 class="max-w-prose text-4xl text-white sm:text-5xl">{title}</h1>
+    {intro && <p class="mt-4 max-w-prose text-lg leading-relaxed text-white/85">{intro}</p>}
+  </div>
+</section>

@@ -1,0 +1,54 @@
+---
+import { site } from '../../site.config';
+
+/**
+ * schema.org LocalBusiness, built entirely from site.config.ts.
+ *
+ * Deliberately omitted: `geo` (we do not hold verified coordinates),
+ * `aggregateRating` and `review` (we will not emit review markup we cannot
+ * attribute to a real, verifiable review), and `priceRange` (unknown).
+ * Adding an unverified value here would be fabricating structured data that
+ * search engines treat as a factual claim.
+ */
+const { business, brand, seo } = site;
+
+const openingHours = business.hours
+  .filter((h) => !h.closed && h.opens && h.closes)
+  .map((h) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: `https://schema.org/${h.day}`,
+    opens: h.opens,
+    closes: h.closes,
+  }));
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  '@id': new URL('/', seo.siteUrl).href,
+  name: business.name,
+  legalName: business.legalName,
+  description: seo.defaultDescription,
+  url: new URL('/', seo.siteUrl).href,
+  telephone: business.phone,
+  email: business.email,
+  foundingDate: String(business.foundedYear),
+  image: new URL(brand.ogImage, seo.siteUrl).href,
+  logo: new URL(brand.logo, seo.siteUrl).href,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: business.address.street,
+    addressLocality: business.address.locality,
+    addressRegion: business.address.region,
+    postalCode: business.address.postalCode,
+    addressCountry: business.address.country,
+  },
+  areaServed: business.serviceArea.map((name) => ({ '@type': 'Place', name })),
+  openingHoursSpecification: openingHours,
+  makesOffer: site.services.map((s) => ({
+    '@type': 'Offer',
+    itemOffered: { '@type': 'Service', name: s.title, description: s.oneLiner },
+  })),
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />

@@ -4,23 +4,33 @@
   "private": true,
   "type": "module",
   "description": "Config-driven Astro/Tailwind site template; deploys to Cloudflare Pages.",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "check:overflow": "node scripts/check-overflow.mjs",
+    "gen:placeholders": "node scripts/gen-placeholders.mjs",
+    "clean": "node -e \"const{rmSync}=require('node:fs');for(const d of ['dist','.astro'])rmSync(d,{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/react": "^4.2.0",
+    "@astrojs/sitemap": "^3.2.1",
+    "@astrojs/tailwind": "^5.1.5",
+    "astro": "^5.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "puppeteer-core": "^24.1.1",
     "typescript": "^5.7.3"
   }
 }

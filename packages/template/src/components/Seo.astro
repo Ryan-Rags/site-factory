@@ -1,0 +1,40 @@
+---
+import { site } from '../../site.config';
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+  /** Set true on the home page so the title is not `Home | Business`. */
+  bare?: boolean | undefined;
+}
+
+const { title, description = site.seo.defaultDescription, bare = false } = Astro.props;
+
+const fullTitle = bare ? title : site.seo.titleTemplate.replace('%s', title);
+const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', Astro.site ?? site.seo.siteUrl);
+const ogImage = new URL(site.brand.ogImage, Astro.site ?? site.seo.siteUrl);
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical.href} />
+
+{/*
+  Mockup lock. While site.config.ts has `seo.noindex: true` every page tells
+  crawlers to stay away, and robots.txt disallows everything. Flip the config
+  flag — not this file — when the client signs off on going live.
+*/}
+{site.seo.noindex && <meta name="robots" content="noindex,nofollow" />}
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={site.business.name} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical.href} />
+<meta property="og:image" content={ogImage.href} />
+<meta property="og:locale" content="en_US" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage.href} />

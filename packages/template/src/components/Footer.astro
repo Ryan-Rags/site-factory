@@ -1,0 +1,105 @@
+---
+import { site } from '../../site.config';
+
+const { business, brand, features } = site;
+const year = new Date().getFullYear();
+
+const links = [
+  { href: '/services', label: 'Services' },
+  { href: '/about', label: 'About' },
+  ...(features.gallery ? [{ href: '/gallery', label: 'Gallery' }] : []),
+  { href: '/contact', label: 'Contact' },
+];
+
+const openDays = business.hours.filter((h) => !h.closed);
+const closedDays = business.hours.filter((h) => h.closed);
+const fmt = (t: string) => {
+  const [hStr = '0', m = '00'] = t.split(':');
+  const h = Number(hStr);
+  const suffix = h >= 12 ? 'pm' : 'am';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === '00' ? `${h12}${suffix}` : `${h12}:${m}${suffix}`;
+};
+---
+
+<footer class="mt-auto bg-primary-dark text-white/90">
+  <div class="container-page py-12">
+    <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <img src={brand.logo} alt="" width="40" height="40" class="h-10 w-10" />
+          <span class="font-heading text-lg font-extrabold text-white">{business.name}</span>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-white/75">{business.tagline}</p>
+      </div>
+
+      <div>
+        <h2 class="font-heading text-sm font-bold uppercase tracking-widest text-white">Contact</h2>
+        <ul class="mt-4 space-y-2 text-sm">
+          <li>
+            <a class="font-semibold text-white underline-offset-4 hover:underline" href={`tel:${business.phoneHref}`}>
+              {business.phone}
+            </a>
+          </li>
+          <li>
+            <a class="text-white/80 underline-offset-4 hover:underline" href={`mailto:${business.email}`}>
+              {business.email}
+            </a>
+          </li>
+          <li>
+            <address class="not-italic text-white/75">
+              {business.address.street}<br />
+              {business.address.locality}, {business.address.region} {business.address.postalCode}
+            </address>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="font-heading text-sm font-bold uppercase tracking-widest text-white">Hours</h2>
+        <dl class="mt-4 space-y-1 text-sm text-white/75">
+          {
+            openDays.map((h) => (
+              <div class="flex justify-between gap-4">
+                <dt>{h.day.slice(0, 3)}</dt>
+                <dd>
+                  {fmt(h.opens ?? '')}–{fmt(h.closes ?? '')}
+                </dd>
+              </div>
+            ))
+          }
+          {
+            closedDays.length > 0 && (
+              <div class="flex justify-between gap-4">
+                <dt>{closedDays.map((h) => h.day.slice(0, 3)).join(', ')}</dt>
+                <dd>Closed</dd>
+              </div>
+            )
+          }
+        </dl>
+      </div>
+
+      <div>
+        <h2 class="font-heading text-sm font-bold uppercase tracking-widest text-white">Site</h2>
+        <ul class="mt-4 space-y-2 text-sm">
+          {
+            links.map((link) => (
+              <li>
+                <a class="text-white/80 underline-offset-4 hover:underline" href={link.href}>
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-10 border-t border-white/20 pt-6 text-sm text-white/60">
+      <p>
+        &copy; {year} {business.legalName}. Serving {business.serviceArea.slice(0, 3).join(', ')} and
+        the surrounding area since {business.foundedYear}.
+      </p>
+    </div>
+  </div>
+</footer>

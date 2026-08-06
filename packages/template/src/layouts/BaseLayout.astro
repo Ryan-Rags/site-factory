@@ -1,0 +1,92 @@
+---
+import { site } from '../../site.config';
+import Seo from '../components/Seo.astro';
+import LocalBusinessJsonLd from '../components/LocalBusinessJsonLd.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+  bareTitle?: boolean | undefined;
+  /** Path to the LCP image so it can be preloaded. Home page only. */
+  preloadImage?: string | undefined;
+}
+
+const { title, description, bareTitle = false, preloadImage } = Astro.props;
+const { theme, brand } = site;
+
+/**
+ * The two brand colours from site.config.ts become custom properties here, and
+ * every shade in the site is derived from them in CSS. Change the two values
+ * in the config and the whole palette moves with them.
+ */
+const faces = theme.fonts.faces ?? [];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href={brand.favicon} type="image/svg+xml" />
+    <meta name="generator" content={Astro.generator} />
+
+    <Seo title={title} description={description} bare={bareTitle} />
+
+    {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
+    {
+      faces.map((f) => (
+        <link rel="preload" as="font" type="font/woff2" href={f.src} crossorigin="anonymous" />
+      ))
+    }
+
+    <style
+      is:global
+      set:html={`
+:root {
+  --color-primary: ${theme.colors.primary};
+  --color-primary-dark: color-mix(in srgb, ${theme.colors.primary} 78%, #000);
+  --color-primary-tint: color-mix(in srgb, ${theme.colors.primary} 14%, #fff);
+  --color-primary-wash: color-mix(in srgb, ${theme.colors.primary} 7%, #fff);
+  --color-accent: ${theme.colors.accent};
+  --color-accent-dark: color-mix(in srgb, ${theme.colors.accent} 82%, #000);
+  --color-accent-wash: color-mix(in srgb, ${theme.colors.accent} 8%, #fff);
+  --font-heading: ${theme.fonts.heading};
+  --font-body: ${theme.fonts.body};
+}
+${faces
+  .map(
+    (f) => `@font-face {
+  font-family: ${JSON.stringify(f.family)};
+  src: url(${JSON.stringify(f.src)}) format("woff2");
+  font-weight: ${f.weight};
+  font-style: ${f.style};
+  font-display: ${f.display};
+}`,
+  )
+  .join('\n')}
+`}
+    />
+
+    <LocalBusinessJsonLd />
+  </head>
+
+  <body class="flex min-h-screen flex-col">
+    <a
+      href="#main"
+      class="sr-only rounded-md bg-primary px-4 py-3 font-semibold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+    >
+      Skip to main content
+    </a>
+
+    <Header />
+
+    <main id="main" class="flex-1">
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>

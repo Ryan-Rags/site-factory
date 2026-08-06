@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800" role="img" aria-label="Gallery 6 placeholder">
+  <defs>
+    <pattern id="h" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="28" height="28" fill="#eef2f7"/>
+      <line x1="0" y1="0" x2="0" y2="28" stroke="#d7e0ea" stroke-width="10"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="800" fill="url(#h)"/>
+  <rect x="6" y="6" width="788" height="788" fill="none" stroke="#0f4c81" stroke-width="4" stroke-dasharray="18 12" opacity="0.55"/>
+  <text x="50%" y="47%" text-anchor="middle" font-family="ui-sans-serif, system-ui, Segoe UI, Arial, sans-serif" font-size="60" font-weight="700" fill="#0f4c81">Gallery 6</text>
+  <text x="50%" y="47%" dy="69" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="37" fill="#b45309">800 x 800 — replace with a real photo</text>
+</svg>
