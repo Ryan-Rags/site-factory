@@ -1,7 +1,9 @@
 # PLAN-mockup.md — mockup bridge (Part 3)
 
-Status: **BLOCKED at plan gate.** Prerequisites named in the task do not
-exist in the repo. No code written. See "Blockers" before "Design".
+Status: **SHIPPED.** B1–B5 below were all resolved by PR #3 (`53299c0`),
+which landed the template's multi-client contract on `main`. The design in
+this plan is built as written. The blockers are kept for the record; read
+"Contract as built" for what the contract actually turned out to be.
 
 Scope granted: root `scripts/mockup/` directory, root `package.json` script
 wiring. Reads (never writes) `packages/template/` and `audit/out/`.
@@ -86,7 +88,38 @@ and exit 0. `mockup:all` will likewise not fail the batch on such a client.
 Rate limiting does not apply here: this serves and screenshots our own
 localhost build. No third-party navigation occurs.
 
-## To unblock
+## Contract as built
+
+What `main` actually shipped, and where it differs from what this plan
+guessed at while blocked:
+
+- **Selection is `SITE_CLIENT`, not `--client`.** `astro build` owns its own
+  argv, so the template selects via env var (`clients/index.ts`,
+  `resolveClient`). The bridge keeps `--client <slug>` as *its* flag and
+  translates. An unknown slug is a hard error on both sides.
+- **`clients/<slug>.config.ts` + a static registry** in `clients/index.ts`.
+  Five clients exist: `kh-machine-works`, `kts-machine-shop`,
+  `american-machine-specialty`, `industrial-machine-corp`, `ks-welding`.
+  `scripts/mockup/clients.mjs` reads the filenames and cross-checks them
+  against the registry, failing on drift — the same technique, and the same
+  reasoning, as the template's own `build-all.mjs`.
+- **Output is `dist/<slug>/`**, as anticipated.
+- **A marker gate exists** (`check-markers.mjs`) and was not foreseen here.
+  The bridge invokes the template's `build` script rather than `astro build`,
+  so the gate runs on mockup builds too. All five clients are `noindex`
+  mockups, where markers are expected and pass.
+- **The site must be served, not opened as `file://`.** Assets are
+  root-absolute and `trailingSlash: 'ignore'`, so `scripts/mockup/serve.mjs`
+  is a localhost-only static server on an ephemeral port. This was implied by
+  the original design's "static file server" line; the reason is recorded
+  here because it is not optional.
+
+Verified on the first full run: all 5 clients build and shoot, and the
+before-copy branch was exercised against a temporary `audit/out/` fixture
+(then removed — no fabricated audit data was left behind, and none is
+committed since `/audit/` and `/outreach/` are gitignored).
+
+## To unblock (historical — resolved by #3)
 
 One decision is needed, and it is the template stream's to make, not mine:
 
