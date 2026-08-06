@@ -223,3 +223,61 @@ CDP port — the four scores above are measured, not defaulted.
 Live discovery against the Places API. There is no `.env` and no key, so per Q6
 the live path is code-complete and typechecked but unexecuted. `--dry-run` is
 the only `discover` evidence above.
+
+## Backlog
+
+### Slugs derived from business names collide with real-world legal names
+
+Filed Aug 2026 from the `data/leads-machine.csv` run. **Not implemented — a
+note, not a task in flight.**
+
+The slug is the join key across four directories: the CSV row, `audit/out/<slug>/`,
+`packages/template/clients/<slug>.config.ts`, and `outreach/<slug>/`. It is
+derived in exactly one place — `assignSlugs()` in `packages/audit/src/run.ts`
+calls `uniqueSlug(row.name)`, so `slugify()` on the `name` column decides the
+key for everything downstream.
+
+That makes the `name` column load-bearing in a way its name does not advertise,
+and two ordinary properties of real business names break the join:
+
+- **Legal suffixes.** `American Machine Specialty LLC` → `american-machine-specialty-llc`,
+  which matches no client config.
+- **Hyphenated initialisms.** `K-H Machine Works` → `k-h-machine-works`, because
+  `slugify` maps every non-alphanumeric run to a separator and cannot tell an
+  intra-word hyphen from a word break.
+
+Both legal names are the *correct* values, and both are already recorded in the
+client configs (`business.legalName`), which is what outreach copy reads. So the
+CSV was written with local working labels — `KH Machine Works`, `American Machine
+Specialty` — chosen to slugify onto the existing client slugs. That worked, and
+the run produced full before/after sets for both. But it worked because someone
+knew to hand-pick the labels.
+
+The failure mode is what makes this worth fixing rather than remembering. A
+wrong slug does not raise: `uniqueSlug` happily issues a well-formed key that
+matches nothing, `copyBefore()` finds no `audit/out/<slug>/` and returns `[]`,
+and the run reports `no before screenshots … — after-only` — a line that is
+also the correct, expected output for a lead with no website. The mockup ships
+without the "before" half, which is the strongest part of the pitch, and
+nothing in the transcript distinguishes that from a legitimately siteless lead.
+
+Two candidate fixes, not yet chosen:
+
+1. **Teach `slugify` the domain** — strip a trailing `Inc|LLC|Corp|Co|Ltd` and
+   collapse single-letter hyphen runs (`k-h` → `kh`). Fixes it everywhere at
+   once, but `slugify` is documented as a stable cache key, and changing it
+   re-keys every slug already issued. That is a migration, not an edit.
+2. **Add a `slug` override column to the lead schema** — blank means derive as
+   today, so old rows are unaffected and the CSV stays the source of record
+   (consistent with the append-only reasoning in `LEAD_COLUMNS`). Explicit at
+   the point the human already knows the answer, but it is one more column that
+   must be filled correctly by hand.
+
+Whichever of the two wins, it ships with a check that warns when a lead's slug
+matches no registered client config — decided, not a maybe. Both fixes narrow
+the collision class but neither closes it, so the derivation can still be wrong;
+the warning is what turns a silent correct-looking failure into a loud one, and
+that is the signal actually missing today.
+
+This recurs at scale: a majority of registered US businesses carry a legal
+suffix, so the collision class is the norm, not an edge case.
