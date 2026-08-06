@@ -21,6 +21,14 @@ import type { SiteConfig } from '../src/types/site';
  * The founding year is the *company's*, not the owner's. The two are far
  * apart here, and conflating them is what produced the earlier
  * "four decades on the same shop floor" line — see clients/EQUIVALENCE.md.
+ *
+ * PROVENANCE — 1918 is externally verified, not inferred (retrieved Aug 2026):
+ *   - K-H's own live site hero: "Keeping Things Running Since 1918"
+ *     (khmachineworks.com)
+ *   - D&B and Manta listings: est. 1918 / ~108 years in business
+ * Unlike the `PLACEHOLDER` fields, this value does NOT need confirming with
+ * the client before the mockup is shown. Do not change it without a source
+ * of at least this strength.
  */
 const FOUNDED_YEAR = 1918;
 
