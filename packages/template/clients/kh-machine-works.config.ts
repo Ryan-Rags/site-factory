@@ -12,6 +12,18 @@ import type { SiteConfig } from '../src/types/site';
  * loud rather than plausible-looking, so a stale one cannot slip through: the
  * phone number uses the reserved 555-01xx range that can never connect.
  */
+/**
+ * The single source of truth for K-H's age. `business.foundedYear` reads from
+ * it, and so does every string below that names the year — so the hero
+ * subhead, the trust badge, the about headline, the eyebrow and the two SEO
+ * descriptions cannot drift apart from each other or from the schema.
+ *
+ * The founding year is the *company's*, not the owner's. The two are far
+ * apart here, and conflating them is what produced the earlier
+ * "four decades on the same shop floor" line — see clients/EQUIVALENCE.md.
+ */
+const FOUNDED_YEAR = 1918;
+
 // Annotated rather than `satisfies` on purpose: the annotation keeps the
 // optional fields (mapUrl, fonts.faces) present in the type even when this
 // seed config leaves them out, so consumers can read them without casts.
@@ -20,7 +32,7 @@ export const site: SiteConfig = {
     name: 'K-H Machine Works',
     legalName: 'K-H Machine Works Inc',
     tagline: 'Precision machining and repair for the people who keep things running.',
-    foundedYear: 1978,
+    foundedYear: FOUNDED_YEAR,
     phone: '(201) 555-0142', // PLACEHOLDER — reserved test range, confirm real number
     phoneHref: '+12015550142', // PLACEHOLDER
     email: 'PLACEHOLDER@example.com', // PLACEHOLDER — confirm contact inbox
@@ -83,7 +95,7 @@ export const site: SiteConfig = {
   hero: {
     headline: 'Precision machining, done right the first time.',
     subhead:
-      'A Hudson County machine shop since 1978. Custom parts, repairs and short runs for contractors, building engineers and manufacturers who need the job done properly.',
+      `A Hudson County machine shop since ${FOUNDED_YEAR}. Custom parts, repairs and short runs for contractors, building engineers and manufacturers who need the job done properly.`,
     ctaPrimary: { text: 'Send us your part', href: '/contact' },
     ctaSecondary: { text: 'See what we do', href: '/services' },
     image: '/images/hero.svg',
@@ -91,7 +103,7 @@ export const site: SiteConfig = {
   },
 
   trustStrip: [
-    { icon: 'badge', label: 'Family-run since 1978' },
+    { icon: 'badge', label: `Family-run since ${FOUNDED_YEAR}` },
     { icon: 'precision', label: 'Tolerances to ±0.001"' },
     { icon: 'clock', label: 'Same-week turnaround on most repairs' },
     { icon: 'wrench', label: 'One-off parts welcome — no minimum order' },
@@ -136,7 +148,11 @@ export const site: SiteConfig = {
     // Evergreen on purpose: a founding year is a fact that never goes stale,
     // where "four decades" silently becomes wrong. Never hard-code an age —
     // see `business.foundedYear` and `yearsInBusiness()`.
-    headline: 'On the same shop floor since 1978.',
+    //
+    // The claim is family continuity, not one person's time on the floor.
+    // Nobody has stood at a machine since 1918; the family has kept the shop
+    // running that long, and that is what the line says.
+    headline: `The same family keeping things running since ${FOUNDED_YEAR}.`,
     entry: 'about',
     image: '/images/story.svg',
     imageAlt: 'The K-H Machine Works shop floor with lathes and milling machines',
@@ -207,9 +223,8 @@ export const site: SiteConfig = {
         'Precision machining, repairs, custom fabrication and welding from K-H Machine Works in North Bergen, NJ.',
     },
     about: {
-      eyebrow: 'K-H Machine Works Inc · North Bergen, NJ · Est. 1978',
-      metaDescription:
-        'K-H Machine Works Inc has been machining and repairing parts in North Bergen, NJ since 1978.',
+      eyebrow: `K-H Machine Works Inc · North Bergen, NJ · Est. ${FOUNDED_YEAR}`,
+      metaDescription: `K-H Machine Works Inc has been machining and repairing parts in North Bergen, NJ since ${FOUNDED_YEAR}.`,
     },
     contact: {
       title: 'Tell us about the job',
@@ -223,7 +238,7 @@ export const site: SiteConfig = {
   seo: {
     titleTemplate: '%s | K-H Machine Works',
     defaultDescription:
-      'K-H Machine Works is a family-run precision machine shop in North Bergen, NJ, serving Hudson County and the New York metro area since 1978.',
+      `K-H Machine Works is a family-run precision machine shop in North Bergen, NJ, serving Hudson County and the New York metro area since ${FOUNDED_YEAR}.`,
     // PLACEHOLDER — no domain is registered or pointed at this build.
     siteUrl: 'https://example.invalid',
     // MOCKUP LOCK. While true: every page emits noindex,nofollow and
