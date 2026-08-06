@@ -108,6 +108,42 @@ checking with the client before the mockup is shown. The provenance is
 recorded on `FOUNDED_YEAR`'s doc comment in `kh-machine-works.config.ts` so
 it travels with the value rather than only living here.
 
+### Intended content change 3 — the confirmed contact details
+
+The byte-identity table above is a snapshot of the refactor. This change is
+the first one since that deliberately moves K-H's rendered text, and it is
+recorded here so the table is not read as still-current.
+
+Four `PLACEHOLDER` values were replaced with values K-H publishes about
+itself on khmachineworks.com, corroborated by directory listings (retrieved
+Aug 2026):
+
+```
+- (201) 555-0142                    + (201) 867-2338
+- PLACEHOLDER@example.com           + KHCanDo@optonline.net
+- PLACEHOLDER — confirm street …    + 4322 Grand Ave
+- PLACEHOLDER (postalCode)          + 07047
+```
+
+`seo.siteUrl` moved from `https://example.invalid` to
+`https://www.khmachineworks.com` at the same time, which changes every
+absolute URL Astro derives from it — canonicals, `og:image`, and the JSON-LD
+`@id`, `url`, `image` and `logo` fields.
+
+These touch the footer, the contact page, and the `LocalBusiness` JSON-LD on
+every page, so **K-H's output is intentionally no longer byte-identical to
+`a274674`**. The reproduction recipe at the bottom of this file will now show
+these diffs, and that is correct.
+
+What did *not* change: `seo.noindex` is still `true`. The mockup lock is
+independent of `siteUrl`, and only the client's sign-off flips it.
+
+The remaining markers are the ones no amount of research can close —
+testimonial attributions (our paraphrase, needs client sign-off), the
+certification label (no source), and the two `forms` values (deploy-time
+infrastructure, not facts about the business). They are enumerated with
+reasons in the config's header comment.
+
 ### The three mechanical tokens on the contact page
 
 ```

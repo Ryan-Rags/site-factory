@@ -213,7 +213,16 @@ export const site: SiteConfig = {
     titleTemplate: '%s | American Machine Specialty',
     defaultDescription:
       'American Machine Specialty LLC is a woman-owned, ISO 9001:2015 certified contract manufacturer in Westwood, NJ, machining for medical, aerospace and instrumentation customers.',
-    siteUrl: 'https://example.invalid',
+    // AMS's real, verified-live domain (retrieved Aug 2026). Same caveat as
+    // K-H's: this build is not deployed there, so absolute asset URLs resolve
+    // against a host that does not serve them. Harmless while noindex.
+    //
+    // NOTE — `business.email` above is `info@amsconj.com`, a different domain
+    // from this one. Both were sourced independently and both look right, but
+    // the mismatch is unexplained: AMS may run a legacy mail domain alongside
+    // the marketing site. Confirm which is current before either is used in
+    // anger.
+    siteUrl: 'https://americanmachinespecialty.com',
     noindex: true,
   },
 
