@@ -12,3 +12,20 @@
   Lighthouse run counts as one page navigation.
 - This is a solo repo: commit to main only in the foundation phase;
   after worktrees exist, work stays on your assigned branch.
+# Worktree + merge protocol (solo-repo mode)
+- Streams create their own worktrees; never work in the main checkout.
+- Self-merge feat/<stream> -> main ONLY when: (1) merge touches only your
+  owned dirs + your plan file (plus explicitly granted shared files);
+  (2) fetch first, rebase if main moved, conflict-free or STOP — never
+  resolve a conflict yourself; (3) pnpm install && pnpm -r build &&
+  pnpm -r typecheck green on the merged result BEFORE pushing; report SHA.
+- Shared files (root configs, lockfile, .gitignore, claude.md, data/*.csv
+  schema, root README) merge only with explicit grant in the task prompt.
+- Plan files are per-stream: PLAN-pipeline.md / PLAN-template.md. Root
+  PLAN.md is foundation-only.
+- Plan gate: STOP after plan by default; a prompt ending in explicit
+  execute-through language counts as pre-approval.
+
+# Stream ownership
+- feat/pipeline: packages/discover, packages/audit, packages/outreach, PLAN-pipeline.md
+- feat/template: packages/template, PLAN-template.md
