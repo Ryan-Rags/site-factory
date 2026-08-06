@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "SYNTHETIC dry-run fixture for `pnpm discover -- --dry-run`. This is not a",
+    "captured API response. Place ids are 'fixture-*' rather than real Places",
+    "ids, and rows built from this file are written with source=places-fixture.",
+    "Rating and review count are deliberately absent: inventing them would feed",
+    "fabricated numbers into the audit score. The audit falls back to a neutral",
+    "value multiplier and says so in the report.",
+    "KH Machine Works is a real business; only its public name and website are",
+    "recorded here, nothing else about it is asserted."
+  ],
+  "places": [
+    {
+      "id": "fixture-khmachineworks",
+      "displayName": { "text": "KH Machine Works" },
+      "websiteUri": "https://khmachineworks.com"
+    },
+    {
+      "id": "fixture-no-website-1",
+      "displayName": { "text": "Example Fabrication Co (fixture, no website)" }
+    }
+  ]
+}

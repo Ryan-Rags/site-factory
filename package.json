@@ -11,6 +11,9 @@
     "build": "pnpm -r build",
     "clean": "pnpm -r clean",
     "typecheck": "pnpm -r typecheck",
+    "discover": "node packages/discover/dist/cli.js",
+    "audit-sites": "node packages/audit/dist/cli.js",
+    "outreach": "node packages/outreach/dist/cli.js",
     "lint": "echo \"lint: not configured yet\"",
     "test": "echo \"test: not configured yet\""
   },
