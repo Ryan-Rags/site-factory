@@ -1,0 +1,26 @@
+{
+  "name": "@site-factory/template",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Config-driven Astro/Tailwind site template; deploys to Cloudflare Pages.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
