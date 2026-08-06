@@ -133,3 +133,37 @@ One decision is needed, and it is the template stream's to make, not mine:
 Alternatively, tell me to own that template change from this checkout with an
 explicit grant for `packages/template/`, and I will do both parts together.
 I will not write into another stream's directory without that.
+
+## Deployment model (shipped, chore/deploy)
+
+Each client gets its **own Cloudflare Pages project**, `<slug>-preview`, serving
+that client's build at the project root. `scripts/deploy/deploy-mockups.mjs`
+(`pnpm deploy:mockups`) iterates the directories under `packages/template/dist`,
+creates the project if missing, deploys, then verifies the homepage and one
+internal page (`/services/`) over HTTP. Loose files in `dist/` are ignored —
+they are stale `tsc` stubs, not sites.
+
+Verification targets the canonical `https://<project>.pages.dev` alias rather
+than the per-deployment `<hash>.<project>.pages.dev` hostname: the alias is what
+a client is sent, and the hash host's certificate is not always issued by the
+time `wrangler pages deploy` returns (first run failed there with a TLS error
+while the alias served 200).
+
+The earlier single combined `mockups` project — one project, one client per
+subpath — has been deleted. It could not work: the template emits root-absolute
+hrefs, so internal nav under `/mockups/<slug>/` resolved to the wrong paths.
+
+## Backlog (recorded, not implemented)
+
+- **Shared-subpath hosting would need base-aware builds.** To put every client
+  under one project at `/<slug>/`, the template would have to take a `SITE_BASE`
+  env var into Astro's `base` option and prefix every internal `href`/asset with
+  `import.meta.env.BASE_URL`. Not done: one project per client at its own root
+  already matches how a real client build targets a domain root, so the mockup
+  and the deliverable exercise the same code path. Revisit only if per-client
+  project sprawl becomes a problem.
+- **`build:all` should clean stale `tsc` stub artifacts out of the `dist` root.**
+  `dist/index.js`, `index.d.ts`, and their `.map` files are leftovers from an
+  earlier TypeScript build and sit alongside the real per-client directories.
+  The deploy script works around them by only walking directories; the build
+  should not be emitting them at all.

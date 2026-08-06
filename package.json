@@ -16,6 +16,7 @@
     "outreach": "node packages/outreach/dist/cli.js",
     "mockup": "node scripts/mockup/index.mjs",
     "mockup:all": "node scripts/mockup/index.mjs --all",
+    "deploy:mockups": "node scripts/deploy/deploy-mockups.mjs",
     "lint": "echo \"lint: not configured yet\"",
     "test": "echo \"test: not configured yet\""
   },
