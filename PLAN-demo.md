@@ -1,8 +1,9 @@
 # PLAN — demo (per-prospect demo pipeline)
 
-Branch `feat/demo`, worktree `D:/sf-demo`. **Plan gate: not approved yet. No
-code written.** Seven questions below are blocking; Q1 and Q2 cannot be
-guessed past.
+Branch `feat/demo`, worktree `D:/sf-demo`. **Plan approved and built** — see
+"Rulings" and "As built" below. The blocking questions are kept as written,
+with the answers recorded against them, because two of the answers (Q3, Q4)
+are the reason the code is shaped the way it is.
 
 Goal: one command — `pnpm demo -- --prospect <id>` — that ingests a prospect,
 generates their personalised site, deploys it to Cloudflare Pages on a clean
@@ -187,6 +188,82 @@ result is not dressed up as a full one: 5 sites built, 5 deployed and verified,
 unavailable**, and — absent a Places key — every Places-sourced field
 `unavailable` across all 5.
 
+## Results
+
+`pnpm demo -- --all`, one command, exit 0. **The prediction above held
+exactly**: 5 built, 5 deployed and verified on `/` and `/services/`, 10 cards,
+2 real before/after pairs and 3 honestly empty ones.
+
+| Prospect | Live demo (verified) | Before | Palette | Preset | Unavail. | Conflicts |
+| --- | --- | --- | --- | --- | --- | --- |
+| american-machine-specialty | `american-machine-specialty-preview.pages.dev` 200/200 | captured | `#12507a/#a8481a` | precision | 4 | 3 |
+| industrial-machine-corp | `industrial-machine-corp-preview.pages.dev` 200/200 | none — no current site | `#334155/#9a3412` | precision | 8 | 0 |
+| kh-machine-works | `kh-machine-works-preview.pages.dev` 200/200 | captured | `#0f4c81/#b45309` | precision | 4 | 5 |
+| ks-welding | `ks-welding-preview.pages.dev` 200/200 | none — no current site | `#1f4e79/#b03a12` | forge | 7 | 0 |
+| kts-machine-shop | `kts-machine-shop-preview.pages.dev` 200/200 | none — no current site | `#1e3a5f/#c2410c` | precision | 6 | 0 |
+
+Every palette here is the hand-authored config's own, so `brandCreatedByUs` is
+false across all five and **the generated-palette path is not exercised by this
+run**. It was exercised separately against `ivywood-grooming-co` (no config, no
+site, no assets, from the sample CSV): generated `#4a28d9/#b43109` from the
+grooming pairing with a −12° slug hue shift, generated its own about and
+service markdown, built, shot, and carded clean. That prospect directory was
+then deleted so `--all` means exactly the five.
+
+One transcript, as representative:
+
+```
+> kh-machine-works
+  ingest: lead row: found (niche "machine shop", place_id none)
+  ingest: client config: seeded from packages/template/clients/kh-machine-works.config.ts
+  ingest: assets folder: no logo, 0 photo(s)
+  ingest: places: no GOOGLE_MAPS_API_KEY — every Places-sourced field stays unavailable
+  ingest: website: read 1 page(s) at 1/sec — https://www.khmachineworks.com
+  ingest: website: logo downloaded for palette extraction only
+  ingest: palette: kept the hand-authored client config's colours
+  content: reused 5 existing markdown file(s)
+  build: dist/kh-machine-works
+  after: 2 shot(s)
+  before: captured from their live site
+  deploy: https://kh-machine-works-preview.pages.dev  home=200 services=200
+  cards: qr-card.png, before-after.png
+
+  sources disagreed on 5 field(s):
+    businessName: kept "K-H Machine Works" (manual), saw "K-H Machine Works Inc" (website)
+    address:      kept "4322 Grand Ave, NJ" (manual), saw "4322 Grand Avenue, New Jersey" (website)
+    services:     kept "4 item(s)" (manual), saw "2 item(s)" (website)
+  4 field(s) unavailable:
+    ratingSummary / reviews / photos: no Places API key was configured
+    brand.logoPath: no source supplied a logo
+```
+
+The conflict list is the part worth reading. Nothing was overwritten — the
+researched config won every time — but the disagreements are now visible: K-H's
+own site says `Inc`, spells out `Avenue` and `New Jersey`, and advertises two
+services where the config lists four. None of that was known before this run,
+and a merge that simply picked a winner would have destroyed all of it.
+
+### Defect found and fixed during acceptance
+
+The first full run reported `before: none — their site could not be loaded` for
+K-H, seconds after the crawler had read that same page successfully. Cause: the
+"before" shot waited for `networkidle`, which K-H's Wix site never reaches, so a
+30-second timeout was being reported as an unreachable site — and the pipeline
+silently produced its weakest possible card for the prospect with the strongest
+before/after story. `packages/audit/src/probe.ts` navigates with `load` for
+exactly this reason; the shot now matches it, and a failure carries the real
+error text instead of a generic sentence. The rerun captured K-H's homepage.
+
+### Not exercised this session
+
+- **Live Places.** No key (Q2). Code-complete and typechecked, never called.
+  Every Places-sourced field reports `unavailable` with that reason, which is
+  most of the `Unavail.` column above.
+- **Prospect-supplied assets.** Nothing has been dropped in any
+  `prospects/<id>/assets/` yet, so palette-from-logo ran only in the standalone
+  grooming test. Drop a `logo.png` in one of the five and re-run to see the
+  extraction path win over the niche palette.
+
 ## 8. Gate
 
 `pnpm install && pnpm -r build && pnpm -r typecheck` green; acceptance run
@@ -194,6 +271,106 @@ green; branch asserted `feat/demo`; pushed. **Not merged** — as instructed. No
 PR opened unless you ask.
 
 ---
+
+## Rulings (received, and what each one changed)
+
+- **Q1 — `SiteConfig` is the contract; ship against it now.** Design families
+  are being built in the design stream as named theme presets layered over the
+  same config. The prospect config carries a string `preset`
+  (`forge | precision | heritage`), defaulted from the niche, and passes it
+  through. *Built as ruled:* `ThemePreset` is an additive-optional
+  `theme.preset` in `site.ts`, documented so that a checkout which has not
+  built a given preset falls back to the base design rather than failing.
+- **Q3 — generated configs never overwrite the five hand-authored ones.**
+  *Built as ruled* via `SITE_CONFIG_FILE`. It went further than the ruling
+  required: the five configs are not merely left alone, they are **read as the
+  top-precedence ingestion source**, so a demo for a business we already
+  researched starts from that research instead of re-deriving it worse.
+- **Q4 — Google photos and reviews may appear with visible "via Google"
+  attribution.** *Built for reviews* — they are shown verbatim, attributed
+  `<author> · via Google`, `status: 'verified'`, with the source recorded.
+  **Not built for photos**, and the reason is a template gap rather than a
+  choice: no component renders a visible credit anywhere near an image, so
+  there is nowhere for the attribution to go. Places photos are ingested and
+  recorded in `prospect.json`; publishing them needs one credit line in
+  `Footer.astro` or a caption field on `Service`/`Hero`, both of which belong
+  to the template stream. See "Handed to other streams".
+- **Q5 — keep `<slug>-preview.pages.dev`.** *Built as ruled*, reusing the
+  existing project-per-client model and its collision fallback.
+- **Q6 — `qrcode` approved.** *Used*, at error-correction level H.
+- **Q7 — grant: additive-optional changes to `site.ts`, read access to the
+  template build scripts.** Taken narrowly; what was touched beyond it, and
+  why, is listed under "Files touched outside the grant".
+- **Q2 — the Places key** was not part of the rulings and no `.env` exists, so
+  the live Places path ships code-complete and typechecked but unexecuted, the
+  same position `feat/pipeline` took on discovery (its Q6). Every
+  Places-sourced field reports `unavailable` with that reason, and the run
+  continues.
+
+## As built
+
+**`packages/prospect`** — one new package, 20 files. `pnpm demo -- --prospect
+<id>` runs: ingest → project → build → shoot → deploy → cards → manifest.
+`--all` runs every prospect. `--skip-deploy`, `--skip-places`,
+`--skip-website`, `--skip-ingest` and `--list` exist for the obvious reasons.
+
+Decisions worth arguing with:
+
+- **Every field is `{value, source, retrievedAt}` or `{unavailable, reason}`.**
+  There is no third state and no bare string, so "we do not know" cannot decay
+  into `""` and then into something plausible three modules downstream. The
+  run prints the unavailable list at the end; that list is the useful output.
+- **Precedence is `manual > folder > places > website > generated`**, and the
+  loser of a disagreement is *recorded* as a conflict rather than dropped. A
+  live site whose phone number differs from the Places listing is a fact worth
+  carrying into the meeting.
+- **No image library.** Palette extraction, both cards and all four
+  screenshots run through the Chromium that Playwright already ships. Logos
+  and photos are decoded by drawing them to a canvas — which is also why SVG,
+  PNG, JPEG, WebP and AVIF all work without a single branch.
+- **The generated palette is held to the template's own contrast bar.**
+  `check-contrast.mjs` reads colours out of `site.config.ts` with a regex and
+  therefore cannot see a generated config, so its eight pairings are ported
+  into `color.ts` and run against every extracted or generated palette.
+  Extracted brand colours are darkened — hue and saturation preserved — until
+  they clear AA, rather than being rejected for being a shade too light.
+- **Generated content is a build-time temporary.** `about.astro` and
+  `services.astro` throw on a missing markdown file, so a prospect with no
+  content needs some. It is written before the build and removed after, an
+  existing file is never overwritten, and only directories this run created
+  are cleaned up. Two reasons it is not left on disk: the template belongs to
+  another stream, and the prose is third-party business data.
+- **Their assets are not published without being given to us.** A logo found
+  on their own site is downloaded for colour extraction only and never copied
+  into the build. Files dropped in `prospects/<id>/assets/` are theirs to give
+  and do get published.
+- **`seo.noindex` is hard-coded true for every generated config.** A demo is a
+  private mockup of someone else's business under their name.
+
+## Files touched outside the grant
+
+Four, all additive, all listed here because the grant did not name them:
+
+| File | Change | Why |
+| --- | --- | --- |
+| `packages/template/clients/index.ts` | `SITE_CONFIG_FILE` branch in `resolveClient` | The mechanism Q3 approved. Without it there is no way to build a generated config, and the alternative — codegen into `clients/` — is what Q3 forbade. |
+| `package.json` | one `demo` script | "One command" is the deliverable. |
+| `pnpm-workspace.yaml` | one line | A new package has to be in the workspace. |
+| `.gitignore` | `/prospects/` | Ingested business data must not be committable, same rule as `/audit/` and `/outreach/`. |
+
+## Handed to other streams
+
+Two findings this work surfaced but is not allowed to fix:
+
+1. **`Footer.astro` renders "since ." when `foundedYear` is absent** (line
+   113 interpolates it unconditionally, though `site.ts` marks it optional).
+   This is **pre-existing and already live**: `ks-welding` and
+   `industrial-machine-corp` deliberately omit the year, and their built
+   footers read `surrounding area since .` today — verified by grepping
+   `dist/ks-welding/index.html`. The demo pipeline did not cause it and cannot
+   fix it from here.
+2. **No visible image-credit surface** anywhere in the template, which is what
+   blocks Q4's photo half.
 
 ## Blocking questions
 

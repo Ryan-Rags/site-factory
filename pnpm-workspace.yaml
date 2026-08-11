@@ -2,4 +2,5 @@ packages:
   - "packages/discover"
   - "packages/audit"
   - "packages/outreach"
+  - "packages/prospect"
   - "packages/template"

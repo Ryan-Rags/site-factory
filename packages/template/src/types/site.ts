@@ -84,7 +84,24 @@ export interface Business {
   mapUrl?: string;
 }
 
+/**
+ * Named theme preset — the "design family" a site is dressed in.
+ *
+ * The presets themselves are built in the design stream as a layer over this
+ * same `SiteConfig`; this type is only the shared vocabulary for naming one.
+ * The field is optional, and a config that omits it renders exactly as it did
+ * before presets existed.
+ *
+ * A consumer that meets a preset it has not built must fall back to the base
+ * design rather than fail. The demo pipeline selects a preset from the
+ * prospect's niche and passes it straight through, so it will name a family
+ * before every checkout of the template can render one.
+ */
+export type ThemePreset = 'forge' | 'precision' | 'heritage';
+
 export interface Theme {
+  /** Optional. See {@link ThemePreset}. Absent means the base design. */
+  preset?: ThemePreset;
   colors: {
     /** Brand colour. Must reach 4.5:1 against white for body text use. */
     primary: string;

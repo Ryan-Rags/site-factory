@@ -1,0 +1,33 @@
+{
+  "name": "@site-factory/prospect",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-prospect demo pipeline: ingest a prospect, generate their site, deploy it, and print the leave-behind cards.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@site-factory/discover": "workspace:*",
+    "playwright": "^1.49.1",
+    "qrcode": "^1.5.4",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/qrcode": "^1.5.5"
+  }
+}
