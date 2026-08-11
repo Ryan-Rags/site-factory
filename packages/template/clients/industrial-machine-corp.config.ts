@@ -1,8 +1,8 @@
 import type { SiteConfig } from '../src/types/site';
-import { VERIFY_MARKER as V } from '../src/types/site';
+import { copyFor } from './from-copy';
 
 /**
- * INDUSTRIAL MACHINE CORPORATION — Elmwood Park, NJ.
+ * INDUSTRIAL MACHINE CORPORATION — Elmwood Park, NJ. Bergen County.
  *
  * PITCH MOCKUP. `seo.noindex: true`; nothing here is published or indexed.
  *
@@ -15,11 +15,26 @@ import { VERIFY_MARKER as V } from '../src/types/site';
  * so a build of this client proves that each of those sections disappears
  * cleanly instead of rendering an empty shell or the word "undefined".
  *
+ * WHAT THE COPY ENGINE CHANGED HERE, AND WHY IT MATTERS MOST ON THIS CLIENT.
+ * The previous copy filled its gaps with marked prose: "Machining services.
+ * Processes, materials and tolerances [verify with client]." That is a
+ * sentence whose subject is its own incompleteness — nobody would publish it,
+ * and it told the reader nothing in the meantime. The regenerated copy says
+ * the true things instead: what the shop is, where it is, what machining work
+ * is, and how to find out whether your job is one for them. It carries fewer
+ * markers than it did and states no more than it did.
+ *
+ * The FAQ is the honest cost of knowing three facts: six questions, not
+ * eight. The six that were dropped are dropped rather than hedged, and each
+ * one is a question for the owner in `packages/copy/REPORT.md`.
+ *
  * On hours specifically: the hours listed for this business upstream are
  * visibly corrupted, so they are omitted rather than marked. A blank hours
- * table would be worse than no hours table, and a wrong one would be worse
- * than both.
+ * table would be worse than no hours table, a wrong one worse than both, and
+ * a marker does not help the customer who drove to a shop that was shut.
  */
+const copy = copyFor('industrial-machine-corp');
+
 export const site: SiteConfig = {
   business: {
     name: 'Industrial Machine Corporation',
@@ -61,93 +76,34 @@ export const site: SiteConfig = {
   },
 
   hero: {
-    headline: 'Machine Shop and Manufacturer in Elmwood Park, NJ.',
-    subhead: `Machining and manufacturing services. Specific capabilities ${V}.`,
+    ...copy.hero,
     ctaPrimary: { text: 'Call the shop', href: '/contact' },
     ctaSecondary: { text: 'See what we do', href: '/services' },
     image: '/images/hero.svg',
-    imageAlt: 'Machine shop floor with lathes and milling machines',
   },
 
-  trustStrip: [
-    { icon: 'gear', label: 'Machine shop and manufacturer' },
-    { icon: 'truck', label: 'Elmwood Park, New Jersey' },
-    { icon: 'phone', label: 'Call for capabilities and lead times' },
-    { icon: 'wrench', label: `Services offered — ${V}` },
-  ],
-
-  services: [
-    {
-      slug: 'machining',
-      title: 'Machining',
-      oneLiner: `Machining services. Processes, materials and tolerances ${V}.`,
-      icon: 'precision',
-      image: '/images/service-precision-machining.svg',
-      imageAlt: 'Machined metal components on a workbench',
-    },
-    {
-      slug: 'manufacturing',
-      title: 'Manufacturing',
-      oneLiner: `Manufacturing services. Scope and production capacity ${V}.`,
-      icon: 'gear',
-      image: '/images/service-custom-fabrication.svg',
-      imageAlt: 'Manufactured metal parts ready for despatch',
-    },
-  ],
+  trustStrip: copy.trustStrip,
+  services: copy.services,
 
   about: {
-    headline: 'A machine shop in Elmwood Park.',
+    ...copy.about,
     entry: 'about',
     image: '/images/story.svg',
-    imageAlt: 'Machine shop floor',
   },
 
   // No testimonials: none have been relayed for this business, and inventing
   // one would be fabrication. An empty array renders no section.
   testimonials: [],
 
-  certifications: [
-    {
-      label: `Certifications and affiliations — ${V}`,
-      detail: 'Confirm what this business holds before anything is published.',
-    },
-  ],
-
-  cta: {
-    headline: 'Call the shop.',
-    body: `Give us a ring and we will tell you whether the job is something we take on. Email and hours ${V}.`,
-    buttonText: 'Call the shop',
-    buttonHref: '/contact',
-  },
-
-  pages: {
-    home: {
-      servicesHeading: 'Machining and manufacturing',
-      servicesIntro: `What the shop takes on, in its own words — ${V}.`,
-    },
-    services: {
-      title: 'What we do',
-      intro: `Machining and manufacturing services. The detail on this page is ${V}.`,
-      metaDescription:
-        'Machining and manufacturing from Industrial Machine Corporation in Elmwood Park, NJ.',
-    },
-    about: {
-      eyebrow: 'Industrial Machine Corporation · Elmwood Park, NJ',
-      metaDescription:
-        'Industrial Machine Corporation is a machine shop and manufacturer in Elmwood Park, NJ.',
-    },
-    contact: {
-      title: 'Get in touch',
-      intro: 'Call the shop and we will tell you what we can do and how long it will take.',
-      metaDescription:
-        'Call Industrial Machine Corporation in Elmwood Park, NJ for machining and manufacturing.',
-    },
-  },
+  certifications: copy.certifications,
+  cta: copy.cta,
+  pages: copy.pages,
+  faq: copy.faq,
+  serviceAreas: copy.serviceAreas,
 
   seo: {
     titleTemplate: '%s | Industrial Machine Corporation',
-    defaultDescription:
-      'Industrial Machine Corporation is a machine shop and manufacturer in Elmwood Park, New Jersey.',
+    defaultDescription: copy.seoDescription,
     siteUrl: 'https://example.invalid',
     noindex: true,
   },

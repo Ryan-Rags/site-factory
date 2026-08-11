@@ -180,3 +180,47 @@ cd packages/template && pnpm build            # archive dist/
 git checkout HEAD -- packages/template
 pnpm build                                     # compare dist/kh-machine-works/
 ```
+
+---
+
+## The lock ends here — 2026-08-11
+
+K-H's copy was regenerated through `@site-factory/copy` on 2026-08-11, on
+branch `feat/copy`. **The byte-equivalence proof above is closed as of that
+change.** Do not attempt to reproduce it against a later commit; it will not
+reproduce, and it is not meant to.
+
+This is deliberate, and it is worth being clear about what was given up.
+
+The lock existed to protect the one client that predated the multi-client
+refactor from a silent regression: a lost paragraph, a mangled address line, a
+section that quietly stopped rendering. It did that job, and the table above is
+its evidence. But it protected the *bytes*, and the bytes included copy that
+was never sourced — most consequentially `The same family keeping things
+running since 1918`, which conflated the company's age with a family's tenure.
+1918 is verified. Continuous family ownership never was. Holding the output
+byte-identical would have meant holding that sentence too.
+
+So the lock was traded for a stronger guarantee that runs continuously rather
+than once:
+
+- `scripts/check-fabrication.mjs` asserts, on every build, that every claim in
+  K-H's built pages traces to a `Fact` on its prospect record. The old proof
+  showed one commit's output matched another's. This one shows that no build's
+  output says anything nobody sourced.
+- `scripts/check-markers.mjs` is unchanged and still blocks a live build
+  carrying a marker.
+
+What K-H's regeneration changed, concretely:
+
+- The legacy `PLACEHOLDER` marker is retired. K-H was the last config using it,
+  kept only because of this lock. The repo now has one marker spelling.
+- The family-continuity claim is gone from the copy and is now an explicit
+  question on the prospect record, in `packages/copy/REPORT.md`.
+- Markers in the built output dropped from 8 to 3; the three that remain are
+  two testimonial attributions and one certification, none of which
+  copywriting can resolve.
+
+The reproduction recipe above still works for the commits it names. It is kept
+because the refactor's evidence should remain checkable, not because the
+property still holds.

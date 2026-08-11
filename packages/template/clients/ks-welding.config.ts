@@ -1,19 +1,26 @@
 import type { SiteConfig } from '../src/types/site';
 import { VERIFY_MARKER as V } from '../src/types/site';
+import { copyFor } from './from-copy';
 
 /**
- * K&S WELDING & FABRICATING — Bergenfield, NJ.
+ * K&S WELDING & FABRICATING — Bergenfield, NJ. Bergen County.
  *
  * PITCH MOCKUP. `seo.noindex: true`; nothing here is published or indexed.
  *
- * Confirmed: name, address, phone, the owner's first name, the trade, the
- * walk-in model, and weekday hours. No founding year and no inbox are
- * confirmed, so `foundedYear` and `email` are both omitted — which is why no
- * copy anywhere on this site refers to how long the shop has been going.
+ * All copy is generated from `packages/copy/src/prospects/ks-welding.ts`,
+ * through the `welding-fabrication` niche pack — the only one of the five
+ * that is not a machine shop, and therefore the proof that the niche packs
+ * are doing real work rather than templating the same paragraphs.
+ *
+ * No founding year is confirmed, so `foundedYear` is absent and the headline
+ * formula falls back to a sourced trait for its trust slot. There is no code
+ * path by which "serving Bergen County for years" can appear on this site.
  *
  * This is also the two-service case: the services grid and the copy around it
  * must read correctly for a shop that does two things, not four.
  */
+const copy = copyFor('ks-welding');
+
 export const site: SiteConfig = {
   business: {
     name: 'K&S Welding & Fabricating',
@@ -60,46 +67,19 @@ export const site: SiteConfig = {
   },
 
   hero: {
-    headline: "Bring It In. We'll Fix It Fast.",
-    subhead:
-      'Walk-in welding and metal fabrication in Bergenfield. Bring the part or send a photo and we will tell you what it takes.',
+    ...copy.hero,
     ctaPrimary: { text: 'Send a photo for a quote', href: '/contact' },
     ctaSecondary: { text: 'See what we do', href: '/services' },
     image: '/images/hero.svg',
-    imageAlt: 'Welder joining a steel assembly in the shop',
   },
 
-  trustStrip: [
-    { icon: 'clock', label: 'Fast turnaround' },
-    { icon: 'wrench', label: 'Walk-ins welcome' },
-    { icon: 'badge', label: 'Fair, up-front pricing' },
-    { icon: 'gear', label: 'Welding and metal fabrication' },
-  ],
-
-  services: [
-    {
-      slug: 'welding',
-      title: 'Welding',
-      oneLiner: 'Repairs and joining work, most of it done while you wait.',
-      icon: 'shield',
-      image: '/images/service-welding-fitting.svg',
-      imageAlt: 'Welder repairing a steel component at the bench',
-    },
-    {
-      slug: 'metal-fabrication',
-      title: 'Metal Fabrication',
-      oneLiner: 'Custom pieces made from your sketch, your sample, or your mock-up.',
-      icon: 'gear',
-      image: '/images/service-custom-fabrication.svg',
-      imageAlt: 'Custom fabricated steel piece beside the mock-up it was made from',
-    },
-  ],
+  trustStrip: copy.trustStrip,
+  services: copy.services,
 
   about: {
-    headline: 'Bring it in and we will take a look.',
+    ...copy.about,
     entry: 'about',
     image: '/images/story.svg',
-    imageAlt: 'The K&S Welding & Fabricating shop',
   },
 
   // Paraphrases of sentiment relayed about this shop. The wording is ours, not
@@ -128,50 +108,15 @@ export const site: SiteConfig = {
     },
   ],
 
-  certifications: [
-    {
-      label: `Certifications and insurance — ${V}`,
-      detail: 'Confirm what the shop holds before anything is published.',
-    },
-  ],
-
-  cta: {
-    headline: 'Got something that needs welding?',
-    body: 'Send a photo for a quote, or just walk it in today. Simon will tell you what it takes and what it costs.',
-    buttonText: 'Send a photo for a quote',
-    buttonHref: '/contact',
-  },
-
-  pages: {
-    home: {
-      servicesHeading: 'Welding and metal fabrication',
-      servicesIntro: 'Two things, done fast, at a price you agree before we start.',
-    },
-    services: {
-      title: 'What we do',
-      intro:
-        'Welding and metal fabrication. Bring the part in or send a photo and we will tell you what it takes.',
-      metaDescription:
-        'Walk-in welding and metal fabrication from K&S Welding & Fabricating in Bergenfield, NJ.',
-    },
-    about: {
-      eyebrow: 'K&S Welding & Fabricating · Bergenfield, NJ',
-      metaDescription:
-        'K&S Welding & Fabricating is a walk-in welding and metal fabrication shop in Bergenfield, NJ.',
-    },
-    contact: {
-      title: 'Send a photo or walk it in',
-      intro:
-        'Send a photo of the job and we will tell you what it takes and what it costs. Or just bring it in.',
-      metaDescription:
-        'Contact K&S Welding & Fabricating in Bergenfield, NJ — send a photo for a quote or walk in.',
-    },
-  },
+  certifications: copy.certifications,
+  cta: copy.cta,
+  pages: copy.pages,
+  faq: copy.faq,
+  serviceAreas: copy.serviceAreas,
 
   seo: {
     titleTemplate: '%s | K&S Welding & Fabricating',
-    defaultDescription:
-      'K&S Welding & Fabricating is a walk-in welding and metal fabrication shop in Bergenfield, New Jersey, offering fast turnaround at fair prices.',
+    defaultDescription: copy.seoDescription,
     siteUrl: 'https://example.invalid',
     noindex: true,
   },

@@ -1,17 +1,13 @@
 ---
-title: Manufacturing
-summary: Manufacturing services. Scope and production capacity [verify with client].
+title: 'Manufacturing'
+summary: 'Manufacturing work from the shop in Elmwood Park.'
 highlights:
-  - Production capacity — [verify with client]
-  - Run sizes handled — [verify with client]
-  - Industries served — [verify with client]
-  - Quality certifications — [verify with client]
+  - 'Made to order, not off the shelf'
+  - 'One piece or a repeat run'
 ---
 
-Manufacturing work at the Elmwood Park shop.
+Making parts to order rather than selling them off a shelf: you bring the requirement, we work out what it takes to produce it and what that costs.
 
-As with machining, the specifics here are [verify with client]. We have not
-confirmed run sizes, capacity or the industries the shop supplies, and we are not
-going to invent them for a draft.
+Quantities and repeat schedules are worked out per job. Call and describe what you need made and how often you need it.
 
-Call and ask. That is the fastest route to a real answer.
+Call (973) 345-1800 and tell us what the part is, what it does and when you need it.

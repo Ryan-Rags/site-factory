@@ -9,6 +9,8 @@ import StoryTeaser from '../components/StoryTeaser.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Equipment from '../components/Equipment.astro';
 import Updates from '../components/Updates.astro';
+import ServiceAreas from '../components/ServiceAreas.astro';
+import Faq from '../components/Faq.astro';
 import CtaBand from '../components/CtaBand.astro';
 
 // Content is namespaced by client: `src/content/about/<slug>/<entry>.md`.
@@ -25,9 +27,11 @@ const excerpt = story.body?.split(/\n{2,}/).slice(0, 1).join(' ').replace(/\s+/g
 ---
 
 <BaseLayout
-  title={`${site.business.name} — ${site.business.tagline}`}
+  title={site.pages.home.title ?? `${site.business.name} — ${site.business.tagline}`}
+  description={site.pages.home.metaDescription}
   bareTitle
   preloadImage={site.hero.image}
+  faqJsonLd
 >
   <Hero />
   <TrustStrip />
@@ -38,6 +42,11 @@ const excerpt = story.body?.split(/\n{2,}/).slice(0, 1).join(' ').replace(/\s+/g
   <StoryTeaser excerpt={excerpt} />
   <Equipment />
   <Testimonials />
+  <ServiceAreas />
   <Updates />
+  {/* The FAQ sits after the service areas and before the final CTA: a reader
+      who is still going at this point has a specific question, and the CTA
+      should be the thing they hit once it is answered. */}
+  <Faq />
   <CtaBand />
 </BaseLayout>

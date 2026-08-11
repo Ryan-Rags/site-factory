@@ -33,20 +33,43 @@ cp clients/kts-machine-shop.config.ts clients/<slug>.config.ts
 mkdir -p src/content/about/<slug> src/content/services/<slug>
 ```
 
-Then register it in `clients/index.ts` — one import, one line in the `clients`
-map. The slug must match the discovery pipeline's slug for that business: it
+You will also need a prospect record — `packages/copy/src/prospects/<slug>.ts`,
+registered in that package's `prospects/index.ts`. That is where the client's
+facts and their sources live, and it is what the copy is generated from.
+
+Then register the config in `clients/index.ts` — one import, one line in the
+`clients` map. The slug must match the discovery pipeline's slug for that business: it
 is also the `dist/<slug>/` output directory and the key the mockup bridge uses
 to find `audit/out/<slug>/` screenshots.
 
 `pnpm build:all` fails if a config exists that nobody registered, so a
 half-added client cannot sit there unnoticed.
 
-### 2. Fill in `site.config.ts` (10 min)
+### 2. Fill in the client config (10 min)
 
-The whole site is in this one file. Search it for **`PLACEHOLDER`** — every
-value we have not confirmed with the client is marked with that word, and none
-of them are plausible-looking fakes. In particular the seed phone number uses
-the reserved `555-01xx` range, which can never connect to anybody.
+**Half of a client config is generated now, and must not be hand-edited.**
+
+The copy — hero, trust strip, service descriptions, About, CTA, page headings,
+SEO strings, FAQ, service areas — comes from `@site-factory/copy`, out of a
+prospect record in `packages/copy/src/prospects/<slug>.ts` where every fact
+sits beside the source that supports it. The config pulls it in with one line:
+
+```ts
+const copy = copyFor('<slug>');
+```
+
+To change generated copy, change the record or the niche pack — not the
+config. A string typed straight into a config has never been through the
+fabrication guard, and that guard is the thing standing between a draft and a
+sentence claiming the shop is ISO certified when nobody checked.
+
+What stays hand-written is everything that is not copy: identity, theme, brand
+assets, testimonials, equipment, forms, `noindex`. A colour is not a claim.
+
+Values we could not confirm are marked **`[verify with client]`** — one
+spelling repo-wide, and `check-markers.mjs` blocks any live build carrying it.
+`packages/copy/REPORT.md` lists every remaining marker beside the single
+question that clears it.
 
 | Key | What it drives | Notes |
 |---|---|---|
@@ -95,15 +118,21 @@ The seed testimonials are `placeholder`: they paraphrase sentiment the client
 relayed to us, in our words. Replace them with client-supplied wording, or
 delete the section.
 
-### 4. Rewrite the content (8 min)
+### 4. Generate the content (2 min)
 
 | File | Becomes |
 |---|---|
-| `src/content/about/about.md` | The about page and the home page teaser |
-| `src/content/services/<slug>.md` | One per service, in `site.config.ts` order |
+| `src/content/about/<slug>/about.md` | The about page and the home page teaser |
+| `src/content/services/<slug>/<service>.md` | One per service, in config order |
+
+Both are **generated**, by `pnpm --filter @site-factory/copy emit --all` (or
+`pnpm copy:emit` from the root). Edit the prospect record and re-emit rather
+than editing the markdown, for the same reason as step 2 — the guard runs
+during generation, not after it.
 
 Service front-matter needs `title`, `summary` and at least one `highlights`
-entry — the schema in `src/content.config.ts` enforces it at build time.
+entry — the schema in `src/content.config.ts` enforces it at build time, and
+the emitter always writes all three.
 
 ### 5. Drop in images (3 min)
 
@@ -358,9 +387,10 @@ worker/                     Cloudflare Worker for the contact form
 | Command | Does |
 |---|---|
 | `pnpm dev` | Dev server on :4321 |
-| `pnpm build` | Build the client in `SITE_CLIENT` (default K-H) to `dist/<slug>/`, then run the marker check |
+| `pnpm build` | Build the client in `SITE_CLIENT` (default K-H) to `dist/<slug>/`, then run the marker and fabrication checks |
 | `pnpm build:all` | Build and check every registered client |
 | `pnpm check:markers` | Marker check alone — `--all` for every built client |
+| `pnpm check:fabrication` | Assert every claim in the built pages traces to a sourced fact — `--all` for every built client |
 | `pnpm preview` | Serve `dist/` — what Lighthouse should measure |
 | `pnpm typecheck` | `astro check` |
 | `pnpm check:contrast` | WCAG AA assertion on the two brand colours |

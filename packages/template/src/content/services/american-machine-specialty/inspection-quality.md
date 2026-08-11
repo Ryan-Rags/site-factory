@@ -1,16 +1,15 @@
 ---
-title: Inspection & Quality
-summary: CMM inspection in a temperature-controlled room, under an ISO 9001:2015 system.
+title: 'Inspection & Quality'
+summary: 'Inspection treated as part of the job, not an afterthought at the end of it.'
 highlights:
-  - Mitutoyo Crysta PM443 coordinate measuring machine
-  - Temperature-controlled inspection room
-  - ISO 9001:2015 certified by Perry Johnson Registrars
-  - Inspection records supplied with the parts
+  - 'Inspected against your drawing, and recorded'
+  - 'Documentation agreed before the job starts'
 ---
 
-Measurement moves with temperature, so ours is done in a room held steady. The
-Mitutoyo CMM does the work, and the numbers go out with the parts.
+For regulated and precision work, the part is only half of what you are buying. The other half is the evidence that it is what the drawing says it is.
 
-For regulated customers the paperwork is part of the deliverable, not an extra.
-Tell us what your incoming inspection needs to see and we will supply it in that
-form.
+Inspection on a Mitutoyo Crysta PM443 coordinate measuring machine in a temperature-controlled room.
+
+Dimensional inspection is carried out against your drawing and the results recorded, so the paperwork that has to accompany the part exists before it leaves.
+
+Tell us what documentation your customer or your auditor expects and we will confirm what we can supply.
