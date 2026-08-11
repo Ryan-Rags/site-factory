@@ -1,7 +1,10 @@
 # Astro's generated types and content cache. Regenerated on every build.
 .astro/
 
-# Cloudflare local state, if anyone runs `wrangler dev` in worker/.
+# Cloudflare local state, if anyone runs `wrangler dev` in either Worker.
+# It holds a local KV simulation, so after any real testing it contains actual
+# submissions — names, phone numbers, messages. Never committed.
 worker/.wrangler/
+worker-demo/.wrangler/
 
 # `dist/` is already covered by the root .gitignore.

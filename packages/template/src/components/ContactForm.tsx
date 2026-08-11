@@ -19,6 +19,18 @@ export interface ContactFormProps {
   services: { slug: string; title: string }[];
   /** Worker URL. Empty string means the backend is not deployed yet. */
   endpoint: string;
+  /**
+   * Which prospect's demo this is, sent with the submission so the shared demo
+   * Worker can tag the email. Empty on a real client build, where the endpoint
+   * belongs to that client alone and there is nothing to disambiguate.
+   */
+  prospectId?: string;
+  /** The business name, sent alongside `prospectId` so the notification email
+   *  reads as a shop rather than as a slug. Empty when `prospectId` is. */
+  prospectName?: string;
+  /** The shop's number, shown in the success and offline states so a visitor
+   *  in a hurry has somewhere to go without scrolling back up. */
+  phone: string;
   maxUploadMB: number;
   acceptedFileTypes: string[];
   /** Empty string hides the Turnstile widget. */
@@ -29,6 +41,12 @@ type Status =
   | { kind: 'idle' }
   | { kind: 'submitting' }
   | { kind: 'success'; note?: string | undefined }
+  /**
+   * Separate from `error` on purpose. "No signal" is not a failure of the
+   * form and the visitor can fix it by walking outside; saying "something went
+   * wrong" would send them looking for a problem that is not there.
+   */
+  | { kind: 'offline' }
   | { kind: 'error'; message: string };
 
 /**
@@ -65,6 +83,9 @@ export default function ContactForm({
   mailto,
   services,
   endpoint,
+  prospectId = '',
+  prospectName = '',
+  phone,
   maxUploadMB,
   acceptedFileTypes,
   turnstileSiteKey,
@@ -201,6 +222,22 @@ export default function ContactForm({
       return;
     }
 
+    // A page served from the service worker's cache looks completely normal
+    // with no connection at all, which is the point — but a form POST is the
+    // one thing that cannot work offline. Say so before the request, rather
+    // than letting a fetch hang and then reporting a generic failure.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setStatus({ kind: 'offline' });
+      return;
+    }
+
+    // Which prospect's demo this came from. The shared Worker tags the email
+    // with it; on a real client build it is empty and the Worker never sees it.
+    if (prospectId) {
+      data.set('prospectId', prospectId);
+      if (prospectName) data.set('prospectName', prospectName);
+    }
+
     setStatus({ kind: 'submitting' });
     try {
       const response = await fetch(endpoint, { method: 'POST', body: data });
@@ -209,6 +246,12 @@ export default function ContactForm({
       form.reset();
       clearFile();
     } catch {
+      // A thrown fetch with the connection gone between the check above and
+      // here is still an offline case, not a server fault.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setStatus({ kind: 'offline' });
+        return;
+      }
       setStatus({
         kind: 'error',
         message:
@@ -228,28 +271,84 @@ export default function ContactForm({
       errors[field] ? 'border-red-600' : 'border-slate-300',
     ].join(' ');
 
-  if (status.kind === 'success') {
+  if (status.kind === 'offline') {
     return (
       <div
         role="status"
-        className="rounded-lg border-2 border-primary bg-primary-wash p-6 sm:p-8"
         aria-live="polite"
+        className="rounded-lg border-2 border-amber-500 bg-amber-50 p-6 sm:p-8"
       >
-        <h3 className="font-heading text-2xl font-bold text-slate-900">Thanks — that's with us.</h3>
-        <p className="mt-3 text-base leading-relaxed text-slate-700">
+        <h3 className="font-heading text-2xl font-bold text-slate-900">No signal right now.</h3>
+        <p className="mt-3 text-base leading-relaxed text-slate-800">
+          Your message hasn't been sent — the phone has no connection. Nothing you typed is lost;
+          try again once you have a bar or two.
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <button type="button" className="btn-outline" onClick={() => setStatus({ kind: 'idle' })}>
+            Back to the form
+          </button>
+          <a className="btn-primary" href={`tel:${phone.replace(/[^\d+]/g, '')}`}>
+            Call {phone}
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (status.kind === 'success') {
+    /*
+     * The animation is decoration layered over a state that is already
+     * announced: `role="status"` + `aria-live` do the work for a screen
+     * reader, and every keyframe below is suppressed by the global
+     * `prefers-reduced-motion` block in global.css, which leaves the finished
+     * state on screen because each animation uses `forwards`.
+     */
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="success-card rounded-lg border-2 border-primary bg-primary-wash p-6 text-center sm:p-8"
+      >
+        <span className="success-ring mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+          <svg
+            className="h-12 w-12"
+            viewBox="0 0 52 52"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={3.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle className="success-ring-circle text-primary" cx="26" cy="26" r="24" />
+            <path className="success-ring-check text-primary" d="M15 27.5 22.5 35 37 19" />
+          </svg>
+        </span>
+
+        <h3 className="success-line success-line-1 mt-5 font-heading text-2xl font-bold text-slate-900">
+          Thanks — that's with us.
+        </h3>
+        <p className="success-line success-line-2 mx-auto mt-3 max-w-prose text-base leading-relaxed text-slate-700">
           We read everything that comes in and reply during shop hours, usually the same day. If it
           is urgent, calling is always faster.
         </p>
         {status.note && (
-          <p className="mt-3 text-base font-semibold leading-relaxed text-slate-900">{status.note}</p>
+          <p className="success-line success-line-2 mt-3 text-base font-semibold leading-relaxed text-slate-900">
+            {status.note}
+          </p>
         )}
-        <button
-          type="button"
-          className="btn-outline mt-6"
-          onClick={() => setStatus({ kind: 'idle' })}
-        >
-          Send another
-        </button>
+        <div className="success-line success-line-3 mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <a className="btn-primary" href={`tel:${phone.replace(/[^\d+]/g, '')}`}>
+            Call {phone}
+          </a>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => setStatus({ kind: 'idle' })}
+          >
+            Send another
+          </button>
+        </div>
       </div>
     );
   }
@@ -262,6 +361,10 @@ export default function ContactForm({
       encType="multipart/form-data"
       className="space-y-5"
     >
+      <p className="text-base text-slate-600">
+        Fields marked <span className="font-bold text-red-700">*</span> are required.
+      </p>
+
       {/* Honeypot. Hidden from people and from screen readers; bots fill it in
           and the Worker drops the submission. */}
       <div className="hidden" aria-hidden="true">

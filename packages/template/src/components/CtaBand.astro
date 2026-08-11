@@ -1,5 +1,7 @@
 ---
 import { site } from '../../site.config';
+import { telHref } from '../lib/business';
+import TextUsLink from './TextUsLink.astro';
 
 const { cta, business } = site;
 ---
@@ -14,7 +16,8 @@ const { cta, business } = site;
 
       <div class="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
         <a class="btn-primary" href={cta.buttonHref}>{cta.buttonText}</a>
-        <a class="btn-secondary" href={`tel:${business.phoneHref}`}>Call {business.phone}</a>
+        <a class="btn-secondary" href={telHref(business)}>Call {business.phone}</a>
+        <TextUsLink class="btn-secondary" label={`Text ${business.phone}`} icon={false} />
       </div>
     </div>
   </div>

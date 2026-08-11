@@ -1,7 +1,9 @@
 ---
 import { site } from '../../site.config';
+import { smsHref, telHref } from '../lib/business';
 
 const { hero, business } = site;
+const canText = smsHref(business) !== null;
 ---
 
 <section class="bg-primary text-white">
@@ -21,11 +23,16 @@ const { hero, business } = site;
           <a class="btn-secondary" href={hero.ctaSecondary.href}>{hero.ctaSecondary.text}</a>
         </div>
 
+        {/*
+          Written as one unbroken expression per side of the conditional: a
+          newline between expressions becomes a stray space in the output, and
+          the em dash must sit tight against the number when there is no text
+          link to follow it.
+        */}
         <p class="mt-6 text-sm text-white/75">
           Or call us direct:{' '}
-          <a class="font-bold text-white underline underline-offset-4" href={`tel:${business.phoneHref}`}>
-            {business.phone}
-          </a>
+          <a class="font-bold text-white underline underline-offset-4" href={telHref(business)}>{business.phone}</a
+          >{canText && (<Fragment>{' — or '}<a class="font-bold text-white underline underline-offset-4" href={smsHref(business)!}>send a text</a></Fragment>)}
         </p>
       </div>
 

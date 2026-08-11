@@ -1,0 +1,67 @@
+{
+  // The SHARED demo contact-form Worker. One deployment behind every prospect
+  // demo; the single-client Worker in ../worker/ is a separate thing and is
+  // what a real client eventually gets.
+  //
+  // The ids below are PLACEHOLDERS. This file cannot deploy as written —
+  // `wrangler deploy` rejects the placeholder KV id rather than publishing to
+  // somebody else's account. Fill them in from your own dashboard.
+  //
+  // NOTHING SECRET GOES IN THIS FILE. It is committed. `RESEND_API_KEY` is set
+  // with `wrangler secret put RESEND_API_KEY` and lives only in Cloudflare.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "site-factory-demo-form",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "vars": {
+    // Exact origins. Localhost is here so the form can be exercised against a
+    // local `pnpm dev` or a served `dist/` before anything is deployed.
+    "ALLOWED_ORIGINS": "http://localhost:4321,http://127.0.0.1:4321",
+
+    // Host suffixes. Demo sites are deployed one Pages project per prospect
+    // (`<slug>-preview.pages.dev`), and a new project appears with each new
+    // prospect — enumerating them here would mean a Worker redeploy per
+    // prospect, and the first time that was forgotten the form would fail in
+    // front of somebody. Matched at a dot boundary, https only: see
+    // src/lib/http.ts.
+    "ALLOWED_ORIGIN_SUFFIXES": "pages.dev",
+
+    // Which prospects may post here. Keep in step with
+    // packages/template/clients/index.ts — anything not listed is refused, so
+    // this list is what stops a shared endpoint from being an open relay.
+    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding",
+
+    // Where demo enquiries land — my own inbox, not a client's.
+    "MAIL_TO": "PLACEHOLDER@example.com",
+
+    // Resend's free tier sends from onboarding@resend.dev without any DNS
+    // setup, and delivers only to the address that owns the Resend account —
+    // which is exactly what a demo endpoint needs. Swap this for an address on
+    // your own verified domain when you have one. See README.md.
+    "MAIL_FROM": "onboarding@resend.dev",
+
+    "MAX_UPLOAD_MB": "10",
+
+    // Per prospect, per hour. A demo form has no legitimate reason to fire
+    // more often; this caps what reaches the inbox if a demo URL is found by
+    // something automated.
+    "PROSPECT_RATE_PER_HOUR": "20"
+  },
+
+  "kv_namespaces": [
+    {
+      // Every submission is written here before the email is attempted, so a
+      // mail outage never loses a lead. Also holds the rate-limit counters.
+      "binding": "SUBMISSIONS",
+      "id": "PLACEHOLDER_KV_NAMESPACE_ID"
+    }
+  ]
+
+  // Optional: uncomment and create the bucket to keep uploaded photos
+  // themselves rather than only their metadata.
+  // "r2_buckets": [
+  //   { "binding": "UPLOADS", "bucket_name": "PLACEHOLDER-demo-uploads" }
+  // ]
+}

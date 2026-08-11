@@ -179,6 +179,19 @@ paste the URL into `forms.workerEndpoint`.
 **No secret ever goes in a file in this repo.** While `workerEndpoint` is
 empty the form still validates and tells the visitor to call or email instead.
 
+For a **demo** — a site being shown to a prospect who has not signed anything —
+you do not deploy a Worker per prospect. Deploy
+[`worker-demo/`](worker-demo/README.md) once and build with one env var:
+
+```sh
+DEMO_FORM_ENDPOINT=https://…workers.dev pnpm build:all
+```
+
+Every prospect's form then posts to that one endpoint, tagged with their slug,
+and the mail comes to you. Unset, nothing changes and each client's own `forms`
+block governs — a real client build can never inherit the demo endpoint by
+accident.
+
 ### 8. Go live: flip `seo.noindex` (1 min)
 
 ```ts
@@ -226,8 +239,64 @@ Fix the values, or flip `noindex` back. **Do not delete the check.**
 pnpm typecheck        # astro check
 pnpm build
 pnpm check:contrast
+pnpm check:contact-links   # every number tappable, no dead sms: link
 pnpm preview --port 4321   # then, in another terminal:
 pnpm check:overflow
+```
+
+From the repo root, for a site that is going to be demoed on a phone:
+
+```sh
+pnpm verify:offline -- --client <slug> --local   # every route, connection cut
+pnpm pitch -- --client <slug>                    # their Lighthouse score vs ours
+```
+
+---
+
+## Tap-to-call and tap-to-text
+
+Every phone number on the site is a `tel:` link, and
+`scripts/check-contact-links.mjs` fails the build if one is not — a number
+printed as text is one a customer has to memorise and retype, which on a phone
+is where the enquiry is lost.
+
+Text links are opt-in per client:
+
+```ts
+business: {
+  phone: '(201) 555 0142',
+  phoneHref: '+12015550142',
+  smsHref: '+12015550142',        // ONLY if this number receives texts
+  smsBody: 'Hi — about a job…',   // optional prefill
+}
+```
+
+Leave `smsHref` unset unless somebody has confirmed the number receives SMS.
+Most shop numbers are landlines; a text to a landline is delivered nowhere and
+answered never, which is worse in front of a customer than no text link at all.
+Unset, no "Text us" link renders anywhere and the check enforces that too. All
+five current prospect configs leave it unset for exactly this reason.
+
+## Offline: `features.offline`
+
+`features.offline: true` emits `/sw.js` and registers it, so the site keeps
+working on a dead connection after one visit. This exists because these sites
+get shown on a phone inside a workshop, where reception is often nothing.
+
+HTML is network-first (a connected phone always gets the current build);
+images, fonts and the form bundle are cache-first. Form POSTs are never
+intercepted — offline, the form says so rather than faking a success.
+
+The cost: for one navigation after a redeploy, a phone can still see the
+previous build. The cache name carries a build hash and old caches are deleted
+on activate, so the window is narrow, not zero. Set the flag to `false` and the
+page ships exactly as it did before the flag existed — including unregistering
+a worker left over from an earlier build.
+
+Prove it rather than assume it:
+
+```sh
+pnpm verify:offline -- --client <slug> --local
 ```
 
 ---
@@ -339,18 +408,22 @@ src/components/
   Testimonials.astro CtaBand.astro Icon.astro
   Equipment.astro           renders nothing when equipment is absent
   Updates.astro             renders nothing when updates is absent
-  ContactForm.tsx           the only JavaScript on the site
+  TextUsLink.astro          sms: link — renders nothing without business.smsHref
+  ContactForm.tsx           the form island: validation, success state, offline
 src/pages/
   index.astro services.astro about.astro contact.astro 404.astro
   gallery/[...slug].astro   built only when features.gallery is true
   robots.txt.ts             generated from seo.noindex
+  sw.js.ts                  the service worker, built when features.offline
 scripts/
   build-all.mjs             builds every registered client
   check-markers.mjs         blocks a live build carrying unconfirmed values
   check-contrast.mjs        WCAG AA assertion for the two brand colours
   check-overflow.mjs        horizontal overflow check at 320px and 390px
+  check-contact-links.mjs   every phone number must be tappable
   gen-placeholders.mjs      regenerates public/images placeholders
-worker/                     Cloudflare Worker for the contact form
+worker/                     Cloudflare Worker for one client's contact form
+worker-demo/                the shared demo endpoint behind every prospect demo
 ```
 
 ## Commands
@@ -365,5 +438,6 @@ worker/                     Cloudflare Worker for the contact form
 | `pnpm typecheck` | `astro check` |
 | `pnpm check:contrast` | WCAG AA assertion on the two brand colours |
 | `pnpm check:overflow` | Horizontal overflow check (needs `pnpm preview` running) |
+| `pnpm check:contact-links` | Every phone number is inside a `tel:`/`sms:` link — `--all` for every built client |
 | `pnpm gen:placeholders` | Regenerate placeholder images |
 | `pnpm clean` | Remove `dist/` and `.astro/` |

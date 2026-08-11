@@ -154,6 +154,8 @@ export const site: SiteConfig = {
 
   features: {
     gallery: false,
+    // Demoed on a phone inside a shop; reception there is not a given.
+    offline: true,
   },
 
   forms: {

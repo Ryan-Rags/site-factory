@@ -144,6 +144,36 @@ certification label (no source), and the two `forms` values (deploy-time
 infrastructure, not facts about the business). They are enumerated with
 reasons in the config's header comment.
 
+### Intended content change 4 — the demo support layer
+
+Recorded for the same reason as change 3: so this file is not read as still
+current. K-H's output moved again, deliberately, in three ways.
+
+**A service worker.** `features.offline: true` adds `/sw.js` to the build and a
+registration script to every page, so a demo opens with no connection. This is
+the second piece of JavaScript on a site whose README used to describe the
+contact form as the only one; that claim has been updated rather than left
+standing. The flag can be set to `false`, which restores the previous output
+exactly and unregisters any worker a phone is still holding.
+
+**The contact form's props and success state.** `ContactForm` gained
+`prospectId`, `prospectName` and `phone` props, an animated success card, and a
+distinct offline state. As with change 3's mechanical tokens, new props mean a
+new island `uid`, a new bundle hash and a new serialised `props` attribute on
+`contact/index.html`. The "fields marked \* are required" line also moved from
+`contact.astro` into the form component, where it disappears with the form
+instead of sitting under the success message contradicting it.
+
+**Nothing about the phone number changed.** `tel:` links are now built by
+`telHref()` instead of an inline template string at each call site, which is
+the same output. K-H sets no `smsHref`, so no `sms:` link is emitted anywhere —
+see the field's doc comment for why that is the default rather than an
+oversight.
+
+The stylesheet grew again, for the same reason as before: Tailwind scans all of
+`src/`, so the success-state utilities are emitted on every page including the
+ones that cannot show a form.
+
 ### The three mechanical tokens on the contact page
 
 ```

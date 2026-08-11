@@ -1,12 +1,22 @@
 ---
-import { site } from '../../site.config';
+import { clientSlug, demoFormEndpoint, resolveForms, site } from '../../site.config';
+import { smsHref, telHref } from '../lib/business';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ContactForm from '../components/ContactForm';
 import PageHeader from '../components/PageHeader.astro';
 import Icon from '../components/Icon.astro';
+import TextUsLink from '../components/TextUsLink.astro';
 
-const { business, forms, services } = site;
+const { business, services } = site;
 const hours = business.hours ?? [];
+
+/**
+ * `forms` here is the *resolved* mode, not the config's. A demo build
+ * (`DEMO_FORM_ENDPOINT` set) points every prospect at the one shared Worker;
+ * without it this is exactly the client's own `site.forms`. See site.config.ts.
+ */
+const resolved = resolveForms();
+const forms = { ...site.forms, mode: resolved.mode, workerEndpoint: resolved.endpoint };
 
 // `mailto` needs an inbox to send to. A config that asks for it without a
 // confirmed email is a configuration error, not something to paper over with
@@ -47,10 +57,31 @@ const fmt = (t: string) => {
                   <span class="block text-sm font-bold text-slate-900">Phone</span>
                   <a
                     class="text-lg font-bold text-primary underline-offset-4 hover:underline"
-                    href={`tel:${business.phoneHref}`}>{business.phone}</a
+                    href={telHref(business)}>{business.phone}</a
                   >
                 </span>
               </li>
+              {
+                /* A second row rather than a link tucked under the number:
+                   texting is a different decision from calling, and on a phone
+                   it wants its own tap target. Renders only when a textable
+                   number is confirmed. */
+                smsHref(business) && (
+                  <li class="flex items-start gap-3">
+                    <span class="mt-1 shrink-0 text-accent-dark">
+                      <Icon name="message" class="h-5 w-5" />
+                    </span>
+                    <span>
+                      <span class="block text-sm font-bold text-slate-900">Text</span>
+                      <TextUsLink
+                        class="inline-flex items-center gap-2 text-lg font-bold text-primary underline-offset-4 hover:underline"
+                        label={business.smsHref === business.phoneHref ? business.phone : 'Send us a text'}
+                        icon={false}
+                      />
+                    </span>
+                  </li>
+                )
+              }
               {
                 business.email && (
                   <li class="flex items-start gap-3">
@@ -116,9 +147,10 @@ const fmt = (t: string) => {
           forms.mode !== 'disabled' && (
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-5 sm:p-8">
               <h2 class="text-2xl">{site.cta.buttonText}</h2>
-              <p class="mt-2 text-base text-slate-600">
-                Fields marked <span class="font-bold text-red-700">*</span> are required.
-              </p>
+              {/* The "fields marked * are required" hint lives inside the form
+                  component, not here: it belongs to the form's idle state, and
+                  left on the page it sat there contradicting the success
+                  message after a submission. */}
 
               <div class="mt-6">
                 <ContactForm
@@ -127,6 +159,9 @@ const fmt = (t: string) => {
                   mailto={business.email ?? ''}
                   services={services.map((s) => ({ slug: s.slug, title: s.title }))}
                   endpoint={forms.workerEndpoint}
+                  prospectId={demoFormEndpoint ? clientSlug : ''}
+                  prospectName={demoFormEndpoint ? business.name : ''}
+                  phone={business.phone}
                   maxUploadMB={forms.maxUploadMB}
                   acceptedFileTypes={forms.acceptedFileTypes}
                   turnstileSiteKey={forms.turnstileSiteKey}

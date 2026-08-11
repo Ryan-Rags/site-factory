@@ -1,5 +1,7 @@
 ---
 import { site } from '../../site.config';
+import { telHref } from '../lib/business';
+import TextUsLink from './TextUsLink.astro';
 
 const { business, brand, features } = site;
 const year = new Date().getFullYear();
@@ -47,9 +49,15 @@ const fmt = (t: string) => {
         <h2 class="font-heading text-sm font-bold uppercase tracking-widest text-white">Contact</h2>
         <ul class="mt-4 space-y-2 text-sm">
           <li>
-            <a class="font-semibold text-white underline-offset-4 hover:underline" href={`tel:${business.phoneHref}`}>
+            <a class="font-semibold text-white underline-offset-4 hover:underline" href={telHref(business)}>
               {business.phone}
             </a>
+          </li>
+          <li>
+            <TextUsLink
+              class="inline-flex items-center gap-2 text-white/80 underline-offset-4 hover:underline"
+              label="Text us"
+            />
           </li>
           {
             business.email && (

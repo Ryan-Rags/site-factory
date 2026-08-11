@@ -1,6 +1,8 @@
 ---
 import { site } from '../../site.config';
+import { telHref } from '../lib/business';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import TextUsLink from '../components/TextUsLink.astro';
 ---
 
 <BaseLayout title="Page not found" description="That page does not exist.">
@@ -15,9 +17,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <a class="btn-outline" href="/services">See what we do</a>
-          <a class="btn-primary" href={`tel:${site.business.phoneHref}`}>
+          <a class="btn-primary" href={telHref(site.business)}>
             Call {site.business.phone}
           </a>
+          <TextUsLink class="btn-outline" label="Text us instead" icon={false} />
         </div>
       </div>
     </div>
