@@ -1,0 +1,83 @@
+---
+/**
+ * Services grid.
+ *
+ * Column count follows the item count rather than a fixed three, because the
+ * shape that breaks templates is the shop with two services: a three-column
+ * grid renders it as two cards and a hole. Two items get two columns, three
+ * or more get three.
+ *
+ * A card takes an icon, an image, both or neither — a client with no usable
+ * photography still gets a grid that looks deliberate.
+ */
+import Icon from '../Icon.astro';
+import type { ServicesSection } from '../../types/design';
+
+interface Props {
+  services: ServicesSection;
+}
+
+const { services } = Astro.props;
+const list = services.variant === 'list';
+const wide = !list && services.items.length >= 3;
+---
+
+<section class="d-section d-section--alt d-services" id="services" aria-labelledby="services-heading">
+  <div class="d-wrap">
+    <div class="d-head" data-reveal>
+      {services.eyebrow && <p class="d-eyebrow">{services.eyebrow}</p>}
+      <h2 class="d-h2" id="services-heading">{services.heading}</h2>
+      {services.intro && <p class="d-lede">{services.intro}</p>}
+    </div>
+
+    <div
+      class:list={[
+        'd-services__grid',
+        wide && 'd-services__grid--3',
+        list && 'd-services__grid--list',
+      ]}
+    >
+      {
+        services.items.map((item, i) => (
+          <article class="d-card d-service" data-reveal style={`--d-reveal-delay: ${i * 90}ms`}>
+            {item.image && (
+              <div class="d-service__media">
+                <img
+                  src={item.image.src}
+                  alt={item.image.alt}
+                  width={item.image.width ?? 800}
+                  height={item.image.height ?? 600}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            )}
+
+            {item.icon && (
+              <span class="d-service__icon" aria-hidden="true">
+                <Icon name={item.icon} class="d-icon-md" />
+              </span>
+            )}
+
+            <h3 class="d-service__title">{item.title}</h3>
+            <p class="d-service__body">{item.body}</p>
+
+            {item.points && item.points.length > 0 && (
+              <ul class="d-service__points">
+                {item.points.map((point) => (
+                  <li>{point}</li>
+                ))}
+              </ul>
+            )}
+
+            {item.href && (
+              <a class="d-service__link" href={item.href}>
+                {item.title} details →
+              </a>
+            )}
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

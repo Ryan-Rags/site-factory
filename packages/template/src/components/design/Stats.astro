@@ -1,0 +1,75 @@
+---
+/**
+ * Stat counters.
+ *
+ * The final value is rendered into the HTML, not computed by script: with
+ * JavaScript off, or before the observer runs, the reader sees the real
+ * number. The count-up in `Reveal.astro` only replaces text that is already
+ * correct.
+ *
+ * Two things stop this costing layout stability. The digits are
+ * `tabular-nums`, and each figure reserves the width of its final value in
+ * `ch` — otherwise counting 0 → 250 would widen the box three times mid-
+ * animation and hand back the CLS score the rest of the template works to
+ * protect.
+ *
+ * Numbers come from config only. There is no "sensible default" here: an
+ * invented job count is a lie the prospect can check.
+ */
+import type { StatsSection } from '../../types/design';
+
+interface Props {
+  stats: StatsSection;
+}
+
+const { stats } = Astro.props;
+
+/** Decimal places to count through, so `4.9` does not tick up as `5`. */
+const decimalsOf = (value: number) => {
+  const text = String(value);
+  const dot = text.indexOf('.');
+  return dot === -1 ? 0 : text.length - dot - 1;
+};
+
+/** Width of the final value, so the box does not resize as it fills. */
+const widthCh = (value: number) => `${String(Math.abs(value)).length + 0.2}ch`;
+---
+
+<section class="d-section d-stats" aria-labelledby={stats.heading ? 'stats-heading' : undefined}>
+  <div class="d-wrap">
+    {
+      (stats.heading || stats.intro) && (
+        <div class="d-head" data-reveal>
+          {stats.heading && (
+            <h2 class="d-h2" id="stats-heading">
+              {stats.heading}
+            </h2>
+          )}
+          {stats.intro && <p class="d-lede">{stats.intro}</p>}
+        </div>
+      )
+    }
+
+    <div class="d-stats__grid">
+      {
+        stats.items.map((stat, i) => (
+          <div class="d-stat d-card" data-reveal style={`--d-reveal-delay: ${i * 90}ms`}>
+            <span class="d-stat__value">
+              {stat.prefix}
+              <span
+                data-count-to={stat.value}
+                data-count-decimals={decimalsOf(stat.value)}
+                style={`display: inline-block; min-width: ${widthCh(stat.value)};`}
+              >
+                {stat.value}
+              </span>
+              {stat.suffix}
+            </span>
+            <span class="d-stat__label">{stat.label}</span>
+            {stat.note && <span class="d-stat__note">{stat.note}</span>}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

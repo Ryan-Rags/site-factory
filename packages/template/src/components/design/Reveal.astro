@@ -1,0 +1,225 @@
+---
+/**
+ * The only JavaScript a delivered design-family page ships.
+ *
+ * Four jobs, one small IIFE, no dependencies and no animation library:
+ *   1. reveal   — add `.is-revealed` to `[data-reveal]` as it enters view.
+ *   2. counters — tick `[data-count-to]` up to its final value once.
+ *   3. open now — compute the open/closed badge in the shop's own timezone.
+ *   4. carousel — advance the reviews rail on a timer, pausing on interaction.
+ *
+ * Deliberate choices:
+ *
+ * - `is:inline` and no imports. Astro would otherwise emit a module script and
+ *   a network request for about a kilobyte of code; inlining costs one fewer
+ *   round trip on the critical path, which is a real part of why the mobile
+ *   score holds up on a slow connection.
+ *
+ * - The script sets `data-reveal-ready` on `<html>` before doing anything
+ *   else. The CSS that hides un-revealed elements is gated on that attribute,
+ *   so a visitor with JavaScript off — or one whose script fails to parse —
+ *   sees the complete page rather than an empty one. Progressive enhancement
+ *   in the only order that is actually safe.
+ *
+ * - `prefers-reduced-motion` short-circuits the motion: final values are
+ *   painted immediately, no reveal observer is created, and the carousel timer
+ *   never starts. The open/closed badge still runs — it is information, not
+ *   decoration, and suppressing it would withhold a fact rather than a motion.
+ *
+ * - Elements unobserve themselves on first reveal, so nothing accumulates and
+ *   scrolling back up does not re-animate.
+ */
+---
+
+<script is:inline>
+  (function () {
+    var docEl = document.documentElement;
+    var reduced =
+      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---------------------------------------------------------------- 3 --
+     * Open / closed.
+     *
+     * Computed here rather than at build time because it is a claim about the
+     * moment somebody is reading, and computed in the *shop's* timezone
+     * rather than the visitor's — `Intl` is given the IANA zone from the
+     * config, so a customer reading this in another state still sees the
+     * shop's own clock. Without a configured zone the badge never rendered
+     * in the first place.
+     */
+    (function openNow() {
+      var badges = document.querySelectorAll('[data-open-now]');
+      for (var i = 0; i < badges.length; i++) {
+        var badge = badges[i];
+        try {
+          var schedule = JSON.parse(badge.getAttribute('data-schedule') || '[]');
+          var tz = badge.getAttribute('data-tz');
+          var parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          }).formatToParts(new Date());
+
+          var lookup = {};
+          parts.forEach(function (part) {
+            lookup[part.type] = part.value;
+          });
+          var days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+          var day = days[lookup.weekday];
+          // 24-hour formatting yields "24" for midnight in some engines.
+          var hour = Number(lookup.hour) % 24;
+          var minutes = hour * 60 + Number(lookup.minute);
+
+          var open = false;
+          for (var j = 0; j < schedule.length; j++) {
+            var row = schedule[j];
+            if (row.day === day && minutes >= row.open && minutes < row.close) {
+              open = true;
+              break;
+            }
+          }
+
+          var text = badge.querySelector('[data-open-text]');
+          if (text)
+            text.textContent = open
+              ? badge.getAttribute('data-open-label')
+              : badge.getAttribute('data-closed-label');
+          badge.setAttribute('data-state', open ? 'open' : 'closed');
+        } catch (e) {
+          /* A bad zone or a parse failure leaves the badge hidden, which is
+             the honest outcome: no claim beats a wrong one. */
+        }
+      }
+    })();
+
+    /* ---------------------------------------------------------------- 2 -- */
+    var counters = document.querySelectorAll('[data-count-to]');
+
+    function paint(el, value) {
+      var decimals = Number(el.getAttribute('data-count-decimals') || 0);
+      el.textContent = value.toFixed(decimals);
+    }
+
+    function countUp(el) {
+      var target = Number(el.getAttribute('data-count-to'));
+      if (!isFinite(target)) return;
+      var duration = 1100;
+      var start = 0;
+      function frame(now) {
+        if (!start) start = now;
+        var t = Math.min((now - start) / duration, 1);
+        // easeOutCubic: fast off the mark, settles rather than stops dead.
+        paint(el, target * (1 - Math.pow(1 - t, 3)));
+        if (t < 1) requestAnimationFrame(frame);
+        else paint(el, target);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    if (reduced || !('IntersectionObserver' in window)) {
+      // No motion, and no hidden content: whatever the reason, the page ends
+      // up in its final state rather than in a half-animated one.
+      for (var i = 0; i < counters.length; i++) {
+        paint(counters[i], Number(counters[i].getAttribute('data-count-to')) || 0);
+      }
+      return;
+    }
+
+    docEl.setAttribute('data-reveal-ready', '');
+
+    /* ---------------------------------------------------------------- 1 -- */
+    var revealObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-revealed');
+          revealObserver.unobserve(entry.target);
+        });
+      },
+      // Fire slightly before the element reaches the fold, so the transition
+      // has finished by the time the reader's eye gets there.
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
+    );
+
+    document.querySelectorAll('[data-reveal]').forEach(function (el) {
+      revealObserver.observe(el);
+    });
+
+    var countObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          countUp(entry.target);
+          countObserver.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.4 },
+    );
+
+    for (var j = 0; j < counters.length; j++) {
+      paint(counters[j], 0);
+      countObserver.observe(counters[j]);
+    }
+
+    /* ---------------------------------------------------------------- 4 --
+     * Reviews carousel.
+     *
+     * The rail is CSS scroll-snap; this only nudges `scrollLeft`, so the
+     * browser keeps doing the scrolling, the physics and the touch handling.
+     * It pauses on hover and on focus-within — a reader part-way through a
+     * quote, or a keyboard user tabbing across cards, must not have the rail
+     * move under them — and it stops entirely once the rail leaves view.
+     */
+    document.querySelectorAll('[data-carousel]').forEach(function (rail) {
+      var delay = Number(rail.getAttribute('data-autoplay') || 0);
+      if (!delay) return;
+
+      var paused = false;
+      var visible = false;
+      var timer = null;
+
+      function step() {
+        if (paused || !visible) return;
+        var card = rail.firstElementChild;
+        if (!card) return;
+        var width = card.getBoundingClientRect().width + 20;
+        var atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+        rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + width, behavior: 'smooth' });
+      }
+
+      function start() {
+        if (timer === null) timer = window.setInterval(step, delay);
+      }
+      function stop() {
+        if (timer !== null) {
+          window.clearInterval(timer);
+          timer = null;
+        }
+      }
+
+      ['mouseenter', 'focusin', 'touchstart', 'pointerdown'].forEach(function (name) {
+        rail.addEventListener(name, function () {
+          paused = true;
+        });
+      });
+      ['mouseleave', 'focusout'].forEach(function (name) {
+        rail.addEventListener(name, function () {
+          paused = false;
+        });
+      });
+
+      new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            visible = entry.isIntersecting;
+            if (visible) start();
+            else stop();
+          });
+        },
+        { threshold: 0.25 },
+      ).observe(rail);
+    });
+  })();
+</script>

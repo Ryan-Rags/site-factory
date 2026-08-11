@@ -1,0 +1,226 @@
+{
+  "theme": {
+    "preset": "precision",
+    "accent": "blueprint",
+    "fontPairing": "engineered"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Our work",
+        "href": "#gallery"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": [
+    "stats",
+    "services",
+    "reviews",
+    "gallery",
+    "serviceArea",
+    "faq"
+  ],
+  "sections": {
+    "hero": {
+      "variant": "split",
+      "motion": "none",
+      "eyebrow": "Westwood, New Jersey - Since 1990",
+      "badges": [
+        "Medical, aerospace and instrumentation",
+        "Inspection in-house"
+      ]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Weekdays",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Three service lines, one supplier",
+      "intro": "Precision machining, contract manufacturing and inspection, for customers who have to document what they buy.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "What customers say",
+      "intro": "The kind of thing customers say about working with the shop.",
+      "sourceLabel": "Paraphrased from feedback relayed about the shop - not verbatim quotations",
+      "variant": "grid",
+      "autoplayMs": 8000
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 1990,
+          "label": "Manufacturing since",
+          "note": "Westwood, New Jersey"
+        },
+        {
+          "value": 3,
+          "label": "Service lines",
+          "note": "Machining, contract manufacturing, inspection"
+        },
+        {
+          "value": 4,
+          "label": "Areas served",
+          "note": "Bergen County and the New York metro"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions we get asked",
+      "items": [
+        {
+          "q": "What industries do you work for?",
+          "a": "Medical, aerospace and instrumentation."
+        },
+        {
+          "q": "Do you inspect what you make?",
+          "a": "Yes. Inspection and quality is one of the three service lines, done in-house rather than subcontracted."
+        },
+        {
+          "q": "What quality certifications do you hold?",
+          "a": "[verify with client] - this matters more here than anywhere else on the site. Confirm before publishing."
+        },
+        {
+          "q": "What do you need to quote?",
+          "a": "Drawings. Send them over and the shop will come back to you."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": true,
+      "eyebrow": "Our work",
+      "heading": "Off the shop floor",
+      "intro": "Placeholder images. Replace them with photographs of the shop's own work before anything goes live - [verify with client].",
+      "items": [
+        {
+          "src": "/images/gallery-1.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-2.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-3.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-4.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-5.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-6.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        }
+      ]
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Westwood, Bergen County and the New York metro",
+      "intro": "The shop is in Westwood, New Jersey.",
+      "areas": [],
+      "note": "Confirm the served area before publishing - [verify with client]."
+    },
+    "beforeAfter": {
+      "enabled": true,
+      "heading": "Before and after",
+      "intro": "Two photographs of one job. Switched on the moment the shop sends real ones.",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder for the before photograph",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder for the after photograph",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "Contract manufacturing for medical, aerospace and instrumentation.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Our work",
+              "href": "#gallery"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Certifications and insurance - [verify with client]."
+    }
+  }
+}

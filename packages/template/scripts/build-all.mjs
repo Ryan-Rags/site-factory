@@ -57,5 +57,16 @@ for (const slug of CLIENT_SLUGS) {
   if (check.status !== 0) failed++;
 }
 
+/*
+ * The contrast gate runs once for the batch rather than once per client: it
+ * checks the whole preset matrix and every design config in the package, so
+ * running it eight times would print the same 234 assertions eight times.
+ */
+const contrast = spawnSync(process.execPath, [join(pkgRoot, 'scripts', 'check-contrast.mjs')], {
+  cwd: pkgRoot,
+  stdio: 'inherit',
+});
+if (contrast.status !== 0) failed++;
+
 console.log(`\n${CLIENT_SLUGS.length - failed}/${CLIENT_SLUGS.length} clients built and checked.`);
 process.exit(failed === 0 ? 0 : 1);

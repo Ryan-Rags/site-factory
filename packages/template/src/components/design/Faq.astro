@@ -1,0 +1,60 @@
+---
+/**
+ * FAQ accordion.
+ *
+ * `<details>`/`<summary>`, which is to say: no JavaScript, correct keyboard
+ * behaviour and correct screen-reader announcement for free, and it works
+ * before hydration. The plus/minus sign is two pseudo-elements rotating on
+ * `[open]`.
+ *
+ * `FAQPage` structured data is emitted alongside, because a local business's
+ * FAQ is one of the few places rich results are both achievable and honest —
+ * the answers are the client's own words from their own config.
+ */
+import type { FaqSection } from '../../types/design';
+
+interface Props {
+  faq: FaqSection;
+}
+
+const { faq } = Astro.props;
+
+const jsonLd =
+  faq.items.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faq.items.map((item) => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+      }
+    : null;
+---
+
+<section class="d-section d-faq" id="faq" aria-labelledby="faq-heading">
+  <div class="d-wrap">
+    <div class="d-head" data-reveal>
+      {faq.eyebrow && <p class="d-eyebrow">{faq.eyebrow}</p>}
+      <h2 class="d-h2" id="faq-heading">{faq.heading}</h2>
+      {faq.intro && <p class="d-lede">{faq.intro}</p>}
+    </div>
+
+    <div class="d-faq__list">
+      {
+        faq.items.map((item, i) => (
+          <details class="d-faq__item" data-reveal style={`--d-reveal-delay: ${i * 60}ms`}>
+            <summary>
+              <span>{item.q}</span>
+              <span class="d-faq__sign" aria-hidden="true" />
+            </summary>
+            <p class="d-faq__answer">{item.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+{jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}

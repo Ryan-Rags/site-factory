@@ -1,4 +1,5 @@
 import type { SiteConfig } from '../src/types/site';
+import { designFor } from './design';
 import { VERIFY_MARKER as V } from '../src/types/site';
 
 /**
@@ -16,7 +17,7 @@ import { VERIFY_MARKER as V } from '../src/types/site';
  * No age is hard-coded anywhere. `foundedYear` is the only place 1987 is
  * stated as a number; copy says "Since 1987", which never goes stale.
  */
-export const site: SiteConfig = {
+const base: SiteConfig = {
   business: {
     name: 'KTS Machine Shop',
     legalName: 'KTS Machine Shop',
@@ -34,6 +35,11 @@ export const site: SiteConfig = {
       country: 'US',
     },
     serviceArea: ['Elmwood Park', 'Bergen County', 'Northern New Jersey'],
+    // Required by the "open now" badge and used by nothing else. Every shop
+    // in this directory is in New Jersey, so this is a fact about the
+    // confirmed address rather than an inference; without it the badge does
+    // not render at all.
+    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '07:00', closes: '17:00' },
       { day: 'Tuesday', opens: '07:00', closes: '17:00' },
@@ -62,7 +68,10 @@ export const site: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
+    // PNG rather than SVG because several platforms refuse SVG for og:image,
+    // and an unfurled demo link is the first thing a prospect sees.
+    ogImage: '/og/kts-machine-shop.png',
   },
 
   hero: {
@@ -201,6 +210,10 @@ export const site: SiteConfig = {
 
   features: {
     gallery: false,
+    // Pitch build: the prospect can switch family, accent and lettering in
+    // the browser and send the combination back. `SITE_DELIVERED=1` forces it
+    // off whatever this says.
+    customizer: true,
   },
 
   forms: {
@@ -215,5 +228,14 @@ export const site: SiteConfig = {
     turnstileSiteKey: '',
   },
 };
+/**
+ * The design family.
+ *
+ * Composed from the confirmed content above and the theme, stats, FAQ and
+ * service-area copy in `clients/design/kts-machine-shop.brief.json`. Nothing is
+ * restated: every headline, service one-liner and review below comes from the
+ * literal above, so the two cannot drift apart.
+ */
+export const site: SiteConfig = { ...base, design: designFor('kts-machine-shop', base) };
 
 export default site;

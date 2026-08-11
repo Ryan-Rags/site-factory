@@ -1,5 +1,6 @@
 import type { SiteConfig } from '../src/types/site';
 import { VERIFY_MARKER as V } from '../src/types/site';
+import { ksWeldingDesign } from './design';
 
 /**
  * K&S WELDING & FABRICATING — Bergenfield, NJ.
@@ -31,6 +32,10 @@ export const site: SiteConfig = {
       country: 'US',
     },
     serviceArea: ['Bergenfield', 'Bergen County', 'Northern New Jersey'],
+    // Needed by the "open now" badge and by nothing else. Bergenfield is in
+    // New Jersey, so this is a fact about the confirmed address rather than a
+    // guess — without it the badge does not render at all.
+    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '07:00', closes: '16:00' },
       { day: 'Tuesday', opens: '07:00', closes: '16:00' },
@@ -56,7 +61,10 @@ export const site: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
+    // PNG rather than SVG because several platforms refuse SVG for og:image,
+    // and an unfurled demo link is the first thing a prospect sees.
+    ogImage: '/og/ks-welding.png',
   },
 
   hero: {
@@ -178,7 +186,14 @@ export const site: SiteConfig = {
 
   features: {
     gallery: false,
+    // Pitch build: the prospect can switch family, accent and lettering in the
+    // browser and send the combination back. `SITE_DELIVERED=1` forces it off
+    // whatever this says, so a delivered site cannot leak the panel.
+    customizer: true,
   },
+
+  // The design payload itself is JSON: clients/design/ks-welding.design.json.
+  design: ksWeldingDesign,
 
   forms: {
     // Photo-upload quote needs a backend. `worker` with an empty endpoint is

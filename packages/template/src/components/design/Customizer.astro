@@ -1,0 +1,489 @@
+---
+/**
+ * The design preview panel. Pitch builds only.
+ *
+ * A prospect can switch preset, accent and font pairing and see the whole page
+ * change instantly, then send the combination back. That is the entire point:
+ * the conversation stops being "do you like this?" and becomes "which of these
+ * is yours?".
+ *
+ * How it switches without a reload and without layout shift:
+ * `DesignLayout` has already emitted every combination as static CSS keyed on
+ * `<html data-theme|data-accent|data-font>`. Switching is three attribute
+ * writes. The browser re-resolves custom properties — which it does anyway on
+ * any style change — and nothing else happens, because radius and density are
+ * the only metric tokens and both are declared in every combination.
+ *
+ * Accessibility is bought rather than built: the three controls are real
+ * `<fieldset>` + `<input type="radio">` groups, so arrow-key navigation, group
+ * labelling and screen-reader announcement come from the platform. The panel
+ * is non-modal (it changes the page behind it, so trapping focus would defeat
+ * the purpose); `Esc` closes it and focus returns to the button. Swatches are
+ * labelled by name, never by colour alone.
+ *
+ * There is no free colour input here, by design. Every offered combination has
+ * been through `check:contrast` in matrix mode; a colour picker would put the
+ * prospect one drag away from an inaccessible site with our name on it.
+ */
+import { site, clientSlug } from '../../../site.config';
+import { PRESETS, accentsFor } from '../../design/presets';
+import type { DesignConfig } from '../../types/design';
+
+interface Props {
+  design: DesignConfig;
+}
+
+const { design } = Astro.props;
+const { forms, business } = site;
+
+const swatches = accentsFor(design.theme);
+
+/**
+ * Where "send it to us" posts. Same two-mode story as the contact form, so
+ * there is one answer to "is there a backend" rather than two: a configured
+ * Worker endpoint, or a `mailto:` composed in the browser.
+ */
+const endpoint = forms.mode === 'worker' && forms.workerEndpoint ? forms.workerEndpoint : '';
+const mailto = business.email ?? '';
+
+const config = {
+  slug: clientSlug,
+  endpoint,
+  mailto,
+  presets: PRESETS.map((p) => ({
+    id: p.id,
+    accents: (design.theme.brandAccent ? [...p.accents, design.theme.brandAccent] : p.accents).map(
+      (a) => a.id,
+    ),
+    fonts: p.fonts.map((f) => f.id),
+  })),
+};
+---
+
+<button
+  type="button"
+  class="d-cust__toggle"
+  id="d-cust-toggle"
+  aria-expanded="false"
+  aria-controls="d-cust-panel"
+  aria-label="Open design options"
+>
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 1.4-3.4 2 2 0 0 1 1.4-3.4H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"
+    ></path>
+    <circle cx="7.5" cy="12" r="1.1" fill="currentColor" stroke="none"></circle>
+    <circle cx="10" cy="7.5" r="1.1" fill="currentColor" stroke="none"></circle>
+    <circle cx="15" cy="7.5" r="1.1" fill="currentColor" stroke="none"></circle>
+  </svg>
+</button>
+
+<div class="d-cust d-cust__panel" id="d-cust-panel" hidden>
+  <p class="d-cust__title">Try a different look</p>
+  <p class="d-cust__blurb">
+    Three directions, your colours. Changes are instant — nothing here is saved to your site.
+  </p>
+
+  <fieldset>
+    <legend>Style</legend>
+    <div class="d-cust__opts" role="none">
+      {
+        PRESETS.map((preset) => (
+          <Fragment>
+            <input
+              type="radio"
+              name="d-theme"
+              id={`d-theme-${preset.id}`}
+              value={preset.id}
+              checked={preset.id === design.theme.preset}
+            />
+            <label for={`d-theme-${preset.id}`}>{preset.label}</label>
+          </Fragment>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Accent</legend>
+    <div class="d-cust__opts">
+      {
+        swatches.map((swatch) => (
+          <Fragment>
+            <input
+              type="radio"
+              name="d-accent"
+              id={`d-accent-${swatch.id}`}
+              value={swatch.id}
+              checked={swatch.id === design.theme.accent}
+            />
+            <label for={`d-accent-${swatch.id}`}>
+              {/* Colour is never the only cue: the swatch is decorative and
+                  the name is the label. */}
+              <span class="d-cust__swatch" style={`background:${swatch.accent}`} aria-hidden="true" />
+              {swatch.label}
+            </label>
+          </Fragment>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Lettering</legend>
+    <div class="d-cust__opts">
+      {
+        PRESETS.flatMap((preset) =>
+          preset.fonts.map((font) => (
+            <Fragment>
+              <input
+                type="radio"
+                name="d-font"
+                id={`d-font-${preset.id}-${font.id}`}
+                value={font.id}
+                data-preset={preset.id}
+                checked={preset.id === design.theme.preset && font.id === design.theme.fontPairing}
+              />
+              <label for={`d-font-${preset.id}-${font.id}`} data-preset={preset.id}>
+                {font.label}
+              </label>
+            </Fragment>
+          )),
+        )
+      }
+    </div>
+  </fieldset>
+
+  <button type="button" class="d-btn d-btn--accent d-cust__send" id="d-cust-send">
+    Love this look? Send it to us
+  </button>
+  <p class="d-cust__status" id="d-cust-status" role="status" aria-live="polite"></p>
+</div>
+
+{/*
+  The panel's styles live with the panel rather than in `design.css`, so a
+  delivered build — which never renders this component — never carries them.
+*/}
+<style is:global>
+  .d-cust__toggle {
+    position: fixed;
+    left: 1rem;
+    /* Bottom-left: bottom-right belongs to the call CTA, and on a phone the
+       sticky call bar owns the strip below, which this clears. */
+    bottom: calc(1rem + var(--d-callbar-space, 0rem));
+    z-index: 70;
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--d-line);
+    background: var(--d-surface);
+    color: var(--d-ink);
+    cursor: pointer;
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.55);
+  }
+
+  .d-cust__panel {
+    position: fixed;
+    left: 1rem;
+    bottom: calc(4.75rem + var(--d-callbar-space, 0rem));
+    z-index: 71;
+    width: min(21rem, calc(100vw - 2rem));
+    max-height: min(30rem, calc(100vh - 9rem));
+    overflow-y: auto;
+    padding: 1.25rem;
+    border-radius: var(--d-radius-card, 0.5rem);
+    border: 1px solid var(--d-line);
+    background: var(--d-surface);
+    color: var(--d-ink);
+    box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.6);
+  }
+
+  .d-cust__panel[hidden] {
+    display: none;
+  }
+
+  .d-cust__title {
+    font-family: var(--d-font-display);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+  }
+
+  .d-cust__blurb {
+    margin: 0 0 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--d-ink-muted);
+  }
+
+  .d-cust fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 1.25rem;
+  }
+
+  .d-cust legend {
+    font-family: var(--d-font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--d-ink-muted);
+    padding: 0;
+    margin-bottom: 0.6rem;
+  }
+
+  .d-cust__opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* The radio is visually hidden but still focusable and still the element
+     that receives arrow keys — the label is only the visible surface. */
+  .d-cust__opts input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+
+  .d-cust__opts label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--d-line);
+    border-radius: var(--d-radius-btn, 0.375rem);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .d-cust__opts input:checked + label {
+    border-color: var(--d-accent);
+    box-shadow: inset 0 0 0 1px var(--d-accent);
+  }
+
+  .d-cust__opts input:focus-visible + label {
+    outline: 3px solid var(--d-accent);
+    outline-offset: 2px;
+  }
+
+  .d-cust__swatch {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--d-line);
+    flex-shrink: 0;
+  }
+
+  .d-cust__send {
+    width: 100%;
+    font-size: 0.9375rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .d-cust__status {
+    margin: 0.75rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--d-ink-muted);
+    min-height: 1.2em;
+  }
+</style>
+
+<script is:inline define:vars={{ config }}>
+  (function () {
+    var docEl = document.documentElement;
+    var toggle = document.getElementById('d-cust-toggle');
+    var panel = document.getElementById('d-cust-panel');
+    var status = document.getElementById('d-cust-status');
+    var send = document.getElementById('d-cust-send');
+    if (!toggle || !panel) return;
+
+    var byId = {};
+    config.presets.forEach(function (p) {
+      byId[p.id] = p;
+    });
+
+    function current() {
+      return {
+        theme: docEl.getAttribute('data-theme'),
+        accent: docEl.getAttribute('data-accent'),
+        font: docEl.getAttribute('data-font'),
+      };
+    }
+
+    /*
+     * Font pairings belong to a preset, so the list is filtered as the preset
+     * changes. Showing Heritage's serif options on a Forge page would offer a
+     * combination that has no CSS block and would silently do nothing.
+     */
+    function syncFontOptions(theme) {
+      var allowed = (byId[theme] || { fonts: [] }).fonts;
+      var chosen = null;
+      document.querySelectorAll('[name="d-font"]').forEach(function (input) {
+        var mine = input.getAttribute('data-preset') === theme;
+        var label = document.querySelector('label[for="' + input.id + '"]');
+        input.disabled = !mine;
+        if (label) label.style.display = mine ? '' : 'none';
+        if (mine && input.checked) chosen = input.value;
+      });
+      if (!chosen && allowed.length) {
+        var first = document.querySelector(
+          '[name="d-font"][data-preset="' + theme + '"][value="' + allowed[0] + '"]',
+        );
+        if (first) {
+          first.checked = true;
+          chosen = first.value;
+        }
+      }
+      return chosen;
+    }
+
+    /* Accents are per preset too — but every preset offers the same ids only
+       by coincidence, so fall back to the first legal one rather than leaving
+       an attribute pointing at a block that does not exist. */
+    function syncAccent(theme) {
+      var allowed = (byId[theme] || { accents: [] }).accents;
+      var chosen = docEl.getAttribute('data-accent');
+      if (allowed.indexOf(chosen) !== -1) return chosen;
+      var next = allowed[0] || chosen;
+      var input = document.querySelector('[name="d-accent"][value="' + next + '"]');
+      if (input) input.checked = true;
+      return next;
+    }
+
+    function persist(state) {
+      try {
+        localStorage.setItem('sf-theme', JSON.stringify(state));
+      } catch (e) {
+        /* Private browsing: the selection simply does not survive a reload. */
+      }
+      var params = new URLSearchParams(location.search);
+      params.set('theme', state.theme);
+      params.set('accent', state.accent);
+      params.set('font', state.font);
+      // replaceState, not pushState: switching themes is not navigation, and
+      // filling the back stack with palette changes would trap the visitor.
+      history.replaceState(null, '', location.pathname + '?' + params.toString() + location.hash);
+    }
+
+    function apply(next) {
+      if (next.theme) docEl.setAttribute('data-theme', next.theme);
+      var theme = docEl.getAttribute('data-theme');
+      var accent = next.accent || syncAccent(theme);
+      if (next.theme && !next.accent) accent = syncAccent(theme);
+      docEl.setAttribute('data-accent', accent);
+      var font = next.font || syncFontOptions(theme) || docEl.getAttribute('data-font');
+      if (next.theme) font = syncFontOptions(theme) || font;
+      docEl.setAttribute('data-font', font);
+      // The body carries the family for the decorative rules that key off it.
+      if (document.body) document.body.setAttribute('data-family', theme);
+      persist({ theme: theme, accent: accent, font: font });
+    }
+
+    document.querySelectorAll('[name="d-theme"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (input.checked) apply({ theme: input.value });
+      });
+    });
+    document.querySelectorAll('[name="d-accent"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (input.checked) apply({ accent: input.value });
+      });
+    });
+    document.querySelectorAll('[name="d-font"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (input.checked) apply({ font: input.value });
+      });
+    });
+
+    // Reflect whatever the no-flash script settled on, including a shared URL.
+    (function initial() {
+      var state = current();
+      var themeInput = document.querySelector('[name="d-theme"][value="' + state.theme + '"]');
+      if (themeInput) themeInput.checked = true;
+      var accentInput = document.querySelector('[name="d-accent"][value="' + state.accent + '"]');
+      if (accentInput) accentInput.checked = true;
+      syncFontOptions(state.theme);
+      var fontInput = document.querySelector(
+        '[name="d-font"][data-preset="' + state.theme + '"][value="' + state.font + '"]',
+      );
+      if (fontInput) fontInput.checked = true;
+      if (document.body) document.body.setAttribute('data-family', state.theme);
+    })();
+
+    function open(next) {
+      panel.hidden = !next;
+      toggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+      if (!next) toggle.focus();
+    }
+
+    toggle.addEventListener('click', function () {
+      open(panel.hidden);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.hidden) open(false);
+    });
+
+    if (send) {
+      send.addEventListener('click', function () {
+        var state = current();
+        var body = { prospectId: config.slug, selections: state, url: location.href };
+        if (config.endpoint) {
+          send.disabled = true;
+          status.textContent = 'Sending…';
+          fetch(config.endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+            .then(function (res) {
+              status.textContent = res.ok
+                ? 'Sent — thank you. We will build it in this direction.'
+                : 'That did not go through. Please call us instead.';
+            })
+            .catch(function () {
+              status.textContent = 'That did not go through. Please call us instead.';
+            })
+            .then(function () {
+              send.disabled = false;
+            });
+          return;
+        }
+        if (config.mailto) {
+          location.href =
+            'mailto:' +
+            config.mailto +
+            '?subject=' +
+            encodeURIComponent('Design choice for ' + config.slug) +
+            '&body=' +
+            encodeURIComponent(
+              'Style: ' + state.theme + '\nAccent: ' + state.accent + '\nLettering: ' + state.font +
+                '\n\n' + location.href,
+            );
+          return;
+        }
+        // No backend and no confirmed inbox: say so rather than pretending it
+        // was sent. The URL in the address bar is the shareable artefact.
+        status.textContent =
+          'Copy the address bar and send it to us — it carries this exact combination.';
+      });
+    }
+  })();
+</script>

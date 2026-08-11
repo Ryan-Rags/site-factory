@@ -1,0 +1,37 @@
+---
+/**
+ * A 1–5 star rating.
+ *
+ * Five stars are always drawn; the unearned ones are dimmed rather than
+ * omitted, so the rating is legible as a proportion at a glance. The stars
+ * themselves are `aria-hidden` and the rating is announced as words instead —
+ * "4 out of 5" is what a screen-reader user needs, not five path elements.
+ */
+interface Props {
+  rating: number;
+  /** Announced text. Defaults to "<n> out of 5". */
+  label?: string | undefined;
+  class?: string | undefined;
+}
+
+const { rating, label, class: className = '' } = Astro.props;
+const filled = Math.max(0, Math.min(5, Math.round(rating)));
+const star =
+  'M12 2.6l2.9 5.9 6.5.95-4.7 4.58 1.11 6.47L12 17.44 6.19 20.5l1.11-6.47L2.6 9.45l6.5-.95L12 2.6Z';
+---
+
+<span class={`d-stars ${className}`.trim()}>
+  {
+    [1, 2, 3, 4, 5].map((n) => (
+      <svg
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+        class={n <= filled ? '' : 'd-stars__empty'}
+      >
+        <path d={star} />
+      </svg>
+    ))
+  }
+  <span class="d-sr">{label ?? `${filled} out of 5`}</span>
+</span>

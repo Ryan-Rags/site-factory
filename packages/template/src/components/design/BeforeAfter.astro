@@ -1,0 +1,72 @@
+---
+/**
+ * Before/after comparison slider.
+ *
+ * It renders only when the config declares both photographs genuine
+ * (`verified: true`) — `sectionOrder()` already filters it out otherwise. A
+ * before/after built from two placeholder images presents stock art as this
+ * business's own work, which is the one thing the section exists to show.
+ *
+ * The control is a native `<input type="range">` driving a CSS custom
+ * property that a `clip-path` reads. No drag handler, no pointer events, no
+ * JavaScript at all beyond the inline `oninput` — and in exchange it is
+ * keyboard-operable, announced correctly by screen readers, and works on
+ * touch without a single listener.
+ */
+import type { BeforeAfterSection } from '../../types/design';
+
+interface Props {
+  section: BeforeAfterSection;
+}
+
+const { section } = Astro.props;
+---
+
+<section class="d-section d-ba-section" id="before-after" aria-labelledby="ba-heading">
+  <div class="d-wrap">
+    <div class="d-head" data-reveal>
+      {section.eyebrow && <p class="d-eyebrow">{section.eyebrow}</p>}
+      <h2 class="d-h2" id="ba-heading">{section.heading}</h2>
+      {section.intro && <p class="d-lede">{section.intro}</p>}
+    </div>
+
+    <div class="d-ba" data-reveal>
+      <div class="d-ba__frame">
+        <img
+          src={section.before.src}
+          alt={section.before.alt}
+          width={section.before.width ?? 1200}
+          height={section.before.height ?? 900}
+          loading="lazy"
+          decoding="async"
+        />
+        <img
+          class="d-ba__after"
+          src={section.after.src}
+          alt={section.after.alt}
+          width={section.after.width ?? 1200}
+          height={section.after.height ?? 900}
+          loading="lazy"
+          decoding="async"
+        />
+        <span class="d-ba__divider" aria-hidden="true"></span>
+        <span class="d-ba__tag d-ba__tag--before">{section.beforeLabel}</span>
+        <span class="d-ba__tag d-ba__tag--after">{section.afterLabel}</span>
+      </div>
+
+      <label class="d-sr" for="d-ba-range">
+        Reveal {section.afterLabel} over {section.beforeLabel}
+      </label>
+      <input
+        class="d-ba__range"
+        id="d-ba-range"
+        type="range"
+        min="0"
+        max="100"
+        value="50"
+        step="1"
+        oninput="this.closest('.d-ba').style.setProperty('--d-ba-split', this.value + '%')"
+      />
+    </div>
+  </div>
+</section>

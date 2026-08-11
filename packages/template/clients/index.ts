@@ -5,6 +5,9 @@ import ktsMachineShop from './kts-machine-shop.config';
 import americanMachineSpecialty from './american-machine-specialty.config';
 import industrialMachineCorp from './industrial-machine-corp.config';
 import ksWelding from './ks-welding.config';
+import ksWeldingForge from './ks-welding-forge.config';
+import ksWeldingPrecision from './ks-welding-precision.config';
+import ksWeldingHeritage from './ks-welding-heritage.config';
 
 /**
  * Every buildable client, keyed by slug.
@@ -25,6 +28,13 @@ export const clients = {
   'american-machine-specialty': americanMachineSpecialty,
   'industrial-machine-corp': industrialMachineCorp,
   'ks-welding': ksWelding,
+
+  // The design-system acceptance test: one shop, three families, identical
+  // content. See clients/ks-welding-forge.config.ts for why they exist
+  // alongside `ks-welding` rather than replacing it.
+  'ks-welding-forge': ksWeldingForge,
+  'ks-welding-precision': ksWeldingPrecision,
+  'ks-welding-heritage': ksWeldingHeritage,
 } satisfies Record<string, SiteConfig>;
 
 export type ClientSlug = keyof typeof clients;

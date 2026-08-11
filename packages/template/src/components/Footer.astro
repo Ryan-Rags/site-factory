@@ -109,9 +109,20 @@ const fmt = (t: string) => {
     </div>
 
     <div class="mt-10 border-t border-white/20 pt-6 text-sm text-white/60">
+      {/*
+        `foundedYear` is optional, and two clients (ks-welding,
+        industrial-machine-corp) deliberately omit it because the year is not
+        confirmed — their configs say in as many words that no "since …" copy
+        appears anywhere. This line contradicted that and rendered "…and the
+        surrounding area since ." on both live mockups: a dangling sentence,
+        and a claim about the business's age made out of an absent fact.
+
+        So the year is a suffix on a sentence that reads correctly without it,
+        rather than an interpolation that assumes the field is there.
+      */}
       <p>
         &copy; {year} {business.legalName}. Serving {business.serviceArea.slice(0, 3).join(', ')} and
-        the surrounding area since {business.foundedYear}.
+        the surrounding area{business.foundedYear ? ` since ${business.foundedYear}` : ''}.
       </p>
     </div>
   </div>
