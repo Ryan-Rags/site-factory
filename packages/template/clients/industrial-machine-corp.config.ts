@@ -76,7 +76,7 @@ const base: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    ogImage: '/og/industrial-machine-corp.png',
   },
 
   hero: {

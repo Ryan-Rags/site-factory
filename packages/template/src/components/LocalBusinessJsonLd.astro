@@ -47,7 +47,30 @@ const openingHours = (business.hours ?? [])
  * gets structured data distrusted, and it is free to avoid. `serviceArea`
  * remains the fallback for clients with no section.
  */
-const sectionTowns = (site.serviceAreas?.towns ?? []).map((t) => t.town);
+/**
+ * Which section is *actually on the page* depends on which shell rendered it.
+ *
+ * `BaseLayout` clients render `site.serviceAreas`. Design-family clients render
+ * `design.sections.serviceArea.areas` through `design/ServiceArea.astro` and
+ * never look at `site.serviceAreas` at all — so reading the latter here told
+ * three of them to claim towns their pages have never mentioned. K&S Welding
+ * advertised Tenafly, Englewood, Paramus and Hackensack in its structured data
+ * while the visible copy committed to six other places, which is the precise
+ * inconsistency the note above says is free to avoid.
+ *
+ * So the section is read from whichever shell is in play, mirroring
+ * `ServiceArea.astro`'s own fallback to `business.serviceArea` when the design
+ * config leaves `areas` empty. `scripts/check-schema.mjs` holds the line: a
+ * town in the graph that appears nowhere on the site now fails the build.
+ */
+const designArea = site.design?.sections.serviceArea;
+const sectionTowns =
+  designArea?.enabled === true
+    ? designArea.areas.length > 0
+      ? designArea.areas
+      : business.serviceArea
+    : (site.serviceAreas?.towns ?? []).map((t) => t.town);
+
 const areaNames = [
   ...sectionTowns,
   ...business.serviceArea.filter((a) => !sectionTowns.includes(a)),

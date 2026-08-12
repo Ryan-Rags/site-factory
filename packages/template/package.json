@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/check-form-fields.mjs && node scripts/check-injection.mjs && astro build && node scripts/check-markers.mjs && node scripts/check-fabrication.mjs && node scripts/check-contrast.mjs && node scripts/check-contact-links.mjs",
+    "build": "node scripts/check-form-fields.mjs && node scripts/check-injection.mjs && astro build && node scripts/check-markers.mjs && node scripts/check-fabrication.mjs && node scripts/check-contrast.mjs && node scripts/check-contact-links.mjs && node scripts/check-metadata.mjs && node scripts/check-schema.mjs",
     "build:all": "node scripts/build-all.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
@@ -22,6 +22,8 @@
     "check:contact-links": "node scripts/check-contact-links.mjs",
     "check:form-fields": "node scripts/check-form-fields.mjs",
     "check:injection": "node scripts/check-injection.mjs",
+    "check:metadata": "node scripts/check-metadata.mjs",
+    "check:schema": "node scripts/check-schema.mjs",
     "gen:placeholders": "node scripts/gen-placeholders.mjs",
     "clean": "node -e \"const{rmSync}=require('node:fs');for(const d of ['dist','.astro'])rmSync(d,{recursive:true,force:true})\"",
     "gen:brand": "node scripts/gen-brand-assets.mjs",
