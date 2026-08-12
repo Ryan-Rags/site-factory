@@ -279,6 +279,16 @@ something read off a terminal.
 5. One fresh prospect with a live site, same bar, `websiteStatus: live`.
 6. `pnpm demo -- --list` then a run: **zero** drift warnings.
 
+## Answers (2026-08-12)
+
+- **Q1 → `--skip-deploy` for both.** Nothing outward-facing in this stream.
+  The gates run against the built `dist/`, and the manifests are yours to read
+  before anything is deployed.
+- **Q2 → Chase Machine Co Inc** (`chasemachineco.com`, Lyndhurst NJ).
+- **Q3 → full `DesignConfig`.** §6 stands as written.
+
+Still gated on plan approval before any code is written.
+
 ## What I need from you before I start
 
 **Q1 — Deploys.** The acceptance runs are `--skip-deploy` unless you say
