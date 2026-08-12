@@ -18,6 +18,15 @@ export const templateClientsDir: string = join(templateDir, "clients");
 /** Where the audit package leaves its "before" screenshots. */
 export const auditOutDir: string = join(repoRoot, "audit", "out");
 
+/**
+ * The copy engine's built entry point, as a path.
+ *
+ * A path rather than an import because `ingest/seed.ts` transpiles the
+ * hand-authored client configs into a throwaway directory outside the
+ * workspace, where a bare `@site-factory/copy` specifier cannot resolve.
+ */
+export const copyDistEntry: string = join(repoRoot, "packages", "copy", "dist", "index.js");
+
 export interface ProspectPaths {
   id: string;
   dir: string;
