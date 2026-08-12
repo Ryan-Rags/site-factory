@@ -70,6 +70,15 @@ export {
 } from "./sku.js";
 
 export {
+  ATMOSPHERE,
+  AtmosphereFieldError,
+  BudgetExceededError,
+  DEFAULT_LIMITS,
+  UsageMeter,
+} from "./usage.js";
+export type { TierCount, UsageLimits, UsageRecord, UsageSummary } from "./usage.js";
+
+export {
   CallBudget,
   DISCOVERY_FIELD_MASK,
   FIELD_MASK,
@@ -79,11 +88,13 @@ export {
   loadFixture,
   placeToLead,
   searchText,
+  searchTextDetailed,
 } from "./places.js";
 export type {
   FetchLike,
   PlacesPlace,
   PlacesResponse,
   SearchOptions,
+  SearchOutcome,
   ToLeadOptions,
 } from "./places.js";
