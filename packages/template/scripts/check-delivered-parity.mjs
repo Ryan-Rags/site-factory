@@ -61,6 +61,39 @@ const hash = (s) => createHash('md5').update(s).digest('hex').slice(0, 10);
 const deIsland = (html) =>
   html.replace(/uid="[^"]*"/g, 'uid=""').replace(/prefix="[^"]*"/g, 'prefix=""');
 
+/**
+ * The one delta a delivered `:root` block is allowed to have, and only once.
+ *
+ * `designTokens()` now emits `color-scheme` for the resolved scheme, so every
+ * delivered design page gains exactly one line that was not there before. That
+ * is a deliberate rendering change — a dark page without it draws a light
+ * scrollbar — and it is the single agreed exemption from the standing
+ * byte-identical acceptance.
+ *
+ * It is written as a *named* exemption rather than by re-baselining the
+ * comparison, because a fresh baseline would absorb whatever else happened to
+ * land in the same build and would keep absorbing it afterwards. The rule here
+ * is deliberately narrow, and the narrowness is the point:
+ *
+ *   - the baseline must have had NO `color-scheme` in the block (this is the
+ *     one-way migration, not a licence for the value to drift afterwards);
+ *   - the candidate must add exactly one, valued `light` or `dark`;
+ *   - with that single line removed, the two blocks must be identical.
+ *
+ * So a client's tone silently flipping, or any other token moving alongside,
+ * still fails. Returns the scheme name when the exemption applies, else null.
+ */
+const SCHEME_LINE = /\n[ \t]*color-scheme:\s*(light|dark);/;
+
+function onlyColorSchemeAdded(before, after) {
+  if (/color-scheme:/.test(before)) return null;
+  const found = SCHEME_LINE.exec(after);
+  if (!found) return null;
+  // Exactly one: a block carrying two declarations is not this migration.
+  if (SCHEME_LINE.test(after.replace(SCHEME_LINE, ''))) return null;
+  return after.replace(SCHEME_LINE, '') === before ? found[1] : null;
+}
+
 function regions(html) {
   const clean = deIsland(html);
   const headStart = clean.indexOf('<head');
@@ -125,6 +158,8 @@ const pages = walk(BASE);
 let regressions = 0;
 let pitchMoved = 0;
 let identical = 0;
+/** Pages that took the named `color-scheme` exemption, reported at the end. */
+const schemeAdded = [];
 
 for (const page of pages) {
   let a, b;
@@ -175,7 +210,20 @@ for (const page of pages) {
     continue;
   }
 
-  const moved = gated.filter((k) => hash(ra[k]) !== hash(rb[k]));
+  let moved = gated.filter((k) => hash(ra[k]) !== hash(rb[k]));
+
+  // The one named exemption. Applied only to `root`, only when that block's
+  // sole change is the added `color-scheme` line, and always announced — an
+  // allowance nobody can see is indistinguishable from a gate that stopped
+  // working.
+  if (moved.includes('root')) {
+    const scheme = onlyColorSchemeAdded(ra.root, rb.root);
+    if (scheme) {
+      moved = moved.filter((k) => k !== 'root');
+      schemeAdded.push(`${page} (${scheme})`);
+    }
+  }
+
   if (moved.length > 0) {
     regressions++;
     console.error(
@@ -194,6 +242,15 @@ console.log(
   `\n${pages.length} pages compared: ${identical} byte-identical, ` +
     `${pitchMoved} changed only in panel machinery, ${regressions} regressed.`,
 );
+
+if (schemeAdded.length > 0) {
+  console.log(
+    `\n${schemeAdded.length} page(s) took the named color-scheme exemption — the only\n` +
+      `  permitted change to a delivered :root block, and a deliberate rendering\n` +
+      `  change rather than drift:`,
+  );
+  for (const entry of schemeAdded) console.log(`    + color-scheme  ${entry}`);
+}
 
 if (regressions > 0) {
   console.error(

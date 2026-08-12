@@ -37,7 +37,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { allowancesFor, prospectFor, VERIFY_MARKER } from '@site-factory/copy';
+import { allowancesFor, prospectFor, PROSPECT_SLUGS, VERIFY_MARKER } from '@site-factory/copy';
 
 import { resolveBaseSlug } from './lib/base-slug.mjs';
 import { ingestedAllowances } from './lib/ingested-allowances.mjs';
@@ -144,11 +144,27 @@ function checkClient(slug) {
   // generated site is checked against its own sources exactly like a
   // hand-authored one, which matters more there, not less: nobody has read
   // that copy before it deploys.
+  //
+  // A slug can have BOTH, and then the two records UNION rather than one
+  // replacing the other. Running the demo pipeline on a slug that is also a
+  // hand-authored client used to swap that client's reviewed copy pack for the
+  // thinner ingested record — for every later build, not just the demo one —
+  // and a sourced sentence then read as a fabrication. `prospects/` is
+  // gitignored, so that state is invisible in git and machine-local: the same
+  // commit green on one machine, red on another. Both records are sources; a
+  // source does not stop being one because another turned up beside it.
+  // Demonstrated in docs/evidence/beta-2-fabrication-union/.
   let allowed;
   try {
     const ingested = ingestedAllowances(prospectsDir, factsFrom);
+    // No ingested record: the copy pack is the only source, and `prospectFor`
+    // throws the right message below when there is not one of those either.
+    const curated = ingested !== null && !PROSPECT_SLUGS.includes(factsFrom)
+      ? []
+      : allowancesFor(prospectFor(factsFrom));
     allowed = [
-      ...(ingested ?? allowancesFor(prospectFor(factsFrom))),
+      ...(ingested ?? []),
+      ...curated,
       // The footer's copyright year. It comes off the build clock, it is a
       // fact about this build rather than a claim about the business, and it
       // is the one four-digit number on every page that means nothing about

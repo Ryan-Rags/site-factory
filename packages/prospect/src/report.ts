@@ -68,6 +68,13 @@ export interface DemoManifest {
     before: { desktop: string | null; mobile: string | null; source: string; reason?: string };
     after: { desktop: string | null; mobile: string | null };
   };
+  /**
+   * Degradations the run survived but nobody should ship without reading.
+   *
+   * Recorded in the manifest, not just printed, because the manifest is what
+   * gets looked at days later when somebody asks why a demo was thin.
+   */
+  warnings: string[];
   unavailable: { field: string; reason: string }[];
   conflicts: ProspectConfig["conflicts"];
   log: string[];
@@ -91,6 +98,7 @@ export function buildManifest(input: {
   before: { desktop?: string; mobile?: string; source: string; reason?: string };
   after: { desktop?: string; mobile?: string };
   log: string[];
+  warnings?: string[];
   /** Absent when the run failed before the projection ran. */
   copy?: {
     pack: string | null;
@@ -139,6 +147,7 @@ export function buildManifest(input: {
     },
     unavailable: unavailableFields(prospect),
     conflicts: prospect.conflicts,
+    warnings: input.warnings ?? [],
     log: input.log,
   };
 }
@@ -227,5 +236,30 @@ export function printSummary(manifest: DemoManifest): void {
   if (manifest.unavailable.length > 0) {
     console.log(`  ${manifest.unavailable.length} field(s) unavailable:`);
     for (const u of manifest.unavailable) console.log(`    ${u.field}: ${u.reason}`);
+  }
+
+  /*
+   * Warnings go last, and go to stderr.
+   *
+   * Last because the summary is read top-down and abandoned halfway; stderr
+   * because a run is often piped somewhere, and the whole point of these is
+   * that they are the lines that must not be lost. A demo that silently lost
+   * its lead row still builds, still deploys and still looks finished — this
+   * banner is the only thing standing between that and pitching it.
+   */
+  if (manifest.warnings.length > 0) {
+    const rule = "!".repeat(74);
+    console.error(`\n  ${rule}`);
+    console.error(
+      `  ${manifest.warnings.length} WARNING(S) — this demo was built with less than it should have been`,
+    );
+    console.error(`  ${rule}`);
+    for (const w of manifest.warnings) {
+      // Wrapped by hand: these run long, and a wall of unbroken text is the
+      // thing people's eyes slide off.
+      const wrapped = w.replace(/(.{1,86})(\s+|$)/g, "\n      $1").trimStart();
+      console.error(`    ! ${wrapped}`);
+    }
+    console.error("");
   }
 }

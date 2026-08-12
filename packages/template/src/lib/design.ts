@@ -713,10 +713,25 @@ export function metricTokens(theme: ResolvedTheme): string {
  * This is the entire theming mechanism: `design.css` never names a colour, it
  * only references these properties. Swap the preset id in the JSON and every
  * rule in the stylesheet follows.
+ *
+ * `color-scheme` is declared here as well as in the switchable matrix. It tells
+ * the browser which way to render what CSS does not own — scrollbars, native
+ * form controls, the canvas behind a rubber-band scroll — and without it a
+ * carbon Forge page renders a light scrollbar down its edge and a white flash
+ * when it is overscrolled.
+ *
+ * It was deliberately left out of this block while the schemes work was in
+ * flight, because adding it changes what the delivered sites actually render
+ * and byte-identical delivered output was the standing acceptance on that
+ * stream. That call has now been made the other way: the bytes below are the
+ * one exemption from byte-identical delivered output, taken knowingly, and
+ * `check-delivered-parity.mjs` names this declaration as the only permitted
+ * delta rather than being re-baselined around it.
  */
 export function designTokens(theme: ResolvedTheme): string {
   const c = theme.palette;
   return `:root {
+  color-scheme: ${theme.scheme};
 ${paletteTokens(c)}
 ${accentTokens(c.accent, c.onAccent, c)}
 ${fontTokens(theme.fonts)}
@@ -763,17 +778,17 @@ export function themeMatrixCss(design: DesignConfig): string {
 
     for (const { scheme, palette, accents } of schemes) {
       /*
-       * `color-scheme` is declared here and deliberately *not* in the single
-       * `:root` block a delivered site gets. It tells the browser which way to
-       * render the things CSS does not own — scrollbars, form controls, the
-       * canvas behind a rubber-band scroll — and a dark tone without it shows
-       * a light scrollbar down the edge of a carbon page.
+       * `color-scheme` per tone, so a scheme flip in the panel takes the
+       * scrollbars and native controls with it rather than leaving a light
+       * scrollbar down the edge of a carbon page.
        *
-       * Adding it to the delivered block would change how the five existing
-       * customizer clients and the three delivered demos actually render, and
-       * byte-identical delivered output is a standing acceptance on this work.
-       * It belongs there too; that is a one-line change and a deliberate
-       * decision to make, not a side effect of this one.
+       * This used to be the *only* place it was declared, with the delivered
+       * `:root` block deliberately left without one; the note here said that
+       * belonged there too and was a decision to make rather than a side
+       * effect. That decision has since been made — see `designTokens()`, which
+       * now emits it for the resolved scheme. The two are no longer allowed to
+       * disagree: a delivered page and the matching cell of a pitch build
+       * render the same tone.
        */
       /*
        * `--d-swatch-*` is for the panel's chips.

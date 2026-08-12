@@ -51,11 +51,35 @@ function wrangler(args) {
   return { code: res.status, out };
 }
 
+/**
+ * Test fixtures, which exist to exercise a build rule and are not businesses.
+ *
+ * `zz-fixture-phone-optional` carries an invented name, an invented number and
+ * invented services, for the sole purpose of proving the form-field rules. It
+ * must never reach a public URL. `build-all.mjs` already declines to build the
+ * prefix into a batch, but that is not the same guarantee: anyone who builds one
+ * deliberately (`SITE_CLIENT=zz-… pnpm build`, which is the documented way to
+ * work on it) leaves a `dist/zz-…/` behind, and this script would then publish
+ * whatever it found there.
+ */
+const FIXTURE_PREFIX = 'zz-';
+
 function listSites(distDir) {
-  return readdirSync(distDir, { withFileTypes: true })
+  const dirs = readdirSync(distDir, { withFileTypes: true })
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .sort();
+
+  const fixtures = dirs.filter((name) => name.startsWith(FIXTURE_PREFIX));
+  // Announced, never silent: a deploy that quietly publishes fewer sites than
+  // the operator expects is the same class of problem as one that publishes
+  // more, and this script's whole job is to be predictable about what went out.
+  if (fixtures.length > 0) {
+    console.log(
+      `skipping ${fixtures.length} test fixture(s), never deployed: ${fixtures.join(', ')}`,
+    );
+  }
+  return dirs.filter((name) => !name.startsWith(FIXTURE_PREFIX));
 }
 
 // --- demo form endpoint gate -------------------------------------------------
