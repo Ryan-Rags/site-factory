@@ -31,7 +31,8 @@
     "clean": "node -e \"const{rmSync}=require('node:fs');for(const d of ['dist','.astro'])rmSync(d,{recursive:true,force:true})\"",
     "gen:brand": "node scripts/gen-brand-assets.mjs",
     "compare": "node scripts/make-compare.mjs",
-    "record:switch": "node scripts/record-theme-switch.mjs"
+    "record:switch": "node scripts/record-theme-switch.mjs",
+    "check:csp-runtime": "node scripts/check-csp-runtime.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

@@ -204,22 +204,29 @@ export const site: SiteConfig = {
     maxUploadMB: 10,
     acceptedFileTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'],
     /*
-     * Cloudflare's published "always passes, visible" **test** site key. Not a
-     * secret, not tied to any account, and documented by Cloudflare for exactly
-     * this use.
+     * Empty — but it was not always, and the reason it is again matters.
      *
-     * It is here because no real client sets `turnstileSiteKey`, which left the
-     * Turnstile path — a third-party script from challenges.cloudflare.com, and
-     * the iframe it injects — unexercised by any build. A CSP measured only on
-     * builds where Turnstile is absent would say nothing about whether the CSP
-     * permits Turnstile, and the first person to find out would be a client
-     * whose contact form silently stopped accepting submissions.
+     * No client sets this, which left the Turnstile path unexercised by any
+     * build, so it was built here with Cloudflare's published "always passes"
+     * test key. That found a real defect in gen-headers.mjs (frame-src 'none'
+     * on a page whose widget iframe is injected at runtime) and proved the
+     * fixed policy loads Turnstile with zero CSP violations.
      *
-     * With the key set, this fixture's contact page carries the real widget, so
-     * gen-headers.mjs measures the script host and the frame host, and
-     * check-csp-runtime.mjs loads the page and fails on any violation.
+     * It also surfaced a pre-existing, intermittent race that has nothing to do
+     * with CSP: `api.js` auto-renders into `.cf-turnstile`, which lives inside a
+     * `client:visible` React island, and when React loses that race it wipes the
+     * widget — leaving no cf-turnstile-response token on the form. It
+     * reproduces on unmodified main, and roughly one run in five.
+     *
+     * Keeping the key would have imported that flake into check-csp-runtime,
+     * which runs on every build:all. A gate that goes red one run in ten
+     * teaches people to re-run it instead of reading it. So the Turnstile CSP
+     * path is proven by recorded measurement and a reproducible command rather
+     * than by a standing gate — see
+     * docs/evidence/trust-seo/turnstile-csp-and-hydration.md, which also
+     * carries the fix sketch for whoever owns the form.
      */
-    turnstileSiteKey: '1x00000000000000000000AA',
+    turnstileSiteKey: '',
   },
 
   faq: [

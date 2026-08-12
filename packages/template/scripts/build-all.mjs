@@ -92,7 +92,19 @@ for (const slug of CLIENT_SLUGS) {
    * the easier way to ship something the gates would have caught.
    */
   let clientFailed = false;
-  for (const script of ['check-markers.mjs', 'check-fabrication.mjs', 'check-contact-links.mjs']) {
+  for (const script of [
+    'check-markers.mjs',
+    'check-fabrication.mjs',
+    'check-contact-links.mjs',
+    // gen-headers must precede check-headers: the gate compares the file this
+    // writes against the pages, and would otherwise fail on a batch build for
+    // the absence of a file the batch is responsible for producing.
+    'gen-headers.mjs',
+    'check-headers.mjs',
+    'check-metadata.mjs',
+    'check-schema.mjs',
+    'check-go-live.mjs',
+  ]) {
     const check = spawnSync(process.execPath, [join(pkgRoot, 'scripts', script), slug], {
       cwd: pkgRoot,
       stdio: 'inherit',
@@ -112,6 +124,23 @@ const contrast = spawnSync(process.execPath, [join(pkgRoot, 'scripts', 'check-co
   stdio: 'inherit',
 });
 if (contrast.status !== 0) failed++;
+
+/*
+ * The runtime CSP check runs once for the batch, over every client in dist/,
+ * and is deliberately not in the per-client `pnpm build`: it launches a
+ * browser, which is far too heavy to pay on every single-client build.
+ *
+ * It is the only check here that proves the generated policy does not break
+ * the site. check-headers proves the _headers file agrees with the pages, which
+ * is two files agreeing with each other — a perfectly derived policy can still
+ * stop the customizer applying a selection or the service worker registering,
+ * and neither shows up anywhere but in front of a customer.
+ */
+const runtime = spawnSync(process.execPath, [join(pkgRoot, 'scripts', 'check-csp-runtime.mjs'), '--all'], {
+  cwd: pkgRoot,
+  stdio: 'inherit',
+});
+if (runtime.status !== 0) failed++;
 
 console.log(`\n${CLIENT_SLUGS.length - failed}/${CLIENT_SLUGS.length} clients built and checked.`);
 process.exit(failed === 0 ? 0 : 1);
