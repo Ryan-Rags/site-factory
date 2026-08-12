@@ -96,6 +96,106 @@
   .eyebrow {
     @apply text-sm font-bold uppercase tracking-widest text-accent-dark;
   }
+
+  /*
+   * Contact form success state.
+   *
+   * A form that visibly *lands* is the difference between a demo that reads as
+   * a real website and one that reads as a slideshow, so this is deliberately
+   * more than a colour change. It is all CSS: no animation library, no extra
+   * bytes of JavaScript beyond the form island that is already there.
+   *
+   * The sequence: card rises, ring draws, tick draws inside it, one ripple
+   * spreads, then the three text rows arrive in order. Total ~900ms — long
+   * enough to register across a room, short enough not to be in the way.
+   */
+  .success-card {
+    animation: success-rise 320ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  .success-ring {
+    position: relative;
+  }
+
+  /* The ripple. `::after` rather than a second element so the markup stays
+     readable, and `pointer-events: none` so it can never eat a tap on the
+     buttons beneath it. */
+  .success-ring::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 2px solid var(--color-primary);
+    opacity: 0;
+    pointer-events: none;
+    animation: success-ripple 900ms ease-out 260ms 1;
+  }
+
+  /* 2πr for r=24, rounded up, so the stroke is fully hidden at the start. */
+  .success-ring-circle {
+    stroke-dasharray: 151;
+    stroke-dashoffset: 151;
+    animation: success-draw 520ms ease-out 60ms forwards;
+  }
+
+  /* Path length of the tick, likewise rounded up. */
+  .success-ring-check {
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: success-draw 300ms ease-out 430ms forwards;
+  }
+
+  .success-line {
+    animation: success-fade-up 340ms ease-out both;
+  }
+  .success-line-1 {
+    animation-delay: 560ms;
+  }
+  .success-line-2 {
+    animation-delay: 660ms;
+  }
+  .success-line-3 {
+    animation-delay: 760ms;
+  }
+}
+
+@keyframes success-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes success-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes success-ripple {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.85);
+  }
+}
+
+@keyframes success-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -110,5 +210,23 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /*
+   * Durations are collapsed above, but delays are not — and the success
+   * sequence is built out of delays. Without this the tick and the three text
+   * rows would still appear staggered over nearly a second, which is exactly
+   * the motion the visitor asked not to see. Zeroing the delays lands the
+   * whole finished state at once; `forwards` on each animation keeps it there.
+   */
+  .success-card,
+  .success-card *,
+  .success-card *::after {
+    animation-delay: 0ms !important;
+  }
+
+  /* The ripple is pure motion with no end state worth showing. */
+  .success-ring::after {
+    display: none;
   }
 }

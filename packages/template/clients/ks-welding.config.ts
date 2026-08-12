@@ -190,6 +190,8 @@ export const site: SiteConfig = {
     // browser and send the combination back. `SITE_DELIVERED=1` forces it off
     // whatever this says, so a delivered site cannot leak the panel.
     customizer: true,
+    // Demoed on a phone inside a shop; reception there is not a given.
+    offline: true,
   },
 
   // The design payload itself is JSON: clients/design/ks-welding.design.json.

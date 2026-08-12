@@ -30,3 +30,34 @@ export function yearsInBusiness(business: Business, now: Date = new Date()): num
 export function foundedLabel(business: Business): string | null {
   return business.foundedYear === undefined ? null : `Since ${business.foundedYear}`;
 }
+
+/**
+ * `tel:` href for the shop's number.
+ *
+ * One function rather than `tel:${business.phoneHref}` written out at each of
+ * the seven call sites, so the scheme and the number can never drift apart —
+ * and so `check-contact-links.mjs` has one place to point at when it finds a
+ * phone number rendered as plain text.
+ */
+export function telHref(business: Business): string {
+  return `tel:${business.phoneHref}`;
+}
+
+/**
+ * `sms:` href, or `null` when no textable number is confirmed.
+ *
+ * Returning `null` rather than falling back to `phoneHref` is the whole point
+ * of the field — see the doc comment on `Business.smsHref`. Callers render
+ * nothing at all when this is null.
+ *
+ * The `sms:<number>?&body=` spelling is not a typo. iOS historically wanted
+ * `&body=` and Android wanted `?body=`; `?&body=` is the form both parse, and
+ * it is what every cross-platform guide has settled on. A plain `?body=` drops
+ * the prefilled text on older iOS, silently.
+ */
+export function smsHref(business: Business): string | null {
+  if (!business.smsHref) return null;
+  const base = `sms:${business.smsHref}`;
+  if (!business.smsBody) return base;
+  return `${base}?&body=${encodeURIComponent(business.smsBody)}`;
+}

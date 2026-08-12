@@ -17,6 +17,10 @@
     "mockup": "node scripts/mockup/index.mjs",
     "mockup:all": "node scripts/mockup/index.mjs --all",
     "deploy:mockups": "node scripts/deploy/deploy-mockups.mjs",
+    "pitch": "node scripts/pitch/compare.mjs",
+    "pitch:all": "node scripts/pitch/compare.mjs --all",
+    "verify:offline": "node scripts/pitch/verify-offline.mjs",
+    "verify:offline:all": "node scripts/pitch/verify-offline.mjs --all --local",
     "lint": "echo \"lint: not configured yet\"",
     "test": "echo \"test: not configured yet\""
   },

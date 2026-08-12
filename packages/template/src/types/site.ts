@@ -71,6 +71,23 @@ export interface Business {
   phone: string;
   /** Digits only, E.164 without punctuation — used for `tel:` links. */
   phoneHref: string;
+  /**
+   * Optional. Digits only, E.164, of a number that can actually receive a text
+   * message. Every "Text us" link on the site renders only when this is set.
+   *
+   * Deliberately separate from `phoneHref` rather than defaulting to it. Most
+   * shop numbers are landlines, and a text to a landline is delivered nowhere
+   * and answered never — a dead end in the one moment a customer was willing
+   * to make contact. Set this only for a number somebody has confirmed
+   * receives SMS. Absent, the site has no text links at all, which is honest.
+   */
+  smsHref?: string;
+  /**
+   * Optional message prefilled into the text. Keep it short: some clients
+   * truncate long bodies, and the customer should be able to add their own
+   * sentence without deleting ours first.
+   */
+  smsBody?: string;
   /** Optional: omitted when unconfirmed. Hides the email row in the footer
    *  and drops `email` from JSON-LD. `forms.mode: 'mailto'` requires it. */
   email?: string;
@@ -164,7 +181,8 @@ export type IconName =
   | 'gear'
   | 'truck'
   | 'badge'
-  | 'phone';
+  | 'phone'
+  | 'message';
 
 export interface Service {
   /** Must match a file in `src/content/services/<slug>.md`. */
@@ -243,6 +261,22 @@ export interface Features {
    * flag cannot leak a customizer into a client's live site.
    */
   customizer?: boolean;
+  /**
+   * Emit `/sw.js` and register it, so the site keeps working on a dead
+   * connection once it has been visited.
+   *
+   * This exists for one concrete reason: these sites get shown on a phone,
+   * standing inside a workshop, where reception is frequently nothing. A demo
+   * that spins on a blank page is worse than no demo at all.
+   *
+   * The cost, stated plainly: a service worker can serve one navigation from
+   * an earlier build after a redeploy. HTML is network-first so a connected
+   * phone always gets fresh bytes, and the cache name carries the build id so
+   * old caches are dropped on activate — the stale window is narrowed, not
+   * eliminated. False disables registration entirely and the page ships
+   * exactly as it did before this flag existed.
+   */
+  offline: boolean;
 }
 
 /** One shop-news entry. The updates section renders newest-first. */

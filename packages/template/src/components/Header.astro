@@ -1,6 +1,8 @@
 ---
 import { site } from '../../site.config';
+import { telHref } from '../lib/business';
 import Icon from './Icon.astro';
+import TextUsLink from './TextUsLink.astro';
 
 const { business, brand, features } = site;
 
@@ -60,12 +62,16 @@ const isCurrent = (href: string) => (href === '/' ? current === '/' : current.st
           }
           <li class="ml-2">
             <a
-              href={`tel:${business.phoneHref}`}
+              href={telHref(business)}
               class="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-accent-dark"
             >
               <Icon name="phone" class="h-4 w-4" />
               <span>{business.phone}</span>
             </a>
+          </li>
+          {/* Renders only when a textable number is confirmed. */}
+          <li class="ml-1">
+            <TextUsLink class="inline-flex items-center gap-2 rounded-md border-2 border-accent px-3 py-2 text-sm font-bold text-accent-dark transition-colors hover:bg-accent-wash" />
           </li>
         </ul>
       </nav>
@@ -105,12 +111,15 @@ const isCurrent = (href: string) => (href === '/' ? current === '/' : current.st
             }
             <li class="mt-1 border-t border-slate-200 pt-2">
               <a
-                href={`tel:${business.phoneHref}`}
+                href={telHref(business)}
                 class="flex items-center gap-2 rounded-md bg-accent px-3 py-2.5 text-base font-bold text-white"
               >
                 <Icon name="phone" class="h-4 w-4" />
                 <span>{business.phone}</span>
               </a>
+            </li>
+            <li class="mt-1">
+              <TextUsLink class="flex items-center gap-2 rounded-md border-2 border-accent px-3 py-2.5 text-base font-bold text-accent-dark" />
             </li>
           </ul>
         </nav>

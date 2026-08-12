@@ -167,6 +167,8 @@ const base: SiteConfig = {
     // the browser and send the combination back. `SITE_DELIVERED=1` forces it
     // off whatever this says.
     customizer: true,
+    // Demoed on a phone inside a shop; reception there is not a given.
+    offline: true,
   },
 
   forms: {

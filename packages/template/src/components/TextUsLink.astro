@@ -1,0 +1,37 @@
+---
+import { site } from '../../site.config';
+import { smsHref } from '../lib/business';
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Classes for the anchor. The caller owns the look; this owns the href. */
+  class?: string;
+  /** Visible label. Defaults to the plainest thing a customer would tap. */
+  label?: string;
+  /** Show the speech-bubble icon before the label. */
+  icon?: boolean;
+}
+
+const { class: className = '', label = 'Text us', icon = true } = Astro.props;
+
+/**
+ * The one place an `sms:` link is constructed.
+ *
+ * Renders nothing at all when `business.smsHref` is unset, which is the
+ * default for every prospect config in this repo — see the field's doc
+ * comment. That means every call site can drop this component in
+ * unconditionally: a shop with no confirmed textable number simply gets no
+ * text link, rather than each call site repeating the same guard and one of
+ * them eventually forgetting it.
+ */
+const href = smsHref(site.business);
+---
+
+{
+  href && (
+    <a class={className} href={href}>
+      {icon && <Icon name="message" class="h-4 w-4" />}
+      <span>{label}</span>
+    </a>
+  )
+}
