@@ -30,9 +30,9 @@ function howToStart(ctx: CopyContext): string {
     return `Send a photo and the dimensions, or bring the part to the shop in ${ctx.town}.`;
   }
   if (ctx.has('walk-ins')) {
-    return `Call ${ctx.phone}, or bring the part to the shop in ${ctx.town}.`;
+    return `Call, or bring the part to the shop in ${ctx.town}.`;
   }
-  return `Call ${ctx.phone} and tell us what the part is, what it does and when you need it.`;
+  return `Call the shop and tell us what the part is, what it does and when you need it.`;
 }
 
 const taxonomy: Record<string, ServiceTemplate> = {
@@ -288,7 +288,7 @@ const faq: FaqTemplate[] = [
     id: 'quote',
     question: () => 'How do I get a quote?',
     answer: (ctx) => {
-      const routes: string[] = [`call ${ctx.phone}`];
+      const routes: string[] = ['call the shop'];
       if (ctx.email !== undefined) routes.push(`email ${ctx.email}`);
       if (ctx.has('walk-ins')) routes.push(`bring the part in`);
       return `You can ${orList(routes)}. Tell us what the part is, what it does and when you need it. ${

@@ -30,9 +30,9 @@ const IMG = {
 
 function howToStart(ctx: CopyContext): string {
   if (ctx.has('quote-from-photo')) {
-    return `Send photos of the space and we will tell you what is involved, or call ${ctx.phone} to arrange a look.`;
+    return `Send photos of the space and we will tell you what is involved, or call to arrange a look.`;
   }
-  return `Call ${ctx.phone} and we will arrange a time to come and look at it properly.`;
+  return `Call the shop and we will arrange a time to come and look at it properly.`;
 }
 
 const taxonomy: Record<string, ServiceTemplate> = {

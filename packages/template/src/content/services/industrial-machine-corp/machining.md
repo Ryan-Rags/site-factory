@@ -10,4 +10,4 @@ Parts machined to what you need: from a drawing, from a sample, or from the worn
 
 The quickest way to find out whether a job is one we take on is to ask. Tell us what the part is, what it does and when you need it, and you will get a straight answer rather than a form response.
 
-Call (973) 345-1800 and tell us what the part is, what it does and when you need it.
+Call the shop and tell us what the part is, what it does and when you need it.

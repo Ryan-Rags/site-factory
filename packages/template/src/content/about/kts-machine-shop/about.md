@@ -10,4 +10,4 @@ Most of the work is quick-turnaround machining for manufacturers: a prototype th
 
 If the job is urgent, say so when you call — that is the kind of work the shop is set up for.
 
-Bring the part to the shop in Elmwood Park, or call (201) 791-2228 and describe it.
+Bring the part to the shop in Elmwood Park, or call and describe it.

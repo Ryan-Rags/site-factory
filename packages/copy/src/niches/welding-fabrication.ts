@@ -23,7 +23,7 @@ function howToStart(ctx: CopyContext): string {
     return `Bring it in, or send a photo and we will tell you what it takes.`;
   }
   if (ctx.has('walk-ins')) return `Bring it to the shop in ${ctx.town} and we will take a look.`;
-  return `Call ${ctx.phone} and describe the job.`;
+  return `Call the shop and describe the job.`;
 }
 
 const taxonomy: Record<string, ServiceTemplate> = {
@@ -137,7 +137,7 @@ const faq: FaqTemplate[] = [
       `That depends on what the job turns out to need, which is why you get the number before the work starts rather than on the invoice afterwards. ${
         ctx.has('quote-from-photo')
           ? 'Send a photo and you can usually get a sense of it without leaving the yard.'
-          : `Call ${ctx.phone} and describe it, or bring it in.`
+          : 'Call the shop and describe it, or bring it in.'
       }`,
     ifMissing: '',
   },

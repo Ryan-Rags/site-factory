@@ -10,4 +10,4 @@ When a line is down the only thing worth knowing is whether this shop can help t
 
 What we will not do is take the job, keep it on the bench and let you find out on Friday that it was never going to be ready. If the timing does not work, you hear that up front while you still have options.
 
-Call (201) 791-2228, or bring the part to the shop in Elmwood Park.
+Call, or bring the part to the shop in Elmwood Park.

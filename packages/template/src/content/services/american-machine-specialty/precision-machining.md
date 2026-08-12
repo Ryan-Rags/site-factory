@@ -12,4 +12,4 @@ Work to print: turning, milling, drilling and grinding, in the materials the job
 
 Quantities from a first article through to a repeat order, quoted the same way each time.
 
-Call (201) 664-2100 and tell us what the part is, what it does and when you need it.
+Call the shop and tell us what the part is, what it does and when you need it.

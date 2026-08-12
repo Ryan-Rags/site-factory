@@ -39,8 +39,11 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { allowancesFor, prospectFor, VERIFY_MARKER } from '@site-factory/copy';
 
+import { resolveBaseSlug } from './lib/base-slug.mjs';
+
 const here = fileURLToPath(new URL('.', import.meta.url));
 const distRoot = join(here, '..', 'dist');
+const clientsDir = join(here, '..', 'clients');
 
 /**
  * The same patterns the engine's guard uses, restated here rather than
@@ -123,10 +126,14 @@ function visibleBlocks(html) {
 function checkClient(slug) {
   const dir = join(distRoot, slug);
 
+  // A design-family comparison build renders the base client's facts, so it is
+  // checked against the base client's record. See scripts/lib/base-slug.mjs.
+  const factsFrom = resolveBaseSlug(clientsDir, slug);
+
   let allowed;
   try {
     allowed = [
-      ...allowancesFor(prospectFor(slug)),
+      ...allowancesFor(prospectFor(factsFrom)),
       // The footer's copyright year. It comes off the build clock, it is a
       // fact about this build rather than a claim about the business, and it
       // is the one four-digit number on every page that means nothing about

@@ -8,4 +8,4 @@ The work is contract manufacturing for customers who have to prove every dimensi
 
 Inspection is not an afterthought here — for most of our customers it is the reason they came to us.
 
-Call (201) 664-2100 and tell us about the part. You will get a straight answer about whether it is work we take on.
+Call the shop and tell us about the part. You will get a straight answer about whether it is work we take on.

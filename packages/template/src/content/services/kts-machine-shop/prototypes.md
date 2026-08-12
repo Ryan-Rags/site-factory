@@ -11,4 +11,4 @@ A prototype is a different job from a production part: the drawing is still movi
 
 Bring the drawing or the sketch and we will make the piece — and tell you where the design is going to be awkward or costly to produce before you commit a run to it.
 
-Call (201) 791-2228, or bring the part to the shop in Elmwood Park.
+Call, or bring the part to the shop in Elmwood Park.

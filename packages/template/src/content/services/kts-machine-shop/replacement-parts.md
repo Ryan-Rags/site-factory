@@ -11,4 +11,4 @@ When the machine still works and the part is no longer sold, the part can be mad
 
 This is most of what keeps older plant running, and it is usually a fraction of what replacing the machine would cost.
 
-Call (201) 791-2228, or bring the part to the shop in Elmwood Park.
+Call, or bring the part to the shop in Elmwood Park.

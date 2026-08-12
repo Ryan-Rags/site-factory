@@ -81,8 +81,8 @@ export function about(ctx: CopyContext, pack: NichePack, allowed: string[]): Abo
   paragraphs.push(
     check(
       ctx.has('walk-ins')
-        ? `Bring ${pack.object} to the shop in ${ctx.town}, or call ${ctx.phone} and describe it.`
-        : `Call ${ctx.phone} and tell us about ${pack.object}. You will get a straight answer about whether it is work we take on.`,
+        ? `Bring ${pack.object} to the shop in ${ctx.town}, or call and describe it.`
+        : `Call the shop and tell us about ${pack.object}. You will get a straight answer about whether it is work we take on.`,
       'close',
     ),
   );

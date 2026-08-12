@@ -11,4 +11,4 @@ The everyday work: turning, milling, threading, boring and finishing, in steel, 
 
 Most of what comes in is not a production run. It is one thing that has to be right, and back where it belongs.
 
-Call (201) 791-2228, or bring the part to the shop in Elmwood Park.
+Call, or bring the part to the shop in Elmwood Park.

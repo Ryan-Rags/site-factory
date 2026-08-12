@@ -29,6 +29,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveBaseSlug } from './lib/base-slug.mjs';
+
 const here = fileURLToPath(new URL('.', import.meta.url));
 const pkgRoot = join(here, '..');
 const distRoot = join(pkgRoot, 'dist');
@@ -45,43 +47,22 @@ function htmlFiles(dir) {
 }
 
 /**
- * The slug a config inherits its `business` block from, or null.
- *
- * The design-family comparison builds (`ks-welding-forge` and friends) are
- * spreads of another client — `{ ...ksWelding, design: … }` — so they carry no
- * `business:` block of their own. Their contact details are the base client's
- * by definition, and that is exactly what the built HTML contains, so the
- * check follows the spread rather than skipping those builds.
- */
-function baseSlugOf(source) {
-  const spread = /=\s*\{[\s\S]*?\.\.\.([A-Za-z_$][\w$]*)/.exec(source);
-  if (!spread) return null;
-  const importLine = new RegExp(
-    `import\\s+${spread[1]}\\s+from\\s+'\\./([\\w-]+)\\.config'`,
-  ).exec(source);
-  return importLine ? importLine[1] : null;
-}
-
-/**
  * The three contact fields, read out of the client's TypeScript config.
  *
  * Same technique as `build-all.mjs` and `scripts/mockup/clients.mjs`: plain
  * Node cannot import the TS registry. The patterns are anchored to the
  * `business:` block so a `phone` key elsewhere in the config cannot match.
+ *
+ * A design-family comparison build has no `business` block of its own — it
+ * spreads another client — so the slug is resolved to whichever config
+ * actually declares one. See scripts/lib/base-slug.mjs.
  */
-function contactFor(slug, seen = []) {
-  const file = join(clientsDir, `${slug}.config.ts`);
+function contactFor(slug) {
+  const file = join(clientsDir, `${resolveBaseSlug(clientsDir, slug)}.config.ts`);
   if (!existsSync(file)) throw new Error(`No config for "${slug}" at ${relative(pkgRoot, file)}`);
   const source = readFileSync(file, 'utf8');
   const business = /\bbusiness:\s*\{([\s\S]*?)\n  \},/.exec(source);
-  if (!business) {
-    const base = baseSlugOf(source);
-    if (!base) throw new Error(`Could not find the business block in ${slug}.config.ts`);
-    if (seen.includes(base)) {
-      throw new Error(`Circular config spread: ${[...seen, slug, base].join(' -> ')}`);
-    }
-    return contactFor(base, [...seen, slug]);
-  }
+  if (!business) throw new Error(`Could not find the business block in ${slug}.config.ts`);
   const block = business[1];
 
   const pick = (key) => {

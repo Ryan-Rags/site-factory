@@ -10,4 +10,4 @@ Most jobs here are the ones that are too small, too odd, or too urgent for a sho
 
 You will be told what it costs before the work starts. If it is not a job we can do, we will say so rather than take it on and leave you waiting.
 
-Bring the job to the shop in Bergenfield, or call (201) 385-8848 and describe it.
+Bring the job to the shop in Bergenfield, or call and describe it.

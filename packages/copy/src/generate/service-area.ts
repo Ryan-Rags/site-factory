@@ -61,14 +61,14 @@ export function serviceArea(
    */
   const closers = ctx.has('walk-ins')
     ? [
-        `Bring the work to ${ctx.town} during opening hours, or call ${ctx.phone} first if you would rather check it is something we take on.`,
-        `Call ${ctx.phone} and describe it, or just bring it to the shop in ${ctx.town}.`,
-        `Bring it in or call ${ctx.phone}. Either way you get an answer about the job from somebody who does the work.`,
+        `Bring the work to ${ctx.town} during opening hours, or call first if you would rather check it is something we take on.`,
+        `Call and describe it, or just bring it to the shop in ${ctx.town}.`,
+        `Bring it in or call. Either way you get an answer about the job from somebody who does the work.`,
       ]
     : [
-        `Call ${ctx.phone} and describe the job, and you will get a straight answer on whether it is one for us.`,
-        `Call ${ctx.phone} and tell us what it is, what it does and when you need it.`,
-        `Call ${ctx.phone} — the quickest way to find out whether it is a job for this shop.`,
+        `Call and describe the job, and you will get a straight answer on whether it is one for us.`,
+        `Call the shop and tell us what it is, what it does and when you need it.`,
+        `Call the shop — the quickest way to find out whether it is a job for this shop.`,
       ];
 
   const towns: TownSection[] = ordered.map((town, i) => {

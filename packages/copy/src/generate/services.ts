@@ -56,9 +56,9 @@ function fallback(ctx: CopyContext, service: ServiceFact): ServiceTemplate {
     title: service.title,
     oneLiner: detail ?? `${service.title}, done at the shop in ${ctx.town}.`,
     summary: () => detail ?? `${service.title} at ${ctx.name}.`,
-    body: (c) => [
+    body: () => [
       detail ?? `${service.title} is work this shop takes on.`,
-      `The quickest way to find out whether your job is one for us is to ask. Call ${c.phone} and describe what you need.`,
+      `The quickest way to find out whether your job is one for us is to ask. Call the shop and describe what you need.`,
     ],
     highlights: () => ['Ask about your job — you will get a straight answer'],
     imageAlt: `Work in progress at ${ctx.name}`,

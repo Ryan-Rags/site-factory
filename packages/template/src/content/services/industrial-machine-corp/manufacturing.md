@@ -10,4 +10,4 @@ Making parts to order rather than selling them off a shelf: you bring the requir
 
 Quantities and repeat schedules are worked out per job. Call and describe what you need made and how often you need it.
 
-Call (973) 345-1800 and tell us what the part is, what it does and when you need it.
+Call the shop and tell us what the part is, what it does and when you need it.

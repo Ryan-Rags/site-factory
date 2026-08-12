@@ -88,10 +88,16 @@ export function headline(ctx: CopyContext, pack: NichePack): HeadlineSet {
   // The subhead does the work the headline is not allowed to: naming every
   // service, and naming the route in. It is the sentence a customer reads to
   // decide whether to keep reading, so it ends on the action.
+  // The route names the action, not the number. Every page already carries the
+  // number as a `tel:` link, and printing it in prose as well produces a
+  // second copy a customer cannot tap — which `check-contact-links.mjs`
+  // rejects, on the grounds that a number you have to retype is where the
+  // enquiry gets lost. Meta descriptions still carry the digits: those are for
+  // a search result, not for a thumb.
   const routes: string[] = [];
   if (ctx.has('walk-ins')) routes.push('bring it in');
   if (ctx.has('quote-from-photo')) routes.push('send a photo');
-  routes.push(`call ${ctx.phone}`);
+  routes.push('call the shop');
 
   const sub =
     `A ${pack.noun} serving ${areaTail}. ${
@@ -115,7 +121,9 @@ export function callToAction(
   const walkIn = ctx.has('walk-ins');
   const photo = ctx.has('quote-from-photo');
 
-  const buttonText = photo ? 'Send a photo for a quote' : `Call ${ctx.phone}`;
+  // Not `Call <number>`: this button links to /contact, so a number on its face
+  // is a number that does not dial. See the note in `headline()`.
+  const buttonText = photo ? 'Send a photo for a quote' : 'Call the shop';
 
   const body = photo
     ? `Send a photo of ${pack.object} and the dimensions. You will be told what it takes and what it costs before any work starts.`
