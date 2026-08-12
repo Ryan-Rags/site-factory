@@ -26,7 +26,8 @@
     "verify:offline": "node scripts/pitch/verify-offline.mjs",
     "verify:offline:all": "node scripts/pitch/verify-offline.mjs --all --local",
     "lint": "echo \"lint: not configured yet\"",
-    "test": "pnpm -r --if-present test"
+    "test": "pnpm -r --if-present test",
+    "review-card": "node packages/prospect/dist/review-card-cli.js"
   },
   "devDependencies": {
     "typescript": "^5.7.3"

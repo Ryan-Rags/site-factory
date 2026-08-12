@@ -63,6 +63,10 @@ export const site: SiteConfig = {
       country: 'US',
     },
     serviceArea: ['Testville', 'Fixture County'],
+    // Invented Place ID, so `pnpm review-card` has something to render against
+    // without a real shop's review form being encoded into a test artifact.
+    // Renders nothing on the site; the counter card is its only consumer.
+    reviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJ0000FixtureNotReal00',
     timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '08:00', closes: '16:00' },
