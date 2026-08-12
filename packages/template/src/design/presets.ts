@@ -1,0 +1,213 @@
+/**
+ * Theme presets: the three families, as data.
+ *
+ * The original design plan made every client hand-author a ten-colour palette
+ * and a full font block, with `family` selecting only decorative rules. That
+ * inverts here: **the preset owns the palette**, and a client config *chooses*
+ * from it rather than restating it. Three reasons that is the right way round:
+ *
+ * 1. A prospect config can no longer contradict its own family — there is no
+ *    field in which to write a cream `base` under `family: "forge"`.
+ * 2. The set of reachable colour combinations becomes finite and enumerable,
+ *    which is the only reason `scripts/check-contrast.mjs` can gate *every*
+ *    combination the customizer offers rather than only the one we shipped.
+ * 3. The discovery pipeline can emit a design config by picking three ids,
+ *    instead of inventing colours it has no basis for.
+ *
+ * There is deliberately no free colour input anywhere — not in the config, not
+ * in the customizer UI. Accents are a curated list per preset. A prospect's own
+ * extracted brand colour may be added to that list (`brandAccent`), but it is
+ * offered only if it clears the contrast gate; see `check-contrast.mjs`.
+ *
+ * The data lives in `presets.json` rather than in this file because a plain
+ * Node script has to read it too — the contrast gate runs outside Astro and
+ * cannot import TypeScript. JSON in fact, typed in effect, exactly as
+ * `lib/design.ts` already does for `DesignConfig`.
+ */
+
+import raw from './presets.json';
+import type { HeroVariant } from '../types/design';
+import type { FontFace } from '../types/site';
+
+export type PresetId = 'forge' | 'precision' | 'heritage';
+export type RadiusName = 'sharp' | 'soft';
+export type DensityName = 'compact' | 'comfortable';
+
+/** The colours a preset owns. The accent is not among them — it is chosen. */
+export interface PresetPalette {
+  base: string;
+  surface: string;
+  surfaceAlt: string;
+  ink: string;
+  inkMuted: string;
+  line: string;
+  primary: string;
+  onPrimary: string;
+}
+
+/**
+ * One curated accent.
+ *
+ * `accent` and `onAccent` travel together and are checked together: an accent
+ * is only ever offered with the text colour it was measured against, so there
+ * is no combination in which a light accent inherits dark-theme text.
+ */
+export interface AccentSwatch {
+  id: string;
+  label: string;
+  accent: string;
+  onAccent: string;
+}
+
+export interface FontPairing {
+  id: string;
+  label: string;
+  display: string;
+  body: string;
+  displayWeight: string;
+  displayTransform: 'none' | 'uppercase';
+  displayTracking: string;
+  /**
+   * Optional self-hosted `.woff2` faces. Every pairing shipped today is a
+   * system stack, which is why these demos make zero font requests and a
+   * large part of why they hold the mobile performance bar — but a client
+   * with a licensed brand face can have one without a code change.
+   */
+  faces?: FontFace[];
+}
+
+export interface ThemePreset {
+  id: PresetId;
+  label: string;
+  blurb: string;
+  palette: PresetPalette;
+  radius: RadiusName;
+  density: DensityName;
+  accents: AccentSwatch[];
+  fonts: FontPairing[];
+  variants: { hero: HeroVariant[]; services: string[]; reviews: string[] };
+}
+
+interface PresetFile {
+  presets: ThemePreset[];
+  radiusScale: Record<RadiusName, { card: string; btn: string }>;
+  densityScale: Record<DensityName, { section: string; sectionLg: string; gap: string }>;
+}
+
+const file = raw as unknown as PresetFile;
+
+export const PRESETS: ThemePreset[] = file.presets;
+export const RADIUS_SCALE = file.radiusScale;
+export const DENSITY_SCALE = file.densityScale;
+export const PRESET_IDS: PresetId[] = PRESETS.map((p) => p.id);
+
+export function getPreset(id: string): ThemePreset {
+  const preset = PRESETS.find((p) => p.id === id);
+  if (!preset)
+    throw new Error(
+      `Unknown theme preset "${id}" — expected one of ${PRESET_IDS.join(', ')}. ` +
+        `Presets are defined in src/design/presets.json.`,
+    );
+  return preset;
+}
+
+/**
+ * A client's choice within a preset.
+ *
+ * Three ids and two optional overrides — that is the whole of a site's visual
+ * identity. `brandAccent` is the one place a raw colour enters, and it is the
+ * prospect's own extracted brand colour rather than a designer's pick.
+ */
+export interface ThemeSelection {
+  preset: PresetId;
+  /** An `AccentSwatch.id` from the preset, or `"brand"` for `brandAccent`. */
+  accent: string;
+  /** A `FontPairing.id` from the preset. */
+  fontPairing: string;
+  radius?: RadiusName;
+  density?: DensityName;
+  /**
+   * The prospect's extracted brand colour, offered alongside the curated
+   * swatches. Carries `sourceNote` for the same reason testimonials do: where
+   * a colour came from is a fact about our research, and an unsourced brand
+   * colour is a guess wearing a client's name.
+   *
+   * It is dropped from the offered set if it fails the contrast gate rather
+   * than being nudged until it passes — a shifted colour is not their colour,
+   * and presenting it as such would be the visual equivalent of fabricating a
+   * fact. See `check-contrast.mjs` and the plan's Q1.
+   */
+  brandAccent?: AccentSwatch & { sourceNote: string };
+  /** Escape hatch for a one-off. Still gated; see `check-contrast.mjs`. */
+  paletteOverride?: Partial<PresetPalette & { accent: string; onAccent: string }>;
+}
+
+/** Everything the tokens need, with every choice already made. */
+export interface ResolvedTheme {
+  preset: ThemePreset;
+  palette: PresetPalette & { accent: string; onAccent: string };
+  fonts: FontPairing;
+  radius: { card: string; btn: string };
+  density: { section: string; sectionLg: string; gap: string };
+}
+
+/** The swatches a preset offers for a given client, brand colour included. */
+export function accentsFor(theme: ThemeSelection): AccentSwatch[] {
+  const preset = getPreset(theme.preset);
+  return theme.brandAccent ? [...preset.accents, theme.brandAccent] : preset.accents;
+}
+
+/**
+ * Turn three ids into concrete colours, fonts and metrics.
+ *
+ * Fails loudly on an unknown id rather than falling back to the first entry:
+ * a typo'd accent silently rendering the default would ship the wrong site
+ * under the right client's name, which is the failure `resolveClient()` and
+ * `parseDesign()` both already refuse to allow.
+ */
+export function resolveTheme(theme: ThemeSelection): ResolvedTheme {
+  const preset = getPreset(theme.preset);
+
+  const swatch = accentsFor(theme).find((a) => a.id === theme.accent);
+  if (!swatch)
+    throw new Error(
+      `Unknown accent "${theme.accent}" for preset "${preset.id}" — expected one of ` +
+        `${accentsFor(theme).map((a) => a.id).join(', ')}.`,
+    );
+
+  const fonts = preset.fonts.find((f) => f.id === theme.fontPairing);
+  if (!fonts)
+    throw new Error(
+      `Unknown font pairing "${theme.fontPairing}" for preset "${preset.id}" — expected one of ` +
+        `${preset.fonts.map((f) => f.id).join(', ')}.`,
+    );
+
+  return {
+    preset,
+    palette: {
+      ...preset.palette,
+      accent: swatch.accent,
+      onAccent: swatch.onAccent,
+      ...(theme.paletteOverride ?? {}),
+    },
+    fonts,
+    radius: RADIUS_SCALE[theme.radius ?? preset.radius],
+    density: DENSITY_SCALE[theme.density ?? preset.density],
+  };
+}
+
+/**
+ * Whether a palette reads light-on-dark.
+ *
+ * Inferred from the base colour rather than declared, so a preset cannot claim
+ * one tone and ship the other. It decides which way the "strong" accent moves
+ * — see `designTokens` in `lib/design.ts`. `check-contrast.mjs` carries the
+ * same two functions; they are small, and duplicating them is cheaper than
+ * making a plain Node script able to import TypeScript.
+ */
+export function isDarkPalette(palette: { base: string }): boolean {
+  const [r, g, b] = [1, 3, 5]
+    .map((i) => parseInt(palette.base.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.2;
+}

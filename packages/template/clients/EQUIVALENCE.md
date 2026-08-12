@@ -180,3 +180,61 @@ cd packages/template && pnpm build            # archive dist/
 git checkout HEAD -- packages/template
 pnpm build                                     # compare dist/kh-machine-works/
 ```
+
+
+---
+
+# Superseded: K-H moved to the design path (design-families branch)
+
+**Status: this comparison is no longer reproducible against `main`, by
+decision rather than by accident.** It is recorded here the same way change 3
+was, so that a reader who runs the steps above and gets a different answer
+knows why.
+
+## What changed
+
+All five original clients now carry a `design` block and render their home
+page through `DesignLayout` and a theme preset, not through `BaseLayout` and
+the original eight-section composition. K-H is one of them. Its `/` output
+therefore differs from the byte-locked baseline in every respect that matters:
+different layout, different stylesheet, different markup.
+
+`/about`, `/services`, `/contact` and `/404` still render through
+`BaseLayout`, so the parts of the equivalence argument that cover those routes
+still hold.
+
+## Why the proof was allowed to lapse
+
+The alternative was to keep five legacy builds *and* add five design builds
+for the same five businesses — ten client directories, two skins per shop, and
+every copy correction needing to land in both. That duplication would rot, and
+the thing it would protect is a snapshot of a design we have deliberately
+replaced.
+
+What the proof was actually for — "a refactor that claims to change nothing
+must be shown to change nothing" — has not been given up. It applied to a
+mechanical refactor. This is not one: the design families are an intentional,
+visible change to what the page looks like, and a byte comparison against the
+old design would only ever restate that.
+
+## What still guards these builds
+
+- `check-markers.mjs` — unchanged, and still run per client by `build:all`.
+- `check-contrast.mjs` — substantially stronger: it now checks every
+  preset x accent x font combination the customizer can reach (234 assertions)
+  rather than two colours scraped out of one file. It also *works* again; the
+  regex it used had silently matched nothing since the colours moved into
+  `clients/*.config.ts`.
+- `check-overflow.mjs` — unchanged in intent, taught to ignore genuine
+  horizontal scroll containers and transform-scaled hero images.
+- `astro check` — clean across the package.
+
+## Reproducing the old baseline, if you need it
+
+The legacy render still exists in git history:
+
+```sh
+git checkout 8eb90a0 -- packages/template
+cd packages/template && pnpm build             # archive dist/kh-machine-works
+git checkout HEAD -- packages/template
+```

@@ -1,0 +1,90 @@
+---
+/**
+ * Where the business works.
+ *
+ * `areas` falls back to `business.serviceArea` when the design config leaves
+ * it empty, so the section can never contradict the business block — the two
+ * lists disagreeing is exactly the sort of thing nobody notices until a
+ * customer in the wrong town rings up.
+ *
+ * The map is a plain anchor, never an embed. An iframe from a mapping
+ * provider would cost several hundred kilobytes, a third-party cookie and a
+ * chunk of the mobile performance budget, for a link.
+ */
+import { site } from '../../../site.config';
+import type { ServiceAreaSection } from '../../types/design';
+
+interface Props {
+  area: ServiceAreaSection;
+}
+
+const { area } = Astro.props;
+const { business } = site;
+const areas = area.areas.length > 0 ? area.areas : business.serviceArea;
+
+const addressLine = [
+  business.address.street,
+  business.address.locality,
+  business.address.region,
+  business.address.postalCode,
+]
+  .filter(Boolean)
+  .join(', ');
+---
+
+<section class="d-section d-section--alt d-area" id="service-area" aria-labelledby="area-heading">
+  <div class="d-wrap">
+    <div class="d-area__grid">
+      <div data-reveal>
+        {area.eyebrow && <p class="d-eyebrow">{area.eyebrow}</p>}
+        <h2 class="d-h2" id="area-heading">{area.heading}</h2>
+        {area.intro && <p class="d-lede">{area.intro}</p>}
+
+        <p class="d-area__address">
+          <strong>{business.name}</strong><br />
+          {addressLine}
+        </p>
+
+        <p class="d-area__actions">
+          <a class="d-btn d-btn--accent" href={`tel:${business.phoneHref}`}>
+            Call {business.phone}
+          </a>
+          {
+            area.mapUrl && (
+              <a
+                class="d-btn d-btn--ghost"
+                href={area.mapUrl}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {area.mapLinkText ?? 'Get directions'}
+              </a>
+            )
+          }
+        </p>
+      </div>
+
+      <div data-reveal style="--d-reveal-delay: 120ms">
+        <ul class="d-area__list">
+          {areas.map((name) => <li>{name}</li>)}
+        </ul>
+        {area.note && <p class="d-area__note">{area.note}</p>}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .d-area__address {
+    margin: 1.5rem 0 0;
+    line-height: 1.7;
+    color: var(--d-ink-muted);
+  }
+
+  .d-area__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 1.5rem 0 0;
+  }
+</style>

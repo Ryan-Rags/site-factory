@@ -1,0 +1,320 @@
+{
+  "theme": {
+    "preset": "forge",
+    "accent": "ember",
+    "fontPairing": "condensed-caps"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Our work",
+        "href": "#gallery"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Send a photo",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": [
+    "stats",
+    "services",
+    "beforeAfter",
+    "reviews",
+    "gallery",
+    "serviceArea",
+    "faq"
+  ],
+  "sections": {
+    "hero": {
+      "variant": "full-bleed",
+      "eyebrow": "Bergenfield, New Jersey · Walk-ins welcome",
+      "headline": "Bring it in. We'll fix it fast.",
+      "subhead": "Walk-in welding and metal fabrication. Bring the part or send a photo and we will tell you what it takes and what it costs.",
+      "ctaPrimary": {
+        "text": "Send a photo for a quote",
+        "href": "/contact"
+      },
+      "ctaSecondary": {
+        "text": "See what we do",
+        "href": "#services"
+      },
+      "image": {
+        "src": "/images/hero.svg",
+        "alt": "Welder joining a steel assembly in the shop",
+        "width": 1920,
+        "height": 1080
+      },
+      "badges": [
+        "No appointment needed",
+        "Price agreed before we start",
+        "Most repairs while you wait"
+      ],
+      "showPhone": true,
+      "motion": "pan"
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Mon–Fri, 7am–4pm",
+      "secondary": {
+        "text": "Photo quote",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "enabled": true,
+      "eyebrow": "What we do",
+      "heading": "Welding and metal fabrication",
+      "intro": "Two things, done fast, at a price you agree before we start.",
+      "items": [
+        {
+          "title": "Welding",
+          "body": "Repairs and joining work, most of it done while you wait. Bring the broken part to the bench and we will tell you straight away whether it can be saved.",
+          "icon": "shield",
+          "image": {
+            "src": "/images/service-welding-fitting.svg",
+            "alt": "Welder repairing a steel component at the bench",
+            "width": 800,
+            "height": 600
+          },
+          "points": [
+            "Brackets, frames and railings",
+            "Cracked and snapped steel",
+            "Small repairs while you wait"
+          ]
+        },
+        {
+          "title": "Metal fabrication",
+          "body": "Custom pieces made from your sketch, your sample, or your mock-up. If you can show us the shape, we can usually make it in steel.",
+          "icon": "gear",
+          "image": {
+            "src": "/images/service-custom-fabrication.svg",
+            "alt": "Custom fabricated steel piece beside the mock-up it was made from",
+            "width": 800,
+            "height": 600
+          },
+          "points": [
+            "One-off parts from a sample",
+            "Work from a sketch or drawing",
+            "Restoration and replacement pieces"
+          ]
+        }
+      ],
+      "variant": "cards"
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 2,
+          "label": "Trades under one roof",
+          "note": "Welding and fabrication"
+        },
+        {
+          "value": 5,
+          "label": "Days a week",
+          "note": "Monday to Friday"
+        },
+        {
+          "value": 9,
+          "suffix": "hrs",
+          "label": "Open every weekday",
+          "note": "7am to 4pm"
+        },
+        {
+          "value": 0,
+          "label": "Appointments needed",
+          "note": "Walk in with the part"
+        }
+      ]
+    },
+    "reviews": {
+      "enabled": true,
+      "eyebrow": "What customers say",
+      "heading": "Word of mouth, mostly",
+      "intro": "The shop runs on repeat customers and referrals. Here is the kind of thing they say.",
+      "sourceLabel": "Paraphrased from feedback relayed about the shop — not verbatim quotations",
+      "items": [
+        {
+          "author": "[verify with client] — customer name",
+          "rating": 5,
+          "quote": "I brought in a mock-up of a part for a car I am restoring and they made the real thing from it. Nobody else would take it on.",
+          "date": "Vintage car restorer",
+          "sourceNote": "Paraphrase of sentiment relayed by a vintage-car restoration customer (custom prototype part built from his own mock-up). Wording is ours. Not a quotation, and not copied from any review platform.",
+          "status": "placeholder"
+        },
+        {
+          "author": "[verify with client] — customer name",
+          "rating": 5,
+          "quote": "Walked in with a broken bracket, walked out a few minutes later with it fixed, and the price was fair.",
+          "date": "Walk-in customer",
+          "sourceNote": "Paraphrase of sentiment relayed by a walk-in customer (repairs done in minutes, fair pricing). Wording is ours. Not a quotation, and not copied from any review platform.",
+          "status": "placeholder"
+        }
+      ],
+      "variant": "carousel",
+      "autoplayMs": 7000
+    },
+    "gallery": {
+      "enabled": true,
+      "eyebrow": "Our work",
+      "heading": "Off the bench",
+      "intro": "Placeholder images. Replace these with photographs of the shop's own work before anything goes live — [verify with client].",
+      "items": [
+        {
+          "src": "/images/gallery-1.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-2.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-3.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-4.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-5.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-6.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        }
+      ]
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Bergenfield, and everywhere near it",
+      "intro": "The shop is on North Street. Most customers drive the part over — it is usually quicker than waiting for someone to come to you.",
+      "areas": [
+        "Bergenfield",
+        "Dumont",
+        "Teaneck",
+        "New Milford",
+        "Bergen County",
+        "Northern New Jersey"
+      ],
+      "note": "Towns beyond Bergenfield are the surrounding area we would expect to serve — confirm the list with the shop before publishing. [verify with client]"
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you come down",
+      "heading": "Questions we get asked",
+      "items": [
+        {
+          "q": "Do I need an appointment?",
+          "a": "No. The shop is open Monday to Friday, 7am to 4pm. Bring the part in and we will look at it while you wait."
+        },
+        {
+          "q": "Can you quote from a photo?",
+          "a": "Usually, yes. Send a photo of the part with something next to it for scale and we will tell you what it takes and roughly what it costs."
+        },
+        {
+          "q": "How long does a repair take?",
+          "a": "Small repairs are often done while you wait. Fabrication work depends on the piece — we will give you a time before we start, not after."
+        },
+        {
+          "q": "How much will it cost?",
+          "a": "You will know before any work begins. We agree the price up front rather than quoting after the fact."
+        },
+        {
+          "q": "Can you make a part I only have a sample of?",
+          "a": "Yes. A sample, a sketch or a mock-up is enough to work from. Bring whatever you have."
+        },
+        {
+          "q": "What certifications and insurance do you hold?",
+          "a": "[verify with client] — confirm what the shop holds before this answer is published."
+        }
+      ]
+    },
+    "footer": {
+      "blurb": "Walk-in welding and metal fabrication in Bergenfield, New Jersey. Fast turnaround, fair prices, price agreed before we start.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Our work",
+              "href": "#gallery"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Certifications and insurance — [verify with client]."
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now — walk in",
+      "closedLabel": "Closed right now"
+    },
+    "beforeAfter": {
+      "enabled": true,
+      "heading": "Before and after",
+      "intro": "Two photographs of the same job. Needs real ones from the shop before it renders — the section stays switched off until then.",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder for the before photograph",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder for the after photograph",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    }
+  }
+}

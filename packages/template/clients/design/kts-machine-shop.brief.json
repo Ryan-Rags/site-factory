@@ -1,0 +1,226 @@
+{
+  "theme": {
+    "preset": "heritage",
+    "accent": "brick",
+    "fontPairing": "old-serif"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Our work",
+        "href": "#gallery"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": [
+    "stats",
+    "services",
+    "reviews",
+    "gallery",
+    "serviceArea",
+    "faq"
+  ],
+  "sections": {
+    "hero": {
+      "variant": "stacked-panel",
+      "motion": "none",
+      "eyebrow": "Elmwood Park, New Jersey - Since 1987",
+      "badges": [
+        "Same-week turnaround",
+        "Prototypes and rush repairs"
+      ]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call the shop",
+      "callNote": "Mon-Fri",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Machining, on your schedule",
+      "intro": "Prototypes, replacement parts and rush repairs, turned around in the same week.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "Repeat customers, since 1987",
+      "intro": "The kind of thing customers say about the shop.",
+      "sourceLabel": "Paraphrased from feedback relayed about the shop - not verbatim quotations",
+      "variant": "carousel",
+      "autoplayMs": 8000
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 1987,
+          "label": "Machining since",
+          "note": "The same shop, the same town"
+        },
+        {
+          "value": 4,
+          "label": "Services",
+          "note": "Machining, prototypes, parts, rush repairs"
+        },
+        {
+          "value": 3,
+          "label": "Areas served",
+          "note": "Elmwood Park and north Jersey"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions we get asked",
+      "items": [
+        {
+          "q": "How quickly can you turn a job around?",
+          "a": "Same-week turnaround is what the shop is built for, and rush repairs are a service in their own right. Call and ask about your job."
+        },
+        {
+          "q": "Can you work from a sample instead of a drawing?",
+          "a": "Yes. Replacement parts and prototypes are two of the four things the shop does, and both usually start from a sample."
+        },
+        {
+          "q": "Do you take small quantities?",
+          "a": "[verify with client] - confirm the minimum before this answer is published."
+        },
+        {
+          "q": "How long have you been going?",
+          "a": "Since 1987."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": true,
+      "eyebrow": "Our work",
+      "heading": "Off the shop floor",
+      "intro": "Placeholder images. Replace them with photographs of the shop's own work before anything goes live - [verify with client].",
+      "items": [
+        {
+          "src": "/images/gallery-1.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-2.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-3.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-4.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-5.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-6.svg",
+          "alt": "Placeholder for a photograph of finished work",
+          "width": 800,
+          "height": 800
+        }
+      ]
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Elmwood Park and northern New Jersey",
+      "intro": "The shop is in Elmwood Park, and has been since 1987.",
+      "areas": [],
+      "note": "Confirm the served area with the shop before publishing - [verify with client]."
+    },
+    "beforeAfter": {
+      "enabled": true,
+      "heading": "Before and after",
+      "intro": "Two photographs of one job. Switched on the moment the shop sends real ones.",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder for the before photograph",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder for the after photograph",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "Quick-turnaround machining for prototypes, replacement parts and rush repairs.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Our work",
+              "href": "#gallery"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Certifications and insurance - [verify with client]."
+    }
+  }
+}

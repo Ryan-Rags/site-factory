@@ -180,6 +180,60 @@ async function sendEmail(sub: Submission, file: File | null, env: Env): Promise<
   return res.ok;
 }
 
+/**
+ * Record which design a prospect picked in the customizer.
+ *
+ * Stored in the same KV namespace as contact submissions, under a distinct
+ * key prefix. It is a sales signal, not a lead: nothing is emailed, and the
+ * response says only whether it was written.
+ */
+async function handleDesignChoice(
+  request: Request,
+  env: Env,
+  cors: Record<string, string>,
+): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ ok: false, error: 'bad_request' }, 400, cors);
+  }
+
+  const payload = body as { prospectId?: unknown; selections?: unknown; url?: unknown };
+  const prospectId = String(payload.prospectId ?? '').trim();
+  const selections = payload.selections as Record<string, unknown> | undefined;
+
+  // Bounded, typed and truncated: this is unauthenticated input, and KV keys
+  // and values should never be shaped by whatever a caller felt like sending.
+  if (!/^[a-z0-9-]{1,64}$/.test(prospectId) || typeof selections !== 'object' || !selections) {
+    return json({ ok: false, error: 'validation_failed' }, 422, cors);
+  }
+
+  const pick = (key: string) => String(selections[key] ?? '').slice(0, 40);
+  const record = {
+    prospectId,
+    theme: pick('theme'),
+    accent: pick('accent'),
+    font: pick('font'),
+    url: String(payload.url ?? '').slice(0, 500),
+    receivedAt: new Date().toISOString(),
+    country: request.headers.get('CF-IPCountry') ?? '',
+  };
+
+  try {
+    await env.SUBMISSIONS.put(
+      `design-choice:${prospectId}:${record.receivedAt}:${crypto.randomUUID()}`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 365 },
+    );
+  } catch (error) {
+    console.error('design-choice KV write failed', error);
+    return json({ ok: false, error: 'storage_failed' }, 502, cors);
+  }
+
+  return json({ ok: true }, 200, cors);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get('Origin');
@@ -190,6 +244,20 @@ export default {
     }
     if (request.method !== 'POST') {
       return json({ ok: false, error: 'method_not_allowed' }, 405, cors);
+    }
+
+    /*
+     * The design-preview panel posts here too, at /design-choice.
+     *
+     * It is a separate route rather than a branch inside the contact handler
+     * because the two share nothing: no file upload, no size gate, no
+     * Turnstile (there is no email to send and nothing to spam — the worst a
+     * bot achieves is a junk KV row), and a JSON body rather than form data.
+     * Folding it into the contact path would mean loosening that path's
+     * checks for a payload that does not need them.
+     */
+    if (new URL(request.url).pathname.replace(/\/+$/, '') === '/design-choice') {
+      return handleDesignChoice(request, env, cors);
     }
     // An unrecognised Origin gets no CORS headers, so the browser blocks the
     // response anyway; rejecting here makes that explicit and cheap.

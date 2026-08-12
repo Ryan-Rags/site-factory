@@ -1,0 +1,138 @@
+---
+/**
+ * Customer reviews.
+ *
+ * Read the honesty rules before editing this file, because they are the
+ * reason it looks the way it does:
+ *
+ * 1. Nothing here fetches anything. No Google property is contacted, at build
+ *    time or at run time, and no review is scraped from anywhere. The section
+ *    renders exactly what the client's JSON holds — which is the only way it
+ *    could work anyway, since the build is static and has no network.
+ *
+ * 2. The attribution line is `sourceLabel`, a config string. The component
+ *    never writes "Google reviews" of its own accord, because on a mockup we
+ *    usually have not confirmed the listing and asserting it would be a claim
+ *    we cannot back.
+ *
+ * 3. The aggregate rating renders only when the config carries real numbers.
+ *    A rating average with no review count behind it is the single easiest
+ *    thing for a prospect to check and disbelieve.
+ *
+ * 4. `Review` structured data is emitted only when every item is `verified`
+ *    and an aggregate exists (`canEmitReviewJsonLd`). Marking up a paraphrase
+ *    as a customer quotation would push words we wrote into a search index
+ *    under the client's name.
+ *
+ * 5. Avatars are the author's initial drawn in CSS. No profile photograph is
+ *    hotlinked from any platform.
+ */
+import Stars from './Stars.astro';
+import { canEmitReviewJsonLd } from '../../lib/design';
+import { site } from '../../../site.config';
+import type { ReviewsSection } from '../../types/design';
+
+interface Props {
+  reviews: ReviewsSection;
+}
+
+const { reviews } = Astro.props;
+const carousel = reviews.variant === 'carousel';
+const wide = !carousel && reviews.items.length >= 3;
+
+/** First character of the author's name, for the initial disc. */
+const initial = (name: string) => {
+  const ch = name.trim().charAt(0).toUpperCase();
+  return /[A-Z0-9]/.test(ch) ? ch : '★';
+};
+
+const jsonLd = canEmitReviewJsonLd(reviews)
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: site.business.name,
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: reviews.aggregate?.ratingValue,
+        reviewCount: reviews.aggregate?.reviewCount,
+      },
+      review: reviews.items.map((r) => ({
+        '@type': 'Review',
+        author: { '@type': 'Person', name: r.author },
+        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
+        reviewBody: r.quote,
+      })),
+    }
+  : null;
+---
+
+<section class="d-section d-reviews" id="reviews" aria-labelledby="reviews-heading">
+  <div class="d-wrap">
+    <div class="d-head" data-reveal>
+      {reviews.eyebrow && <p class="d-eyebrow">{reviews.eyebrow}</p>}
+      <h2 class="d-h2" id="reviews-heading">{reviews.heading}</h2>
+      {reviews.intro && <p class="d-lede">{reviews.intro}</p>}
+
+      <div class="d-reviews__meta">
+        {
+          reviews.aggregate && (
+            <>
+              <Stars
+                rating={reviews.aggregate.ratingValue}
+                label={`Rated ${reviews.aggregate.ratingValue} out of 5`}
+              />
+              <span class="d-reviews__source">
+                {reviews.aggregate.ratingValue.toFixed(1)} from{' '}
+                {reviews.aggregate.reviewCount} reviews · {reviews.sourceLabel}
+              </span>
+            </>
+          )
+        }
+        {
+          !reviews.aggregate && (
+            <span class="d-reviews__source">{reviews.sourceLabel}</span>
+          )
+        }
+      </div>
+    </div>
+
+    <div
+      class:list={[carousel ? 'd-reviews__rail' : 'd-reviews__grid', wide && 'd-reviews__grid--3']}
+      data-carousel={carousel ? '' : undefined}
+      data-autoplay={carousel && reviews.autoplayMs ? String(reviews.autoplayMs) : undefined}
+    >
+      {
+        reviews.items.map((review, i) => (
+          <figure class="d-card d-review" data-reveal style={`--d-reveal-delay: ${i * 90}ms`}>
+            <Stars rating={review.rating} label={`Rated ${review.rating} out of 5`} />
+            <blockquote class="d-review__quote">{review.quote}</blockquote>
+            <figcaption class="d-review__foot">
+              <span class="d-review__avatar" aria-hidden="true">
+                {initial(review.author)}
+              </span>
+              <span>
+                <span class="d-review__author">{review.author}</span>
+                {review.date && <span class="d-review__date">{review.date}</span>}
+              </span>
+            </figcaption>
+          </figure>
+        ))
+      }
+    </div>
+
+    {
+      reviews.profileUrl && (
+        <a
+          class="d-reviews__link"
+          href={reviews.profileUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {reviews.profileLinkText ?? 'Read all reviews'} →
+        </a>
+      )
+    }
+  </div>
+</section>
+
+{jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}

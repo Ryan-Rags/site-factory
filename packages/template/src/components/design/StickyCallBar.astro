@@ -1,0 +1,41 @@
+---
+/**
+ * The sticky mobile call bar.
+ *
+ * On a local service site this is the highest-converting element on the page:
+ * a phone number under the reader's thumb no matter how far they have
+ * scrolled. It is phone-only — above `900px` the header already carries the
+ * number, and a fixed bar there would just eat viewport.
+ *
+ * Zero JavaScript. `position: fixed` plus one media query; the space it
+ * occupies is reserved by `--d-callbar-space` on `<body>` so it never covers
+ * the last line of the page.
+ */
+import { site } from '../../../site.config';
+import Icon from '../Icon.astro';
+import type { StickyCtaSection } from '../../types/design';
+
+interface Props {
+  cta: StickyCtaSection;
+}
+
+const { cta } = Astro.props;
+const { business } = site;
+---
+
+<div class="d-callbar">
+  <a class="d-callbar__call" href={`tel:${business.phoneHref}`}>
+    <Icon name="phone" class="d-callbar__icon" />
+    <span>
+      <span class="d-callbar__label">{cta.callLabel} {business.phone}</span>
+      {cta.callNote && <span class="d-callbar__note">{cta.callNote}</span>}
+    </span>
+  </a>
+  {
+    cta.secondary && (
+      <a class="d-callbar__secondary" href={cta.secondary.href}>
+        {cta.secondary.text}
+      </a>
+    )
+  }
+</div>

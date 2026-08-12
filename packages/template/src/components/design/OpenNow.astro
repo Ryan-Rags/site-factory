@@ -1,0 +1,86 @@
+---
+/**
+ * "Open now" / "Closed" badge.
+ *
+ * Three preconditions, all of them honesty rather than convenience — if any
+ * fails, this component renders nothing at all:
+ *
+ * 1. `business.hours` must exist. No hours, no claim.
+ * 2. No hour value may carry a verification marker. A schedule we have not
+ *    confirmed cannot be the basis for telling somebody to drive over.
+ * 3. `business.timezone` must be set. Computing opening hours in the
+ *    *visitor's* zone tells a customer two states away that the shop is open
+ *    when it is shut, and guessing the zone from the address is exactly the
+ *    kind of invention this repo refuses elsewhere.
+ *
+ * The state itself is computed in the browser, never at build time: a static
+ * page cached overnight would otherwise greet Sunday morning with "Open now".
+ * The markup ships stateless and `Reveal.astro` fills it in.
+ */
+import { site } from '../../../site.config';
+import { VERIFY_MARKER, LEGACY_MARKER } from '../../types/site';
+import type { OpenNowSection } from '../../types/design';
+
+interface Props {
+  openNow: OpenNowSection;
+}
+
+const { openNow } = Astro.props;
+const { business } = site;
+
+const hours = business.hours ?? [];
+const marked = hours.some((h) =>
+  [h.day, h.opens ?? '', h.closes ?? ''].some(
+    (v) => v.includes(VERIFY_MARKER) || v.includes(LEGACY_MARKER),
+  ),
+);
+
+const renderable =
+  openNow.enabled && hours.length > 0 && !marked && typeof business.timezone === 'string';
+
+/**
+ * The schedule, as data the script can read: day index (0 = Sunday, matching
+ * `Date.getDay()`) to open/close minutes past midnight.
+ */
+const DAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
+
+const toMinutes = (value: string) => {
+  const [h = '0', m = '0'] = value.split(':');
+  return Number(h) * 60 + Number(m);
+};
+
+const schedule = renderable
+  ? hours
+      .filter((h) => !h.closed && h.opens && h.closes)
+      .map((h) => ({
+        day: DAYS.indexOf(h.day as (typeof DAYS)[number]),
+        open: toMinutes(h.opens ?? '0:00'),
+        close: toMinutes(h.closes ?? '0:00'),
+      }))
+      .filter((h) => h.day >= 0)
+  : [];
+---
+
+{
+  renderable && schedule.length > 0 && (
+    <span
+      class="d-open"
+      data-open-now
+      data-schedule={JSON.stringify(schedule)}
+      data-tz={business.timezone}
+      data-open-label={openNow.openLabel}
+      data-closed-label={openNow.closedLabel}
+    >
+      <span class="d-open__dot" aria-hidden="true" />
+      <span data-open-text />
+    </span>
+  )
+}

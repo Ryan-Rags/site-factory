@@ -1,0 +1,55 @@
+---
+/**
+ * The home page of a design-family site.
+ *
+ * The hero is always first — a page that opens on its FAQ is a bug, not a
+ * design choice — and everything after it renders in the order the config
+ * asks for, skipping any section switched off. `sectionOrder()` does both,
+ * so this file contains no opinion about sequence.
+ */
+import DesignHeader from './DesignHeader.astro';
+import DesignHero from './DesignHero.astro';
+import Stats from './Stats.astro';
+import DesignServices from './DesignServices.astro';
+import Reviews from './Reviews.astro';
+import Gallery from './Gallery.astro';
+import ServiceArea from './ServiceArea.astro';
+import Faq from './Faq.astro';
+import BeforeAfter from './BeforeAfter.astro';
+import DesignFooter from './DesignFooter.astro';
+import StickyCallBar from './StickyCallBar.astro';
+import { sectionOrder } from '../../lib/design';
+import type { DesignConfig } from '../../types/design';
+
+interface Props {
+  design: DesignConfig;
+}
+
+const { design } = Astro.props;
+const { sections } = design;
+const order = sectionOrder(design);
+---
+
+<DesignHeader header={design.header} />
+
+<main id="main" style="flex: 1;">
+  <DesignHero hero={sections.hero} openNow={sections.openNow} />
+
+  {
+    order.map((key) => (
+      <Fragment>
+        {key === 'stats' && <Stats stats={sections.stats} />}
+        {key === 'services' && <DesignServices services={sections.services} />}
+        {key === 'reviews' && <Reviews reviews={sections.reviews} />}
+        {key === 'gallery' && <Gallery gallery={sections.gallery} />}
+        {key === 'serviceArea' && <ServiceArea area={sections.serviceArea} />}
+        {key === 'faq' && <Faq faq={sections.faq} />}
+        {key === 'beforeAfter' && <BeforeAfter section={sections.beforeAfter} />}
+      </Fragment>
+    ))
+  }
+</main>
+
+<DesignFooter footer={sections.footer} />
+
+{sections.stickyCta.enabled && <StickyCallBar cta={sections.stickyCta} />}

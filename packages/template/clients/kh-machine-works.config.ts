@@ -1,4 +1,5 @@
 import type { SiteConfig } from '../src/types/site';
+import { designFor } from './design';
 
 /**
  * SEED CLIENT: K-H Machine Works Inc — North Bergen, NJ.
@@ -47,7 +48,7 @@ const FOUNDED_YEAR = 1918;
 // Annotated rather than `satisfies` on purpose: the annotation keeps the
 // optional fields (mapUrl, fonts.faces) present in the type even when this
 // seed config leaves them out, so consumers can read them without casts.
-export const site: SiteConfig = {
+const base: SiteConfig = {
   business: {
     name: 'K-H Machine Works',
     legalName: 'K-H Machine Works Inc',
@@ -79,6 +80,11 @@ export const site: SiteConfig = {
       'Northern New Jersey',
       'New York City metro',
     ],
+    // Required by the "open now" badge and used by nothing else. Every shop
+    // in this directory is in New Jersey, so this is a fact about the
+    // confirmed address rather than an inference; without it the badge does
+    // not render at all.
+    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '07:00', closes: '16:30' },
       { day: 'Tuesday', opens: '07:00', closes: '16:30' },
@@ -115,7 +121,10 @@ export const site: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
+    // PNG rather than SVG because several platforms refuse SVG for og:image,
+    // and an unfurled demo link is the first thing a prospect sees.
+    ogImage: '/og/kh-machine-works.png',
   },
 
   hero: {
@@ -285,6 +294,10 @@ export const site: SiteConfig = {
 
   features: {
     gallery: false,
+    // Pitch build: the prospect can switch family, accent and lettering in
+    // the browser and send the combination back. `SITE_DELIVERED=1` forces it
+    // off whatever this says.
+    customizer: true,
   },
 
   forms: {
@@ -302,5 +315,14 @@ export const site: SiteConfig = {
     turnstileSiteKey: '',
   },
 };
+/**
+ * The design family.
+ *
+ * Composed from the confirmed content above and the theme, stats, FAQ and
+ * service-area copy in `clients/design/kh-machine-works.brief.json`. Nothing is
+ * restated: every headline, service one-liner and review below comes from the
+ * literal above, so the two cannot drift apart.
+ */
+export const site: SiteConfig = { ...base, design: designFor('kh-machine-works', base) };
 
 export default site;

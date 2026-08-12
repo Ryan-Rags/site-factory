@@ -1,0 +1,134 @@
+---
+/**
+ * Site footer.
+ *
+ * A full one: identity, a real click-to-call, the postal address, opening
+ * hours and configurable link columns. On a local service site the footer is
+ * where a returning customer looks for the number, so the phone is rendered
+ * large and first rather than buried in a column.
+ *
+ * Every optional field degrades by disappearing, never by rendering empty:
+ * no confirmed email means no email row, no `hours` means no hours block, no
+ * `foundedYear` means no "since" clause. That last one matters — the base
+ * template's footer interpolates the year unconditionally and prints
+ * "since ." for a client that has none.
+ */
+import { site } from '../../../site.config';
+import type { FooterSection } from '../../types/design';
+
+interface Props {
+  footer: FooterSection;
+}
+
+const { footer } = Astro.props;
+const { business, brand } = site;
+const year = new Date().getFullYear();
+
+const hours = footer.showHours ? business.hours ?? [] : [];
+const openDays = hours.filter((h) => !h.closed);
+const closedDays = hours.filter((h) => h.closed);
+
+const fmt = (t: string) => {
+  const [hStr = '0', m = '00'] = t.split(':');
+  const h = Number(hStr);
+  const suffix = h >= 12 ? 'pm' : 'am';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === '00' ? `${h12}${suffix}` : `${h12}:${m}${suffix}`;
+};
+
+const areas = business.serviceArea.slice(0, 3).join(', ');
+const since = business.foundedYear === undefined ? '' : ` since ${business.foundedYear}`;
+---
+
+<footer class="d-footer">
+  <div class="d-wrap">
+    <div class="d-footer__grid">
+      <div>
+        <div class="d-footer__brand">
+          <img src={brand.logo} alt="" width="40" height="40" />
+          <span class="d-footer__name">{business.name}</span>
+        </div>
+        {footer.blurb && <p class="d-footer__blurb">{footer.blurb}</p>}
+        <p style="margin: 1.25rem 0 0;">
+          <a class="d-footer__phone" href={`tel:${business.phoneHref}`}>{business.phone}</a>
+        </p>
+      </div>
+
+      <div>
+        <h2>Visit</h2>
+        <address>
+          {business.address.street && <Fragment>{business.address.street}<br /></Fragment>}
+          {business.address.locality}, {business.address.region}{
+            business.address.postalCode ? ` ${business.address.postalCode}` : ''
+          }
+        </address>
+        {
+          business.email && (
+            <ul style="margin-top: 0.75rem;">
+              <li>
+                <a href={`mailto:${business.email}`}>{business.email}</a>
+              </li>
+            </ul>
+          )
+        }
+        {
+          business.mapUrl && (
+            <ul style="margin-top: 0.75rem;">
+              <li>
+                <a href={business.mapUrl} rel="noopener noreferrer" target="_blank">
+                  Directions
+                </a>
+              </li>
+            </ul>
+          )
+        }
+      </div>
+
+      {
+        openDays.length + closedDays.length > 0 && (
+          <div>
+            <h2>Hours</h2>
+            <dl class="d-footer__hours">
+              {openDays.map((h) => (
+                <div>
+                  <dt>{h.day.slice(0, 3)}</dt>
+                  <dd>
+                    {fmt(h.opens ?? '')}–{fmt(h.closes ?? '')}
+                  </dd>
+                </div>
+              ))}
+              {closedDays.length > 0 && (
+                <div>
+                  <dt>{closedDays.map((h) => h.day.slice(0, 3)).join(', ')}</dt>
+                  <dd>Closed</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        )
+      }
+
+      {
+        (footer.columns ?? []).map((column) => (
+          <div>
+            <h2>{column.heading}</h2>
+            <ul>
+              {column.links.map((link) => (
+                <li>
+                  <a href={link.href}>{link.text}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="d-footer__bottom">
+      {footer.legal && <p style="margin: 0;">{footer.legal}</p>}
+      <p style="margin: 0;">
+        &copy; {year} {business.legalName}. Serving {areas} and the surrounding area{since}.
+      </p>
+    </div>
+  </div>
+</footer>

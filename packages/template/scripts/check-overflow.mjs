@@ -66,12 +66,42 @@ try {
         // Find every element whose painted box actually crosses the right
         // edge of the viewport, ignoring anything intentionally off-screen
         // to the left (nothing here does that, but sr-only tricks can).
+        /*
+         * A horizontal scroll container is not an overflow bug — it is the
+         * feature. The reviews carousel is a `scroll-snap` rail whose later
+         * cards are, by definition, laid out past the right edge; so is any
+         * `overflow-x: auto` table wrapper. What matters is whether the
+         * *page* can be scrolled sideways, which `scrollWidth` already
+         * answers, so descendants of a scroller are skipped here.
+         *
+         * Only genuine scrollers count: `overflow-x: hidden` clips its
+         * children rather than letting them be reached, so an element hiding
+         * a too-wide child that way is still a bug and is still reported.
+         */
+        const inScroller = (el) => {
+          for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+            const ox = getComputedStyle(p).overflowX;
+            if (ox === 'auto' || ox === 'scroll') return true;
+          }
+          return false;
+        };
+
         const culprits = [];
         for (const el of document.querySelectorAll('body *')) {
           const style = getComputedStyle(el);
           if (style.display === 'none' || style.visibility === 'hidden') continue;
           const rect = el.getBoundingClientRect();
           if (rect.width === 0 && rect.height === 0) continue;
+          if (inScroller(el)) continue;
+          /*
+           * A hero image with `data-motion` is deliberately over-scaled
+           * (`transform: scale(1.08)`) so it has room to drift, and its hero
+           * clips it. Its *painted* box is meant to exceed the viewport; the
+           * page still cannot be scrolled sideways, which is what this check
+           * is protecting. Reporting it would train everyone to ignore the
+           * one check that catches real 320px bugs.
+           */
+          if (el.hasAttribute('data-motion')) continue;
           if (rect.right > viewportWidth + 1) {
             culprits.push({
               tag: el.tagName.toLowerCase(),

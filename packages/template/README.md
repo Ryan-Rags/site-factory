@@ -367,3 +367,89 @@ worker/                     Cloudflare Worker for the contact form
 | `pnpm check:overflow` | Horizontal overflow check (needs `pnpm preview` running) |
 | `pnpm gen:placeholders` | Regenerate placeholder images |
 | `pnpm clean` | Remove `dist/` and `.astro/` |
+
+
+---
+
+## Design families
+
+Three config-driven looks for local service businesses, sharing one set of
+components and one contract:
+
+| Preset | Look | Built for |
+|---|---|---|
+| **Forge** | Near-black carbon, brushed-steel bands, condensed caps, hot accent | Machine shops, welding, fabrication |
+| **Precision** | White and graphite, blueprint grid, drawing-office corner ticks, measured blue | Contractors, HVAC, electrical |
+| **Heritage** | Cream and deep forest, serif display, double sign-painter's rules | Legacy shops, second-generation trades |
+
+Every family renders the *same markup*. A family is a token set plus a handful
+of decorative rules scoped to `[data-theme="..."]` in `src/styles/design.css`.
+That is deliberate: a fix to the FAQ accordion or the sticky call bar lands in
+all three at once, and no family can drift into worse accessibility than its
+siblings.
+
+### Sections
+
+Hero (three layouts: `split`, `full-bleed`, `stacked-panel`), sticky mobile
+call bar with click-to-call, stat counters, services grid, reviews, gallery,
+service area, FAQ accordion, before/after slider, open-now badge, full footer.
+Every one is `{ enabled: ... }` in the config, and `order` decides the sequence.
+
+### Where the values come from
+
+```
+src/design/presets.json      the three presets: palettes, accent swatches,
+                             font pairings, allowed layouts
+clients/design/<slug>.design.json    a full per-prospect payload
+clients/design/<slug>.brief.json     or a brief, composed with the client's
+                                     existing SiteConfig by derive.ts
+```
+
+A prospect config **chooses**; it does not author. `theme.accent` and
+`theme.fontPairing` are ids that must exist in the chosen preset — there is no
+free colour input anywhere, in the config or the UI. That is what makes the
+contrast gate possible: a finite set of combinations is a set that can be
+enumerated and proved.
+
+### Commands
+
+```sh
+pnpm build:client ks-welding      # one client
+pnpm build:all                    # all of them, + marker and contrast gates
+pnpm check:contrast               # 234 AA assertions over the whole matrix
+pnpm check:overflow               # 320px / 390px, every route
+pnpm gen:brand                    # icon set, webmanifest and OG card per client
+pnpm compare                      # dist/compare.html - three families side by side
+pnpm record:switch                # dist/theme-switch.webm
+```
+
+### The customizer
+
+`features.customizer: true` turns on a preview panel: a prospect switches
+preset, accent and lettering and the page changes instantly, then sends the
+combination back. It works by emitting every combination as static CSS keyed
+on `<html data-theme|data-accent|data-font>`, so switching is three attribute
+writes with no reload and no layout shift.
+
+It is a **pitch-build feature**. When the flag is false or absent, the panel,
+its script and the whole matrix are not emitted at all. `SITE_DELIVERED=1`
+forces it off regardless of the config, so a stale flag cannot leak a
+customizer into a delivered site.
+
+### Honesty rules that the design layer inherits
+
+- Nothing fetches anything. No Google property is contacted at build or run
+  time, and no review is taken from any platform. The reviews section renders
+  what the config holds, and its attribution line (`sourceLabel`) is a config
+  string so no component can assert a source we have not verified.
+- Every review keeps `status` and `sourceNote`. `Review`/`AggregateRating`
+  JSON-LD is emitted **only** when a real aggregate exists and every item is
+  `verified` - a paraphrase is never marked up as a customer quotation.
+- The before/after slider renders only when both photographs are declared
+  genuine. Placeholders render nothing rather than passing stock art off as
+  the shop's work.
+- The open-now badge is computed in the browser, in the shop's own IANA
+  timezone, and does not render at all without one. A badge baked at build
+  time asserts something about the moment we built, not the moment somebody
+  is reading.
+- Stat counters take their numbers from config only. There is no default.

@@ -1,0 +1,66 @@
+---
+/**
+ * The hero's words and actions, independent of the frame around them.
+ *
+ * Split out of `DesignHero` so the three variants share one copy block
+ * rather than three near-identical ones — a change to the CTA order or the
+ * click-to-call line lands in every layout at once.
+ */
+import { site } from '../../../site.config';
+import OpenNow from './OpenNow.astro';
+import type { HeroSection, OpenNowSection } from '../../types/design';
+
+interface Props {
+  hero: HeroSection;
+  openNow: OpenNowSection;
+}
+
+const { hero, openNow } = Astro.props;
+const { business } = site;
+---
+
+{/*
+  Deliberately NOT `data-reveal`. The hero headline and the hero image are the
+  LCP candidates on every family, and an element that starts at `opacity: 0`
+  does not count as painted — revealing the hero would trade a real Lighthouse
+  score for an effect nobody scrolls to see. Reveal starts below the fold.
+*/}
+<div>
+  <p class="d-hero__open"><OpenNow openNow={openNow} /></p>
+
+  {hero.eyebrow && <p class="d-hero__eyebrow">{hero.eyebrow}</p>}
+
+  <h1 class="d-hero__title">{hero.headline}</h1>
+
+  <p class="d-hero__sub">{hero.subhead}</p>
+
+  <div class="d-hero__ctas">
+    <a class="d-btn d-btn--accent" href={hero.ctaPrimary.href}>{hero.ctaPrimary.text}</a>
+    {
+      hero.ctaSecondary && (
+        <a class="d-btn d-btn--ghost" href={hero.ctaSecondary.href}>
+          {hero.ctaSecondary.text}
+        </a>
+      )
+    }
+  </div>
+
+  {
+    hero.showPhone && (
+      <p class="d-hero__phone">
+        Or call the shop:{' '}
+        <a href={`tel:${business.phoneHref}`}>{business.phone}</a>
+      </p>
+    )
+  }
+
+  {
+    hero.badges && hero.badges.length > 0 && (
+      <ul class="d-hero__badges">
+        {hero.badges.map((badge) => (
+          <li>{badge}</li>
+        ))}
+      </ul>
+    )
+  }
+</div>

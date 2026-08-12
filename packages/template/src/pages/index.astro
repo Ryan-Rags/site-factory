@@ -10,34 +10,64 @@ import Testimonials from '../components/Testimonials.astro';
 import Equipment from '../components/Equipment.astro';
 import Updates from '../components/Updates.astro';
 import CtaBand from '../components/CtaBand.astro';
+import DesignLayout from '../components/design/DesignLayout.astro';
+import DesignHome from '../components/design/DesignHome.astro';
 
-// Content is namespaced by client: `src/content/about/<slug>/<entry>.md`.
-// Without the prefix every client would share one shop's prose.
-const story = await getEntry('about', `${clientSlug}/${site.about.entry}`);
-if (!story) {
+/**
+ * Two rendering paths, chosen by whether the client's config carries a
+ * `design` block.
+ *
+ * Absent (the five original clients) → the original composition below,
+ * unchanged. That is the point of making `design` optional: adding the design
+ * families cost the existing clients nothing, and `dist/kh-machine-works`
+ * still matches its byte-locked equivalence proof.
+ *
+ * Present → a design family renders instead, from its own layout, header and
+ * footer. The two paths share the business facts and nothing else.
+ */
+const design = site.design;
+
+// The legacy path needs the about entry; the design path does not, and asking
+// for it would make a design client fail the build over an unused file.
+const story = design ? null : await getEntry('about', `${clientSlug}/${site.about.entry}`);
+if (!design && !story) {
   throw new Error(
     `${clientSlug}: about.entry is "${site.about.entry}" but src/content/about/${clientSlug}/${site.about.entry}.md does not exist.`,
   );
 }
 
 // First two paragraphs of the story, as plain text, for the teaser.
-const excerpt = story.body?.split(/\n{2,}/).slice(0, 1).join(' ').replace(/\s+/g, ' ').trim() ?? '';
+const excerpt =
+  story?.body?.split(/\n{2,}/).slice(0, 1).join(' ').replace(/\s+/g, ' ').trim() ?? '';
 ---
 
-<BaseLayout
-  title={`${site.business.name} — ${site.business.tagline}`}
-  bareTitle
-  preloadImage={site.hero.image}
->
-  <Hero />
-  <TrustStrip />
-  <ServicesGrid
-    heading={site.pages.home.servicesHeading}
-    intro={site.pages.home.servicesIntro}
-  />
-  <StoryTeaser excerpt={excerpt} />
-  <Equipment />
-  <Testimonials />
-  <Updates />
-  <CtaBand />
-</BaseLayout>
+{
+  design ? (
+    <DesignLayout
+      design={design}
+      title={`${site.business.name} — ${site.business.tagline}`}
+      bareTitle
+      preloadImage={design.sections.hero.image.src}
+    >
+      <DesignHome design={design} />
+    </DesignLayout>
+  ) : (
+    <BaseLayout
+      title={`${site.business.name} — ${site.business.tagline}`}
+      bareTitle
+      preloadImage={site.hero.image}
+    >
+      <Hero />
+      <TrustStrip />
+      <ServicesGrid
+        heading={site.pages.home.servicesHeading}
+        intro={site.pages.home.servicesIntro}
+      />
+      <StoryTeaser excerpt={excerpt} />
+      <Equipment />
+      <Testimonials />
+      <Updates />
+      <CtaBand />
+    </BaseLayout>
+  )
+}

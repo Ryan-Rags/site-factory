@@ -1,0 +1,1394 @@
+/*
+ * The design-family stylesheet.
+ *
+ * Read this file with one rule in mind: it contains no client content and no
+ * literal brand colour. Every colour resolves from the custom properties
+ * `designTokens()` emits out of the per-prospect JSON, so the same rules
+ * render a near-black welding shop and a cream family bakery.
+ *
+ * Structure:
+ *   1. Base + primitives   — shared by all three families
+ *   2. Sections            — shared markup, shared layout
+ *   3. Family skins        — the only place the three diverge, each scoped
+ *                            under [data-family="…"]
+ *   4. Reveal animation    — CSS half of the IntersectionObserver
+ *
+ * Hand-written CSS rather than Tailwind utilities because a family skin is a
+ * *cascade* problem: `[data-family="forge"] .d-card` overriding a shared card
+ * rule is one line here and an unreadable class-list conditional in markup.
+ * The shared components stay legible; the divergence stays in one file.
+ *
+ * Sizes are in `rem` and layouts are mobile-first: every grid starts at one
+ * column and earns more at a breakpoint.
+ */
+
+/* ========================================================================== *
+ * 1. Base + primitives
+ * ========================================================================== */
+
+body[data-family] {
+  background: var(--d-base);
+  color: var(--d-ink);
+  font-family: var(--d-font-body);
+  /* The sticky call bar is fixed over the bottom of the page; without this the
+     last section's final line sits underneath it and can never be read. The
+     value is cleared again at the breakpoint where the bar is hidden. */
+  padding-bottom: var(--d-callbar-space, 0);
+}
+
+body[data-family] h1,
+body[data-family] h2,
+body[data-family] h3,
+body[data-family] h4 {
+  font-family: var(--d-font-display);
+  font-weight: var(--d-display-weight);
+  letter-spacing: var(--d-display-tracking);
+  text-transform: var(--d-display-transform);
+  color: var(--d-ink);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.d-wrap {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .d-wrap {
+    padding-inline: 2rem;
+  }
+}
+
+/* Vertical rhythm comes from the preset's density tokens, so `compact` and
+   `comfortable` are one declaration rather than a second set of rules. */
+.d-section {
+  padding-block: var(--d-section-y, 3.5rem);
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .d-section {
+    padding-block: var(--d-section-y-lg, 5.5rem);
+  }
+}
+
+.d-section--alt {
+  background: var(--d-surface-alt);
+}
+
+.d-eyebrow {
+  font-family: var(--d-font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--d-accent);
+  margin: 0 0 0.75rem;
+}
+
+.d-h2 {
+  font-size: clamp(1.75rem, 6vw, 2.75rem);
+  margin: 0;
+}
+
+.d-lede {
+  margin: 1rem 0 0;
+  max-width: 60ch;
+  color: var(--d-ink-muted);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.d-head {
+  margin-bottom: 2.5rem;
+}
+
+/* --- buttons -------------------------------------------------------------- */
+
+.d-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.5rem;
+  border-radius: var(--d-radius-btn, 0.375rem);
+  border: 2px solid transparent;
+  font-family: var(--d-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: var(--d-btn-tracking, 0.01em);
+  text-transform: var(--d-btn-transform, none);
+  text-decoration: none;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.d-btn--accent {
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+}
+
+.d-btn--accent:hover {
+  background: var(--d-accent-strong);
+}
+
+.d-btn--ghost {
+  /* A control boundary, not a divider: it must clear 3:1 against the page on
+     its own, which `--d-line` deliberately does not. See `--d-line-strong`. */
+  border-color: var(--d-line-strong);
+  color: var(--d-ink);
+  background: transparent;
+}
+
+.d-btn--ghost:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+/* On the hero of a full-bleed variant the ghost button sits over imagery, so
+   it borrows the scrim's contrast guarantee rather than the page's. */
+.d-hero--full-bleed .d-btn--ghost {
+  border-color: color-mix(in srgb, var(--d-ink) 55%, transparent);
+}
+
+body[data-family] :focus-visible {
+  outline: 3px solid var(--d-accent);
+  outline-offset: 2px;
+}
+
+/*
+ * Icon sizing. `Icon.astro` is shared with the base template, where its
+ * default class is a pair of Tailwind utilities — and a design-family page
+ * does not load Tailwind. These two classes are what design components pass
+ * instead, so the icon has a size in both worlds.
+ */
+.d-icon-sm {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.d-icon-md {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* --- cards ---------------------------------------------------------------- */
+
+.d-card {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+  padding: 1.5rem;
+  height: 100%;
+}
+
+/* ========================================================================== *
+ * 2. Sections
+ * ========================================================================== */
+
+/* --- header --------------------------------------------------------------- */
+
+.d-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--d-base) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-header__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+}
+
+.d-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  text-decoration: none;
+  color: var(--d-ink);
+}
+
+.d-header__brand img {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+
+/* A long business name must ellipsise rather than widen the viewport — the
+   same lesson the base template's header already learned at 320px. */
+.d-header__name {
+  font-family: var(--d-font-display);
+  font-weight: var(--d-display-weight);
+  letter-spacing: var(--d-display-tracking);
+  text-transform: var(--d-display-transform);
+  font-size: 1.0625rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-header__nav {
+  display: none;
+}
+
+.d-header__nav ul {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-header__nav a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  color: var(--d-ink-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.d-header__nav a:hover {
+  color: var(--d-ink);
+  background: var(--d-tint-6);
+}
+
+.d-header__phone {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  color: var(--d-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .d-header__nav,
+  .d-header__phone {
+    display: flex;
+  }
+}
+
+/*
+ * The mobile menu is a <details> element. No JavaScript opens it, which means
+ * it works before hydration, during a failed script load, and with JS off.
+ */
+.d-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+@media (min-width: 900px) {
+  .d-menu {
+    display: none;
+  }
+}
+
+.d-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--d-line-strong);
+  border-radius: var(--d-radius-btn, 0.375rem);
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--d-ink);
+}
+
+.d-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.d-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 50;
+  width: 15rem;
+  max-width: calc(100vw - 2.5rem);
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+  padding: 0.5rem;
+  box-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.45);
+}
+
+.d-menu__panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-menu__panel a {
+  display: block;
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.375rem;
+  color: var(--d-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* --- hero ----------------------------------------------------------------- */
+
+.d-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.d-hero__inner {
+  padding-block: 3rem 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .d-hero__inner {
+    padding-block: 4.5rem 5rem;
+  }
+}
+
+.d-hero__eyebrow {
+  font-family: var(--d-font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--d-accent);
+  margin: 0 0 1rem;
+}
+
+.d-hero__title {
+  font-size: clamp(2.25rem, 10vw, 4.25rem);
+  margin: 0;
+}
+
+.d-hero__sub {
+  margin: 1.25rem 0 0;
+  max-width: 44ch;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--d-ink-muted);
+  text-wrap: pretty;
+}
+
+.d-hero__ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 480px) {
+  .d-hero__ctas {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.d-hero__phone {
+  margin: 1.5rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--d-ink-muted);
+}
+
+.d-hero__phone a {
+  color: var(--d-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.d-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.d-hero__badges li {
+  font-family: var(--d-font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-btn, 0.375rem);
+  color: var(--d-ink-muted);
+  background: var(--d-tint-2);
+}
+
+.d-hero__media img {
+  width: 100%;
+  border-radius: var(--d-radius-card, 0.5rem);
+  border: 1px solid var(--d-line);
+}
+
+/* Variant: split — stacked on a phone, two columns from lg. */
+.d-hero--split .d-hero__grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .d-hero--split .d-hero__grid {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 3.5rem;
+  }
+}
+
+/* Variant: full-bleed — image behind, scrim over it, copy on top. The scrim
+   is derived from the palette base, so text contrast does not depend on which
+   photograph the client sent. */
+.d-hero--full-bleed .d-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.d-hero--full-bleed .d-hero__bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.d-hero--full-bleed .d-hero__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    var(--d-scrim-strong) 0%,
+    var(--d-scrim-strong) 45%,
+    var(--d-scrim) 100%
+  );
+}
+
+.d-hero--full-bleed .d-hero__inner {
+  padding-block: 4.5rem 4rem;
+  max-width: 40rem;
+}
+
+@media (min-width: 768px) {
+  .d-hero--full-bleed .d-hero__inner {
+    padding-block: 7rem 6.5rem;
+  }
+}
+
+/* Variant: stacked-panel — copy in a raised panel over the family's textured
+   field, image as a wide band beneath. For clients whose only photograph is
+   not good enough to sit behind a headline. */
+.d-hero--stacked-panel .d-hero__panel {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+  padding: 2rem 1.5rem;
+  box-shadow: 0 24px 60px -30px rgb(0 0 0 / 0.55);
+}
+
+@media (min-width: 768px) {
+  .d-hero--stacked-panel .d-hero__panel {
+    padding: 3rem 3rem 3.25rem;
+  }
+}
+
+.d-hero--stacked-panel .d-hero__media {
+  margin-top: 2rem;
+}
+
+.d-hero--stacked-panel .d-hero__media img {
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+}
+
+/* --- sticky mobile call bar ----------------------------------------------- */
+
+/*
+ * Fixed to the bottom of the viewport, phone only. Zero JavaScript: a media
+ * query hides it on wide screens, where the header already shows the number.
+ * `env(safe-area-inset-bottom)` keeps it clear of the iOS home indicator.
+ */
+.d-callbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  background: var(--d-primary);
+  border-top: 1px solid var(--d-line);
+  box-shadow: 0 -10px 30px -12px rgb(0 0 0 / 0.5);
+}
+
+.d-callbar__call {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--d-radius-btn, 0.375rem);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-family: var(--d-font-display);
+  font-weight: 800;
+  text-decoration: none;
+  line-height: 1.15;
+}
+
+.d-callbar__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.d-callbar__label {
+  display: block;
+  font-size: 1.0625rem;
+}
+
+.d-callbar__note {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  /*
+   * No `opacity` here, deliberately. It used to be 0.85, which took the
+   * accent pairing from a measured 4.95:1 down to 4.28:1 — a real AA failure
+   * that `check-contrast.mjs` could not see, because it checks colour pairs
+   * and opacity is not one. Lighthouse caught it. The hierarchy is carried by
+   * size instead, which costs nothing.
+   */
+}
+
+.d-callbar__secondary {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-radius: var(--d-radius-btn, 0.375rem);
+  border: 1px solid color-mix(in srgb, var(--d-on-primary) 40%, transparent);
+  color: var(--d-on-primary);
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+@media (min-width: 900px) {
+  .d-callbar {
+    display: none;
+  }
+
+  body[data-family] {
+    --d-callbar-space: 0 !important;
+  }
+}
+
+/* --- stats ---------------------------------------------------------------- */
+
+.d-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .d-stats__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+.d-stat {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.d-stat__value {
+  display: block;
+  font-family: var(--d-font-display);
+  font-weight: var(--d-display-weight);
+  letter-spacing: var(--d-display-tracking);
+  font-size: clamp(2.25rem, 9vw, 3.5rem);
+  line-height: 1;
+  color: var(--d-accent);
+  /* Tabular figures stop the counter jittering as it ticks up. */
+  font-variant-numeric: tabular-nums;
+}
+
+.d-stat__label {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--d-ink);
+}
+
+.d-stat__note {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--d-ink-muted);
+}
+
+/* --- services ------------------------------------------------------------- */
+
+.d-services__grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .d-services__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .d-services__grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.d-service {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-service__media {
+  margin: -1.5rem -1.5rem 1.25rem;
+  border-radius: var(--d-radius-card, 0.5rem) var(--d-radius-card, 0.5rem) 0 0;
+  overflow: hidden;
+}
+
+.d-service__media img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.d-service__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--d-radius-btn, 0.375rem);
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+  margin-bottom: 1rem;
+}
+
+.d-service__icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.d-service__title {
+  font-size: 1.375rem;
+  margin: 0;
+}
+
+.d-service__body {
+  margin: 0.75rem 0 0;
+  color: var(--d-ink-muted);
+  line-height: 1.65;
+}
+
+.d-service__points {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.d-service__points li {
+  position: relative;
+  padding-left: 1.25rem;
+  font-size: 0.9375rem;
+  color: var(--d-ink-muted);
+}
+
+.d-service__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--d-accent);
+}
+
+.d-service__link {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--d-accent);
+  text-decoration: none;
+}
+
+.d-service__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- reviews -------------------------------------------------------------- */
+
+.d-reviews__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.d-stars {
+  display: inline-flex;
+  gap: 0.125rem;
+  color: var(--d-accent);
+}
+
+.d-stars svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.d-stars__empty {
+  opacity: 0.28;
+}
+
+.d-reviews__source {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--d-ink-muted);
+}
+
+.d-reviews__grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .d-reviews__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .d-reviews__grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.d-review {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-review__quote {
+  margin: 1rem 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--d-ink);
+  text-wrap: pretty;
+}
+
+.d-review__foot {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* The initial disc is generated from the name in the config — no avatar image
+   is fetched from anywhere, and no third-party profile picture is hotlinked. */
+.d-review__avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--d-primary-soft);
+  color: var(--d-ink);
+  font-family: var(--d-font-display);
+  font-weight: 800;
+  font-size: 0.9375rem;
+}
+
+.d-review__author {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--d-ink);
+}
+
+.d-review__date {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--d-ink-muted);
+}
+
+.d-reviews__link {
+  display: inline-block;
+  margin-top: 2rem;
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  color: var(--d-accent);
+  text-underline-offset: 3px;
+}
+
+/* --- gallery -------------------------------------------------------------- */
+
+.d-gallery__grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .d-gallery__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.d-gallery figure {
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--d-radius-card, 0.5rem);
+  border: 1px solid var(--d-line);
+}
+
+.d-gallery img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.d-gallery figcaption {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--d-ink-muted);
+  background: var(--d-surface);
+}
+
+/* --- service area --------------------------------------------------------- */
+
+.d-area__grid {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .d-area__grid {
+    grid-template-columns: 1fr 1.15fr;
+    gap: 3.5rem;
+    align-items: start;
+  }
+}
+
+.d-area__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .d-area__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.d-area__list li {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-btn, 0.375rem);
+  background: var(--d-surface);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.d-area__note {
+  margin-top: 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--d-ink-muted);
+}
+
+/* --- faq ------------------------------------------------------------------ */
+
+/*
+ * The accordion is <details>/<summary>. It is keyboard-operable, announced
+ * correctly, and deep-linkable, all without a line of JavaScript — which is
+ * the same reason the header menu is one.
+ */
+.d-faq__list {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 52rem;
+}
+
+.d-faq__item {
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+  background: var(--d-surface);
+}
+
+.d-faq__item > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  color: var(--d-ink);
+}
+
+.d-faq__item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.d-faq__sign {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  position: relative;
+  margin-top: 0.1rem;
+  color: var(--d-accent);
+}
+
+.d-faq__sign::before,
+.d-faq__sign::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.d-faq__sign::before {
+  left: 0;
+  right: 0;
+  top: calc(50% - 1px);
+  height: 2px;
+}
+
+.d-faq__sign::after {
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 1px);
+  width: 2px;
+}
+
+.d-faq__item[open] .d-faq__sign::after {
+  transform: rotate(90deg);
+  opacity: 0;
+}
+
+.d-faq__answer {
+  padding: 0 1.25rem 1.25rem;
+  margin: 0;
+  color: var(--d-ink-muted);
+  line-height: 1.7;
+  max-width: 62ch;
+}
+
+/* --- footer --------------------------------------------------------------- */
+
+.d-footer {
+  background: var(--d-primary);
+  color: var(--d-on-primary);
+  margin-top: auto;
+}
+
+.d-footer a {
+  color: inherit;
+}
+
+.d-footer__grid {
+  display: grid;
+  gap: 2.5rem;
+  padding-block: 3.5rem;
+}
+
+@media (min-width: 640px) {
+  .d-footer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .d-footer__grid {
+    grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
+    gap: 3rem;
+  }
+}
+
+.d-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.d-footer__brand img {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.d-footer__name {
+  font-family: var(--d-font-display);
+  font-weight: var(--d-display-weight);
+  letter-spacing: var(--d-display-tracking);
+  text-transform: var(--d-display-transform);
+  font-size: 1.125rem;
+}
+
+.d-footer__blurb {
+  margin: 1rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: color-mix(in srgb, var(--d-on-primary) 78%, transparent);
+  max-width: 38ch;
+}
+
+.d-footer h2 {
+  font-size: 0.8125rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--d-on-primary);
+  margin: 0 0 1rem;
+}
+
+.d-footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+  font-size: 0.9375rem;
+}
+
+.d-footer a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.d-footer address {
+  font-style: normal;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--d-on-primary) 78%, transparent);
+}
+
+.d-footer__hours {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9375rem;
+}
+
+.d-footer__hours > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.d-footer__hours dt,
+.d-footer__hours dd {
+  margin: 0;
+}
+
+.d-footer__hours dd {
+  color: color-mix(in srgb, var(--d-on-primary) 78%, transparent);
+}
+
+.d-footer__bottom {
+  border-top: 1px solid color-mix(in srgb, var(--d-on-primary) 22%, transparent);
+  padding-block: 1.5rem 2rem;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--d-on-primary) 68%, transparent);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.d-footer__phone {
+  font-family: var(--d-font-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  text-decoration: none;
+}
+
+/* ========================================================================== *
+ * 3. Family skins
+ *
+ * Everything above is shared. Everything below is what makes a welding shop
+ * not look like an HVAC contractor. Each block is scoped to one family and
+ * still names no colour of its own — the textures are built by mixing the
+ * palette against itself.
+ * ========================================================================== */
+
+/* --- Forge: dark industrial ----------------------------------------------- */
+
+/* Radius and density are preset *tokens* now, not family rules — they are
+   emitted by `metricTokens()` so the customizer can switch them without
+   swapping a stylesheet. What stays here is what cannot be a token: texture,
+   pseudo-elements, and the shapes that make a family recognisable. */
+[data-theme='forge'] {
+  --d-btn-transform: uppercase;
+  --d-btn-tracking: 0.06em;
+}
+
+/* Carbon: a fine diagonal weave over the base, plus a hot glow bleeding from
+   the top-left. Both are gradients — no image request, no layout cost. */
+[data-theme='forge'] .d-hero {
+  background-color: var(--d-base);
+  background-image:
+    radial-gradient(
+      120% 90% at 8% 0%,
+      color-mix(in srgb, var(--d-accent) 22%, transparent) 0%,
+      transparent 58%
+    ),
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--d-ink) 3%, transparent) 0 2px,
+      transparent 2px 6px
+    );
+}
+
+/* Brushed steel band: the section separator does the work a rule would, but
+   reads as material rather than as a line. */
+[data-theme='forge'] .d-section--alt {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--d-ink) 6%, var(--d-surface-alt)) 0%,
+    var(--d-surface-alt) 22%,
+    var(--d-surface-alt) 78%,
+    color-mix(in srgb, #000 18%, var(--d-surface-alt)) 100%
+  );
+}
+
+/* A cut accent edge on every card — the shop-floor equivalent of a bevel. */
+[data-theme='forge'] .d-card {
+  border-left: 3px solid var(--d-accent);
+}
+
+[data-theme='forge'] .d-head .d-h2::after {
+  content: '';
+  display: block;
+  width: 3.5rem;
+  height: 4px;
+  margin-top: 1rem;
+  background: var(--d-accent);
+}
+
+[data-theme='forge'] .d-service__icon {
+  border-radius: 0;
+}
+
+[data-theme='forge'] .d-hero__badges li {
+  background: color-mix(in srgb, var(--d-ink) 6%, transparent);
+}
+
+/* --- Precision: light engineering ----------------------------------------- */
+
+[data-theme='precision'] {
+  --d-radius-card: 0.375rem;
+  --d-radius-btn: 0.375rem;
+  --d-btn-transform: none;
+  --d-btn-tracking: 0.01em;
+}
+
+/* Blueprint grid: a 4mm minor grid with a 2cm major, drawn in the palette's
+   own line colour so it never fights the brand. */
+[data-theme='precision'] .d-hero,
+[data-theme='precision'] .d-section--alt {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--d-line) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--d-line) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--d-line) 28%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--d-line) 28%, transparent) 1px, transparent 1px);
+  background-size: 6rem 6rem, 6rem 6rem, 1.5rem 1.5rem, 1.5rem 1.5rem;
+  background-position: -1px -1px;
+}
+
+/* Corner ticks: the drawing-office register mark, in CSS. */
+[data-theme='precision'] .d-card {
+  position: relative;
+}
+
+[data-theme='precision'] .d-card::before,
+[data-theme='precision'] .d-card::after {
+  content: '';
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-color: var(--d-accent);
+  border-style: solid;
+  border-width: 0;
+}
+
+[data-theme='precision'] .d-card::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+[data-theme='precision'] .d-card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+[data-theme='precision'] .d-eyebrow::before {
+  content: '— ';
+}
+
+[data-theme='precision'] .d-stat {
+  border-left: 2px solid var(--d-accent);
+  text-align: left;
+}
+
+/* --- Heritage: warm family business --------------------------------------- */
+
+[data-theme='heritage'] {
+  --d-radius-card: 0.625rem;
+  --d-radius-btn: 0.5rem;
+  --d-btn-transform: none;
+  --d-btn-tracking: 0.01em;
+}
+
+[data-theme='heritage'] .d-hero {
+  background-color: var(--d-base);
+  background-image: radial-gradient(
+    100% 80% at 50% 0%,
+    color-mix(in srgb, var(--d-primary) 8%, transparent) 0%,
+    transparent 60%
+  );
+}
+
+/* The double rule: an old sign-painter's device, and the family's signature.
+   It replaces Forge's accent bar under section headings. */
+[data-theme='heritage'] .d-head .d-h2::after {
+  content: '';
+  display: block;
+  width: 5rem;
+  height: 5px;
+  margin-top: 1.1rem;
+  border-top: 1px solid var(--d-accent);
+  border-bottom: 3px solid var(--d-accent);
+}
+
+[data-theme='heritage'] .d-eyebrow {
+  font-style: italic;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  font-size: 1rem;
+}
+
+[data-theme='heritage'] .d-hero__title,
+[data-theme='heritage'] .d-h2 {
+  line-height: 1.15;
+}
+
+[data-theme='heritage'] .d-review__quote {
+  font-family: var(--d-font-display);
+  font-style: italic;
+  font-size: 1.1875rem;
+  line-height: 1.55;
+}
+
+[data-theme='heritage'] .d-section--alt {
+  border-block: 1px solid var(--d-line);
+}
+
+[data-theme='heritage'] .d-stat {
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card);
+  background: var(--d-surface);
+}
+
+/* ========================================================================== *
+ * 4. Scroll reveal
+ *
+ * The CSS half. `Reveal.astro` ships the ~700-byte IntersectionObserver that
+ * adds `.is-revealed`. Two properties only — opacity and a small translate —
+ * because both are compositor-only and neither triggers layout, which is what
+ * keeps this off the main thread and out of the CLS score.
+ *
+ * The starting state is applied *by the observer script itself* (it sets
+ * `data-reveal-ready` on <html>), so a visitor with JavaScript disabled sees
+ * the fully-rendered page rather than a blank one.
+ * ========================================================================== */
+
+[data-reveal-ready] [data-reveal] {
+  opacity: 0;
+  transform: translateY(1rem);
+  transition: opacity 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition-delay: var(--d-reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+[data-reveal-ready] [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal-ready] [data-reveal],
+  [data-reveal-ready] [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  body[data-family] *,
+  body[data-family] *::before,
+  body[data-family] *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

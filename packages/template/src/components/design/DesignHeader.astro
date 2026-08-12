@@ -1,0 +1,107 @@
+---
+/**
+ * Sticky site header. Nav entries, the CTA and whether the phone number
+ * appears all come from `design.header` — a two-service walk-in shop and a
+ * twelve-page contractor get the same component and different JSON.
+ *
+ * The mobile menu is a `<details>` element, so it opens with no JavaScript.
+ */
+import { site } from '../../../site.config';
+import Icon from '../Icon.astro';
+import type { DesignHeader } from '../../types/design';
+
+interface Props {
+  header: DesignHeader;
+}
+
+const { header } = Astro.props;
+const { business, brand } = site;
+---
+
+<header class="d-header">
+  <div class="d-wrap">
+    <div class="d-header__bar">
+      <a class="d-header__brand" href="/" aria-label={`${business.name} — home`}>
+        {/* Decorative: the name is right beside it as real text. */}
+        <img src={brand.logo} alt="" width="44" height="44" />
+        <span class="d-header__name">{business.name}</span>
+      </a>
+
+      <nav class="d-header__nav" aria-label="Main">
+        <ul>
+          {header.nav.map((item) => (
+            <li>
+              <a href={item.href}>{item.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        {
+          header.showPhone && (
+            <a class="d-header__phone" href={`tel:${business.phoneHref}`}>
+              <Icon name="phone" class="d-icon-sm" />
+              <span>{business.phone}</span>
+            </a>
+          )
+        }
+        {
+          header.cta && (
+            <a class="d-btn d-btn--accent d-header__cta" href={header.cta.href}>
+              {header.cta.text}
+            </a>
+          )
+        }
+
+        <details class="d-menu">
+          <summary aria-label="Open menu">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16"></path>
+            </svg>
+            <span>Menu</span>
+          </summary>
+          <nav class="d-menu__panel" aria-label="Main">
+            <ul>
+              {header.nav.map((item) => (
+                <li>
+                  <a href={item.href}>{item.label}</a>
+                </li>
+              ))}
+              <li>
+                <a href={`tel:${business.phoneHref}`} style="color: var(--d-accent);">
+                  {business.phone}
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </details>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  /* The header CTA duplicates the sticky call bar on a phone, and the bar is
+     the better placement — always reachable, never scrolled past. */
+  .d-header__cta {
+    display: none;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9375rem;
+  }
+
+  @media (min-width: 900px) {
+    .d-header__cta {
+      display: inline-flex;
+    }
+  }
+</style>

@@ -1,0 +1,109 @@
+---
+/**
+ * The hero, in three layouts.
+ *
+ * One component rather than three because the copy, the CTAs, the badges and
+ * the phone line are identical in all of them — only the frame around that
+ * block changes, and `HeroCopy` is that shared block. Splitting them would
+ * mean fixing the same CTA bug three times.
+ *
+ * The variant is a config value (`sections.hero.variant`), so a prospect can
+ * be shown the same content in three arrangements without a code change.
+ * All three are single-column on a phone; the variant decides what happens
+ * to the image, which is the only thing that meaningfully differs there.
+ *
+ * The hero image is the LCP element on every family: eager, high priority,
+ * preloaded by the layout, and always given intrinsic dimensions so it
+ * reserves its box and contributes nothing to CLS. It is the one image on the
+ * page that is never lazy — a lazy LCP image is the single most common way a
+ * good-looking template scores badly.
+ */
+import HeroCopy from './HeroCopy.astro';
+import type { HeroSection, OpenNowSection } from '../../types/design';
+
+interface Props {
+  hero: HeroSection;
+  openNow: OpenNowSection;
+}
+
+const { hero, openNow } = Astro.props;
+
+const img = hero.image;
+const width = img.width ?? 1920;
+const height = img.height ?? 1080;
+
+/**
+ * Slow transform-only motion, opted into per client. Emitted as a data
+ * attribute rather than a class so the CSS that drives it and the CSS that
+ * disables it under reduced motion both live in one place.
+ */
+const motion = hero.motion && hero.motion !== 'none' ? hero.motion : undefined;
+---
+
+<section class={`d-hero d-hero--${hero.variant}`}>
+  {
+    hero.variant === 'full-bleed' && (
+      <div class="d-hero__bg">
+        <img
+          src={img.src}
+          alt={img.alt}
+          width={width}
+          height={height}
+          fetchpriority="high"
+          decoding="async"
+          data-motion={motion}
+        />
+      </div>
+    )
+  }
+
+  <div class="d-wrap">
+    {
+      hero.variant === 'split' && (
+        <div class="d-hero__inner d-hero__grid">
+          <HeroCopy hero={hero} openNow={openNow} />
+          <div class="d-hero__media">
+            <img
+              src={img.src}
+              alt={img.alt}
+              width={width}
+              height={height}
+              fetchpriority="high"
+              decoding="async"
+              data-motion={motion}
+            />
+          </div>
+        </div>
+      )
+    }
+
+    {
+      hero.variant === 'full-bleed' && (
+        <div class="d-hero__inner">
+          <HeroCopy hero={hero} openNow={openNow} />
+        </div>
+      )
+    }
+
+    {
+      hero.variant === 'stacked-panel' && (
+        <div class="d-hero__inner">
+          <div class="d-hero__panel">
+            <HeroCopy hero={hero} openNow={openNow} />
+          </div>
+          <div class="d-hero__media">
+            <img
+              src={img.src}
+              alt={img.alt}
+              width={width}
+              height={height}
+              fetchpriority="high"
+              decoding="async"
+              data-motion={motion}
+            />
+          </div>
+        </div>
+      )
+    }
+  </div>
+</section>

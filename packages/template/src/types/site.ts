@@ -18,6 +18,8 @@
  * `[verify with client]`, which is noise. Mark only where the surrounding copy
  * needs the value to make sense.
  */
+import type { DesignConfig } from './design';
+
 export const VERIFY_MARKER = '[verify with client]';
 
 /**
@@ -82,6 +84,16 @@ export interface Business {
    * the template never embeds a map iframe or calls any map API.
    */
   mapUrl?: string;
+  /**
+   * IANA timezone for the shop, e.g. `America/New_York`.
+   *
+   * Required by the "open now" badge and by nothing else. It is optional, and
+   * absent it the badge does not render — because the alternatives are both
+   * wrong: computing opening hours in the *visitor's* zone tells someone two
+   * states away that a shop is open when it is not, and inferring the zone
+   * from the address is a guess this repo does not make.
+   */
+  timezone?: string;
 }
 
 export interface Theme {
@@ -219,6 +231,18 @@ export interface Seo {
 export interface Features {
   /** The `/gallery` page and its nav link build only when this is true. */
   gallery: boolean;
+  /**
+   * The design preview panel, for pitch builds only.
+   *
+   * Optional so the configs written before it existed typecheck unchanged.
+   * When it is false or absent the panel component, its inline script and the
+   * whole theme matrix are **not emitted** — not hidden, not shipped and
+   * disabled. A delivered site should carry no trace of it.
+   *
+   * `SITE_DELIVERED=1` forces it off whatever the config says, so a stale
+   * flag cannot leak a customizer into a client's live site.
+   */
+  customizer?: boolean;
 }
 
 /** One shop-news entry. The updates section renders newest-first. */
@@ -311,4 +335,19 @@ export interface SiteConfig {
   seo: Seo;
   features: Features;
   forms: Forms;
+  /**
+   * Optional design family.
+   *
+   * Absent — as it is for every client written before the families existed —
+   * the site renders through `BaseLayout` and the original home-page
+   * composition, byte for byte unchanged. That is why the field is optional
+   * rather than required: adding three design families cost the five existing
+   * clients nothing.
+   *
+   * Present, it selects one of Forge / Precision / Heritage and supplies
+   * every colour, font, image, copy block and section toggle those families
+   * render. See `src/types/design.ts`; the payload itself is JSON, in
+   * `clients/design/<slug>.design.json`.
+   */
+  design?: DesignConfig;
 }

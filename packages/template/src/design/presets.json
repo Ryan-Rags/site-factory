@@ -1,0 +1,174 @@
+{
+  "presets": [
+    {
+      "id": "forge",
+      "label": "Forge",
+      "blurb": "Dark industrial. Near-black carbon, brushed-steel bands, condensed caps and a hot accent. Built for machine shops, welders and fabricators.",
+      "palette": {
+        "base": "#0d0f12",
+        "surface": "#16191e",
+        "surfaceAlt": "#121519",
+        "ink": "#f2f4f7",
+        "inkMuted": "#aeb6c0",
+        "line": "#2a2f36",
+        "primary": "#16191e",
+        "onPrimary": "#f2f4f7"
+      },
+      "radius": "sharp",
+      "density": "compact",
+      "accents": [
+        { "id": "ember", "label": "Ember orange", "accent": "#e2551f", "onAccent": "#14100c" },
+        { "id": "signal", "label": "Signal red", "accent": "#ef5346", "onAccent": "#150b0a" },
+        { "id": "molten", "label": "Molten amber", "accent": "#e8a020", "onAccent": "#160f02" },
+        { "id": "arc", "label": "Arc blue", "accent": "#3d9be0", "onAccent": "#04121c" }
+      ],
+      "fonts": [
+        {
+          "id": "condensed-caps",
+          "label": "Condensed caps",
+          "display": "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', 'Liberation Sans Narrow', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.015em"
+        },
+        {
+          "id": "block",
+          "label": "Heavy block",
+          "display": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "800",
+          "displayTransform": "uppercase",
+          "displayTracking": "-0.005em"
+        },
+        {
+          "id": "stencil-mono",
+          "label": "Shop stencil",
+          "display": "ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', Menlo, Consolas, monospace",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.04em"
+        }
+      ],
+      "variants": {
+        "hero": ["full-bleed", "split", "stacked-panel"],
+        "services": ["cards", "list"],
+        "reviews": ["grid", "carousel"]
+      }
+    },
+    {
+      "id": "precision",
+      "label": "Precision",
+      "blurb": "Light engineering. White and graphite, a blueprint grid, drawing-office corner ticks and a measured blue. Built for contractors, HVAC and electrical.",
+      "palette": {
+        "base": "#ffffff",
+        "surface": "#ffffff",
+        "surfaceAlt": "#f3f6fa",
+        "ink": "#101720",
+        "inkMuted": "#4a5561",
+        "line": "#ccd7e3",
+        "primary": "#10202f",
+        "onPrimary": "#eef3f8"
+      },
+      "radius": "soft",
+      "density": "comfortable",
+      "accents": [
+        { "id": "blueprint", "label": "Blueprint blue", "accent": "#0b5fbe", "onAccent": "#ffffff" },
+        { "id": "teal", "label": "Instrument teal", "accent": "#0a6a6a", "onAccent": "#ffffff" },
+        { "id": "indigo", "label": "Drafting indigo", "accent": "#4038b8", "onAccent": "#ffffff" },
+        { "id": "copper", "label": "Copper line", "accent": "#9a4a12", "onAccent": "#ffffff" }
+      ],
+      "fonts": [
+        {
+          "id": "engineered",
+          "label": "Engineered sans",
+          "display": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "800",
+          "displayTransform": "none",
+          "displayTracking": "-0.022em"
+        },
+        {
+          "id": "technical",
+          "label": "Technical caps",
+          "display": "ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', Menlo, Consolas, monospace",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.03em"
+        }
+      ],
+      "variants": {
+        "hero": ["split", "full-bleed", "stacked-panel"],
+        "services": ["cards", "list"],
+        "reviews": ["grid", "carousel"]
+      }
+    },
+    {
+      "id": "heritage",
+      "label": "Heritage",
+      "blurb": "Warm family business. Cream and deep forest, serif display, double sign-painter's rules. Built for legacy shops and second-generation trades.",
+      "palette": {
+        "base": "#fbf7ef",
+        "surface": "#ffffff",
+        "surfaceAlt": "#f4ecdd",
+        "ink": "#221f1a",
+        "inkMuted": "#57503f",
+        "line": "#ddd0b9",
+        "primary": "#173428",
+        "onPrimary": "#f5ecdd"
+      },
+      "radius": "soft",
+      "density": "comfortable",
+      "accents": [
+        { "id": "brick", "label": "Old brick", "accent": "#8c3b1f", "onAccent": "#ffffff" },
+        { "id": "oxblood", "label": "Oxblood", "accent": "#7c2233", "onAccent": "#ffffff" },
+        { "id": "forest", "label": "Deep forest", "accent": "#1f5140", "onAccent": "#ffffff" },
+        { "id": "navy", "label": "Ink navy", "accent": "#1d3f6b", "onAccent": "#ffffff" }
+      ],
+      "fonts": [
+        {
+          "id": "old-serif",
+          "label": "Shopfront serif",
+          "display": "Georgia, 'Iowan Old Style', 'Times New Roman', 'Liberation Serif', serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "-0.012em"
+        },
+        {
+          "id": "classic",
+          "label": "Classic book",
+          "display": "'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif",
+          "body": "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "0em"
+        },
+        {
+          "id": "signwriter",
+          "label": "Signwriter caps",
+          "display": "Georgia, 'Iowan Old Style', 'Times New Roman', 'Liberation Serif', serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.05em"
+        }
+      ],
+      "variants": {
+        "hero": ["stacked-panel", "split", "full-bleed"],
+        "services": ["cards", "list"],
+        "reviews": ["grid", "carousel"]
+      }
+    }
+  ],
+  "radiusScale": {
+    "sharp": { "card": "0.125rem", "btn": "0.125rem" },
+    "soft": { "card": "0.625rem", "btn": "0.5rem" }
+  },
+  "densityScale": {
+    "compact": { "section": "3.25rem", "sectionLg": "5rem", "gap": "1.25rem" },
+    "comfortable": { "section": "4rem", "sectionLg": "6.5rem", "gap": "1.75rem" }
+  }
+}

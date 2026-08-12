@@ -1,4 +1,5 @@
 import type { SiteConfig } from '../src/types/site';
+import { designFor } from './design';
 import { VERIFY_MARKER as V } from '../src/types/site';
 
 /**
@@ -13,7 +14,7 @@ import { VERIFY_MARKER as V } from '../src/types/site';
  * This config is the coverage case for `equipment[]`, `updates[]` and a
  * `worker` form that accepts engineering files.
  */
-export const site: SiteConfig = {
+const base: SiteConfig = {
   business: {
     name: 'American Machine Specialty',
     legalName: 'American Machine Specialty LLC',
@@ -30,6 +31,11 @@ export const site: SiteConfig = {
       country: 'US',
     },
     serviceArea: ['Westwood', 'Bergen County', 'Northern New Jersey', 'New York metro'],
+    // Required by the "open now" badge and used by nothing else. Every shop
+    // in this directory is in New Jersey, so this is a fact about the
+    // confirmed address rather than an inference; without it the badge does
+    // not render at all.
+    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '08:00', closes: '17:00' },
       { day: 'Tuesday', opens: '08:00', closes: '17:00' },
@@ -57,7 +63,10 @@ export const site: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
+    // PNG rather than SVG because several platforms refuse SVG for og:image,
+    // and an unfurled demo link is the first thing a prospect sees.
+    ogImage: '/og/american-machine-specialty.png',
   },
 
   hero: {
@@ -228,6 +237,10 @@ export const site: SiteConfig = {
 
   features: {
     gallery: false,
+    // Pitch build: the prospect can switch family, accent and lettering in
+    // the browser and send the combination back. `SITE_DELIVERED=1` forces it
+    // off whatever this says.
+    customizer: true,
   },
 
   forms: {
@@ -247,5 +260,14 @@ export const site: SiteConfig = {
     turnstileSiteKey: '',
   },
 };
+/**
+ * The design family.
+ *
+ * Composed from the confirmed content above and the theme, stats, FAQ and
+ * service-area copy in `clients/design/american-machine-specialty.brief.json`. Nothing is
+ * restated: every headline, service one-liner and review below comes from the
+ * literal above, so the two cannot drift apart.
+ */
+export const site: SiteConfig = { ...base, design: designFor('american-machine-specialty', base) };
 
 export default site;
