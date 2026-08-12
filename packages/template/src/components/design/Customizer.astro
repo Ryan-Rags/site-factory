@@ -28,6 +28,8 @@
  */
 import { site, clientSlug } from '../../../site.config';
 import { SCHEMES, offeredPresets, schemeFor } from '../../design/presets';
+import type { AccentSwatch, OfferedScheme } from '../../design/presets';
+import { cssIdent } from '../../lib/design';
 import type { DesignConfig } from '../../types/design';
 
 interface Props {
@@ -50,9 +52,30 @@ const { forms, business } = site;
 const offered = offeredPresets(design.theme);
 const activeScheme = schemeFor(design.theme);
 
-/** Whether a preset/scheme pair is the one currently on screen. */
-const isActive = (presetId: string, scheme: string) =>
-  presetId === design.theme.preset && scheme === activeScheme;
+/**
+ * A preset's accents, unioned across its tones, each carrying the tones it is
+ * offered in.
+ *
+ * Both tones of a family carry the same curated ids, so this is normally just
+ * that list. Where it matters is a prospect's brand colour, which is offered
+ * only in the tones it is legible in — the union keeps its control, and
+ * `inSchemes` is what hides it again in a tone that dropped it.
+ */
+function accentsOf(schemes: OfferedScheme[]) {
+  const order: string[] = [];
+  const byId = new Map<string, { swatch: AccentSwatch; inSchemes: string[] }>();
+  for (const { scheme, accents } of schemes) {
+    for (const swatch of accents) {
+      const seen = byId.get(swatch.id);
+      if (seen) seen.inSchemes.push(scheme);
+      else {
+        order.push(swatch.id);
+        byId.set(swatch.id, { swatch, inSchemes: [scheme] });
+      }
+    }
+  }
+  return order.map((id) => byId.get(id)!);
+}
 
 /**
  * Where "send it to us" posts. Same two-mode story as the contact form, so
@@ -163,47 +186,52 @@ const config = {
   </fieldset>
 
   {/*
-    Swatches are scoped by preset *and* scheme: the same accent id is a
-    different colour in each tone, so the chip beside the name has to be the
-    colour that tone will actually paint. Rendering both and filtering is what
-    keeps the chip honest without any script rewriting a background.
+    One control per accent, not one per accent per tone.
+
+    The same accent id is a different colour in each tone, and the chip beside
+    the name has to be the colour that tone will actually paint. It gets there
+    through the cascade: each `[data-theme][data-scheme]` block publishes
+    `--d-swatch-<id>`, so the chip recolours itself when the tone changes and
+    no script ever rewrites a background. A duplicate set of controls per tone
+    would have said the same thing twice for 16KB of markup.
+
+    `data-schemes` lists the tones an accent is offered in. It is all of them
+    for a curated swatch, and possibly one of them for a prospect's brand
+    colour, which is dropped from any tone it cannot be read on.
   */}
   <fieldset>
     <legend>Accent</legend>
     <div class="d-cust__opts">
       {
         offered.flatMap(({ preset, schemes }) =>
-          schemes.flatMap(({ scheme, accents }) =>
-            accents.map((swatch) => (
-              <Fragment>
-                <input
-                  type="radio"
-                  name="d-accent"
-                  id={`d-accent-${preset.id}-${scheme}-${swatch.id}`}
-                  value={swatch.id}
-                  data-preset={preset.id}
-                  data-scheme={scheme}
-                  checked={isActive(preset.id, scheme) && swatch.id === design.theme.accent}
-                  disabled={!isActive(preset.id, scheme)}
+          accentsOf(schemes).map(({ swatch, inSchemes }) => (
+            <Fragment>
+              <input
+                type="radio"
+                name="d-accent"
+                id={`d-accent-${preset.id}-${swatch.id}`}
+                value={swatch.id}
+                data-preset={preset.id}
+                data-schemes={inSchemes.join(' ')}
+                checked={preset.id === design.theme.preset && swatch.id === design.theme.accent}
+                disabled={preset.id !== design.theme.preset}
+              />
+              <label
+                for={`d-accent-${preset.id}-${swatch.id}`}
+                data-preset={preset.id}
+                style={preset.id === design.theme.preset ? undefined : 'display:none'}
+              >
+                {/* Colour is never the only cue: the swatch is decorative and
+                    the name is the label. */}
+                <span
+                  class="d-cust__swatch"
+                  style={`background:var(--d-swatch-${cssIdent(swatch.id)})`}
+                  aria-hidden="true"
                 />
-                <label
-                  for={`d-accent-${preset.id}-${scheme}-${swatch.id}`}
-                  data-preset={preset.id}
-                  data-scheme={scheme}
-                  style={isActive(preset.id, scheme) ? undefined : 'display:none'}
-                >
-                  {/* Colour is never the only cue: the swatch is decorative and
-                      the name is the label. */}
-                  <span
-                    class="d-cust__swatch"
-                    style={`background:${swatch.accent}`}
-                    aria-hidden="true"
-                  />
-                  {swatch.label}
-                </label>
-              </Fragment>
-            )),
-          ),
+                {swatch.label}
+              </label>
+            </Fragment>
+          )),
         )
       }
     </div>
@@ -458,12 +486,13 @@ const config = {
       ].forEach(function (pair) {
         document.querySelectorAll('[name="' + pair[0] + '"]').forEach(function (input) {
           // An option belongs to this cell if it matches on every axis it
-          // declares. Lettering declares a preset only, accents declare a
-          // preset and a tone, because that is what each actually varies by.
-          var scheme = input.getAttribute('data-scheme');
+          // declares. Lettering declares a preset. An accent declares a preset
+          // and the tones it is offered in — normally both, but a prospect's
+          // brand colour is dropped from any tone it cannot be read on.
+          var schemes = input.getAttribute('data-schemes');
           var mine =
             input.getAttribute('data-preset') === state.theme &&
-            (scheme === null || scheme === state.scheme);
+            (schemes === null || schemes.split(' ').indexOf(state.scheme) !== -1);
           var label = document.querySelector('label[for="' + input.id + '"]');
           input.disabled = !mine;
           input.checked = mine && input.value === state[pair[1]];

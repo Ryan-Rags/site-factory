@@ -49,35 +49,14 @@ const pkgRoot = join(here, '..');
 
 /* ------------------------------------------------------------------ colour */
 
-const toRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-
-const toHex = (rgb) => `#${rgb.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
-
-/** Matches CSS `color-mix(in srgb, A p%, B)` for opaque colours. */
-const mix = (a, pct, b) => {
-  const x = toRgb(a);
-  const y = toRgb(b);
-  const w = pct / 100;
-  return toHex(x.map((v, i) => v * w + y[i] * (1 - w)));
-};
-
-const luminance = (hex) => {
-  const [r, g, b] = toRgb(hex).map((v) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-
-const ratio = (fg, bg) => {
-  const a = luminance(fg);
-  const b = luminance(bg);
-  const [hi, lo] = a > b ? [a, b] : [b, a];
-  return (hi + 0.05) / (lo + 0.05);
-};
-
-/** The renderer's rule, duplicated. See the header note. */
-const isDarkPalette = (palette) => luminance(palette.base) < 0.2;
+/*
+ * The maths and the pair list used to live here and be duplicated into the
+ * renderer. They now live in `src/design/contrast.mjs`, which both this script
+ * and the Astro build import — because as soon as the renderer started
+ * *dropping* cells on contrast grounds, two copies of the rule meant the panel
+ * could offer a cell the gate had rejected.
+ */
+import { clearsGate, mix, pairsFor, paletteFailures, ratio } from '../src/design/contrast.mjs';
 
 /** Mirrors `SCHEMES` in `src/design/presets.ts`, for the same reason. */
 const SCHEMES = ['light', 'dark'];
@@ -96,15 +75,15 @@ let checks = 0;
  */
 let collecting = null;
 
-function assertPair(label, fg, bg, min) {
-  const value = ratio(fg, bg);
+function assertPair(label, fg, bg, min, failure) {
+  const value = failure ? failure.value : ratio(fg, bg);
   const detail = `${fg} on ${bg} = ${value.toFixed(2)}:1, needs ${min.toFixed(1)}:1`;
   if (collecting) {
-    if (value + 1e-9 < min) collecting.push(`${label}: ${detail}`);
+    if (failure) collecting.push(`${label}: ${detail}`);
     return;
   }
   checks++;
-  if (value + 1e-9 >= min) return;
+  if (!failure) return;
   failures++;
   console.error(`  ✗ ${label}: ${detail}`);
 }
@@ -125,56 +104,16 @@ function trialPalette(label, palette) {
 /**
  * Every pair that carries text, plus the boundaries of real controls.
  *
- * Text pairs are held to 4.5:1; control boundaries to WCAG 1.4.11's 3:1.
- * Purely decorative rules are not checked at all — see the note beside the
- * `line-strong` assertions for why that distinction had to be made.
+ * The pair list itself is `pairsFor()` in `src/design/contrast.mjs` — shared
+ * with the renderer, which needs the same answer to decide what to offer.
+ * What stays here is the *reporting*: which pairs were checked, which failed,
+ * and by how much.
  */
 function checkPalette(label, palette) {
-  const c = palette;
-  const dark = isDarkPalette(c);
-
-  // The derivations `designTokens()` emits, recomputed identically.
-  const accentStrong = mix(c.accent, 80, dark ? c.ink : '#000000');
-  const accentSoft = mix(c.accent, 12, c.surface);
-  const primarySoft = mix(c.primary, 10, c.surface);
-  const tint2 = mix(c.ink, 4, c.base);
-  const tint6 = mix(c.ink, 8, c.base);
-  const lineStrong = mix(c.ink, 55, c.base);
-
-  assertPair(`${label} · ink on base`, c.ink, c.base, 4.5);
-  assertPair(`${label} · ink on surface`, c.ink, c.surface, 4.5);
-  assertPair(`${label} · ink on surfaceAlt`, c.ink, c.surfaceAlt, 4.5);
-  assertPair(`${label} · inkMuted on base`, c.inkMuted, c.base, 4.5);
-  assertPair(`${label} · inkMuted on surface`, c.inkMuted, c.surface, 4.5);
-  assertPair(`${label} · onPrimary on primary`, c.onPrimary, c.primary, 4.5);
-  assertPair(`${label} · onAccent on accent`, c.onAccent, c.accent, 4.5);
-  // The accent is body-sized text in eyebrows, stat figures and card links.
-  assertPair(`${label} · accent on base`, c.accent, c.base, 4.5);
-  assertPair(`${label} · accent on surface`, c.accent, c.surface, 4.5);
-  // Hover state: same text, different background.
-  assertPair(`${label} · onAccent on accent-strong`, c.onAccent, accentStrong, 4.5);
-  assertPair(`${label} · ink on accent-soft`, c.ink, accentSoft, 4.5);
-  assertPair(`${label} · ink on primary-soft`, c.ink, primarySoft, 4.5);
-  assertPair(`${label} · ink on tint-2`, c.ink, tint2, 4.5);
-  assertPair(`${label} · inkMuted on tint-2`, c.inkMuted, tint2, 4.5);
-  assertPair(`${label} · ink on tint-6`, c.ink, tint6, 4.5);
-  /*
-   * Non-text boundaries, at WCAG 1.4.11's 3:1.
-   *
-   * Only `line-strong` is checked, and the distinction is the point.
-   * `--d-line` draws dividers, card edges and table rules — decoration beside
-   * content that is already separated by background and spacing, which 1.4.11
-   * exempts. `--d-line-strong` draws the boundary of an actual control: the
-   * ghost button, the mobile menu button, the customizer's option chips.
-   * Those carry the information "this is a thing you can press", so they are
-   * held to the threshold.
-   *
-   * Running the whole matrix at 3:1 on `line` was what surfaced this: every
-   * palette failed, and the honest reading was not that three good palettes
-   * were wrong but that one token was doing two jobs.
-   */
-  assertPair(`${label} · line-strong on base`, lineStrong, c.base, 3.0);
-  assertPair(`${label} · line-strong on surface`, lineStrong, c.surface, 3.0);
+  const failed = new Map(paletteFailures(palette).map((f) => [f.name, f]));
+  for (const [name, fg, bg, min] of pairsFor(palette)) {
+    assertPair(`${label} · ${name}`, fg, bg, min, failed.get(name));
+  }
 }
 
 function runMatrix() {
@@ -334,10 +273,58 @@ function runLegacy() {
   console.log(`legacy: ${checked} client config(s) with literal brand colours.`);
 }
 
+/* ---------------------------------------------------------------- selftest */
+
+/**
+ * Prove the drop rule can actually say no.
+ *
+ * No client config carries a `brandAccent` today, so the per-cell drop above
+ * runs zero times and reports a serene "0 dropped" whatever it does. That is
+ * exactly the state in which a broken predicate goes unnoticed until the first
+ * prospect's colour is quietly offered on a background it cannot be read on.
+ *
+ * So: two controls with known answers, run every time. The failing one is a
+ * real pairing — Forge's shipped ember on the light Forge base, which measures
+ * 3.49:1 and is the reason each tone carries its own accent values.
+ */
+function runSelftest() {
+  const presets = JSON.parse(
+    readFileSync(join(pkgRoot, 'src', 'design', 'presets.json'), 'utf8'),
+  );
+  const forge = presets.presets.find((p) => p.id === 'forge');
+  const controls = [
+    {
+      what: 'a dark-tone accent offered on the light tone',
+      palette: forge.schemes.light.palette,
+      swatch: forge.schemes.dark.accents[0],
+      expect: false,
+    },
+    {
+      what: 'that tone\'s own first accent',
+      palette: forge.schemes.light.palette,
+      swatch: forge.schemes.light.accents[0],
+      expect: true,
+    },
+  ];
+
+  for (const { what, palette, swatch, expect } of controls) {
+    checks++;
+    const got = clearsGate(palette, swatch);
+    if (got === expect) continue;
+    failures++;
+    console.error(
+      `  ✗ selftest: ${what} (${swatch.accent} on ${palette.base}) — the drop rule said ` +
+        `${got ? 'offer it' : 'drop it'}, expected ${expect ? 'offer it' : 'drop it'}`,
+    );
+  }
+  console.log('selftest: the per-cell drop rule accepts a legible pairing and rejects an illegible one.');
+}
+
 /* --------------------------------------------------------------------- run */
 
 const arg = process.argv[2];
 if (arg !== '--legacy') runMatrix();
+if (arg !== '--legacy') runSelftest();
 if (arg !== '--matrix') runLegacy();
 
 if (failures > 0) {

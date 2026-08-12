@@ -43,6 +43,24 @@
               "label": "Arc blue",
               "accent": "#10639f",
               "onAccent": "#ffffff"
+            },
+            {
+              "id": "acid",
+              "label": "Acid green",
+              "accent": "#4f6b00",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "plasma",
+              "label": "Plasma violet",
+              "accent": "#6b3fd4",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "rust",
+              "label": "Rust copper",
+              "accent": "#9a4a12",
+              "onAccent": "#ffffff"
             }
           ]
         },
@@ -81,6 +99,24 @@
               "label": "Arc blue",
               "accent": "#3d9be0",
               "onAccent": "#04121c"
+            },
+            {
+              "id": "acid",
+              "label": "Acid green",
+              "accent": "#b7d43a",
+              "onAccent": "#0d1102"
+            },
+            {
+              "id": "plasma",
+              "label": "Plasma violet",
+              "accent": "#a98bff",
+              "onAccent": "#0f0a1c"
+            },
+            {
+              "id": "rust",
+              "label": "Rust copper",
+              "accent": "#d98a4a",
+              "onAccent": "#1a0f05"
             }
           ]
         }
@@ -173,6 +209,24 @@
               "label": "Copper line",
               "accent": "#9a4a12",
               "onAccent": "#ffffff"
+            },
+            {
+              "id": "viridian",
+              "label": "Viridian",
+              "accent": "#0d6a3f",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "crimson",
+              "label": "Crimson",
+              "accent": "#b3202e",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "violet",
+              "label": "Violet",
+              "accent": "#6a3fc0",
+              "onAccent": "#ffffff"
             }
           ]
         },
@@ -211,6 +265,24 @@
               "label": "Copper line",
               "accent": "#e08b4d",
               "onAccent": "#180d03"
+            },
+            {
+              "id": "viridian",
+              "label": "Viridian",
+              "accent": "#46c286",
+              "onAccent": "#02140b"
+            },
+            {
+              "id": "crimson",
+              "label": "Crimson",
+              "accent": "#f0736f",
+              "onAccent": "#1a0607"
+            },
+            {
+              "id": "violet",
+              "label": "Violet",
+              "accent": "#b98bf5",
+              "onAccent": "#12071f"
             }
           ]
         }
@@ -294,6 +366,24 @@
               "label": "Ink navy",
               "accent": "#1d3f6b",
               "onAccent": "#ffffff"
+            },
+            {
+              "id": "bronze",
+              "label": "Bronze",
+              "accent": "#7a5514",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "plum",
+              "label": "Plum",
+              "accent": "#6b2a5e",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "verdigris",
+              "label": "Verdigris",
+              "accent": "#1a5f5a",
+              "onAccent": "#ffffff"
             }
           ]
         },
@@ -332,6 +422,24 @@
               "label": "Ink navy",
               "accent": "#85acdd",
               "onAccent": "#050f1d"
+            },
+            {
+              "id": "bronze",
+              "label": "Bronze",
+              "accent": "#d7ab63",
+              "onAccent": "#1a1204"
+            },
+            {
+              "id": "plum",
+              "label": "Plum",
+              "accent": "#d68ec6",
+              "onAccent": "#1a0916"
+            },
+            {
+              "id": "verdigris",
+              "label": "Verdigris",
+              "accent": "#5ec4bb",
+              "onAccent": "#02140f"
             }
           ]
         }

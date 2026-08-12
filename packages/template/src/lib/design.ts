@@ -775,9 +775,25 @@ export function themeMatrixCss(design: DesignConfig): string {
        * It belongs there too; that is a one-line change and a deliberate
        * decision to make, not a side effect of this one.
        */
+      /*
+       * `--d-swatch-*` is for the panel's chips.
+       *
+       * Each offered accent publishes its value for this tone, so one set of
+       * accent controls can serve both tones: the chip reads
+       * `background: var(--d-swatch-ember)` and recolours itself through the
+       * cascade when the tone changes. The alternative was a duplicate set of
+       * controls per tone, which cost 16KB of markup on the pitch page to say
+       * the same thing twice — and would have needed a script to keep the
+       * duplicate chips honest if it had been done the other obvious way.
+       */
+      const swatchVars = accents
+        .map((s) => `  --d-swatch-${cssIdent(s.id)}: ${s.accent};`)
+        .join('\n');
+
       blocks.push(`:root[data-theme="${preset.id}"][data-scheme="${scheme}"] {
   color-scheme: ${scheme};
 ${paletteTokens(palette)}
+${swatchVars}
 }`);
 
       // Accent tokens depend on the tone they sit in twice over: the swatch
@@ -801,6 +817,18 @@ ${fontTokens(pairing)}
   }
 
   return blocks.join('\n');
+}
+
+/**
+ * An id as a CSS custom-property name fragment.
+ *
+ * Curated accent ids are already plain lowercase words, but a `brandAccent`
+ * id comes from a client config and is not policed for CSS syntax — an id
+ * with a space or a quote in it would end the declaration early and corrupt
+ * the block after it.
+ */
+export function cssIdent(id: string): string {
+  return id.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
 }
 
 /** The id skeleton of one preset's offer: its tones, their accents, its fonts. */

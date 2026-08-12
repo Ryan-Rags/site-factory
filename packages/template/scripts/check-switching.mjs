@@ -36,6 +36,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
+import { clearsGate } from '../src/design/contrast.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, '..');
@@ -78,7 +79,11 @@ function cells() {
   for (const preset of presetFile.presets) {
     for (const scheme of SCHEMES) {
       const tone = preset.schemes[scheme];
-      const swatches = brand ? [...tone.accents, brand] : tone.accents;
+      // The same per-cell drop the renderer applies, from the same function:
+      // a brand colour is offered only in the tones it is legible in, so this
+      // must not expect a control that was deliberately not rendered.
+      const swatches =
+        brand && clearsGate(tone.palette, brand) ? [...tone.accents, brand] : tone.accents;
       for (const swatch of swatches) {
         for (const font of preset.fonts) {
           out.push({ preset, scheme, palette: tone.palette, swatch, font });
@@ -178,6 +183,17 @@ const readState = (page) =>
         buttonBg: paint('.d-btn--accent', 'backgroundColor'),
         buttonInk: paint('.d-btn--accent', 'color'),
         pageBg: paint('body', 'backgroundColor'),
+        // The chip on the *checked* accent control. It takes its colour from
+        // the tone's `--d-swatch-*`, so this is what proves a single set of
+        // controls still shows each tone's true colour.
+        chip: (() => {
+          const input = document.querySelector('[name="d-accent"]:checked');
+          if (!input) return null;
+          const chip = document
+            .querySelector(`label[for="${input.id}"]`)
+            ?.querySelector('.d-cust__swatch');
+          return chip ? getComputedStyle(chip).backgroundColor : null;
+        })(),
       },
       checked: {
         theme: checked('d-theme'),
@@ -217,6 +233,9 @@ function assertCell(where, cell, state) {
   assertEq(`${label} · accent button background`, state.painted.buttonBg, swatch.accent);
   assertEq(`${label} · accent button text`, state.painted.buttonInk, swatch.onAccent);
   assertEq(`${label} · page background`, state.painted.pageBg, palette.base);
+  // A chip showing the other tone's value would be the same lie as the
+  // original bug, just told by the control instead of the page.
+  assertEq(`${label} · swatch chip on the checked control`, state.painted.chip, swatch.accent);
 
   // And the panel itself. A control that shows one colour while the page shows
   // another is the failure a prospect sees, whatever the tokens say.
@@ -310,8 +329,9 @@ try {
     // re-resolve the others, and the order a prospect uses the panel in.
     if (!(await choose(page, `d-theme-${preset.id}`, `${name} · style`))) continue;
     if (!(await choose(page, `d-scheme-${scheme}`, `${name} · tone`))) continue;
-    if (!(await choose(page, `d-accent-${preset.id}-${scheme}-${swatch.id}`, `${name} · accent`)))
-      continue;
+    // One control per accent, shared by both tones — its chip recolours
+    // through the cascade. See the note in Customizer.astro.
+    if (!(await choose(page, `d-accent-${preset.id}-${swatch.id}`, `${name} · accent`))) continue;
     if (!(await choose(page, `d-font-${preset.id}-${font.id}`, `${name} · lettering`))) continue;
 
     const applied = await readState(page);
@@ -382,9 +402,9 @@ try {
       console.error(`  ✗ illegal url (${what}): data-scheme="${clamped.attrs.scheme}" is not a scheme`);
       continue;
     }
-    const landed = (brand ? [...tone.accents, brand] : tone.accents).find(
-      (a) => a.id === clamped.attrs.accent,
-    );
+    const landed = (
+      brand && clearsGate(tone.palette, brand) ? [...tone.accents, brand] : tone.accents
+    ).find((a) => a.id === clamped.attrs.accent);
     checks++;
     if (!landed) {
       failures++;

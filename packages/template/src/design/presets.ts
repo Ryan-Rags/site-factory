@@ -26,6 +26,7 @@
  */
 
 import raw from './presets.json';
+import { clearsGate } from './contrast.mjs';
 import type { HeroVariant } from '../types/design';
 import type { FontFace } from '../types/site';
 
@@ -207,8 +208,26 @@ export function getScheme(preset: ThemePreset, scheme: SchemeName): PresetScheme
  * this returns the one that was measured against the tone in play.
  */
 export function accentsFor(theme: ThemeSelection): AccentSwatch[] {
-  const scheme = getScheme(getPreset(theme.preset), schemeFor(theme));
-  return theme.brandAccent ? [...scheme.accents, theme.brandAccent] : scheme.accents;
+  const tone = getScheme(getPreset(theme.preset), schemeFor(theme));
+  return offeredAccents(tone, theme.brandAccent);
+}
+
+/**
+ * One tone's swatches, with the prospect's brand colour if it is legible here.
+ *
+ * The curated swatches are ours and are never filtered: one that failed would
+ * be an authoring mistake, and `check-contrast.mjs` fails the build over it
+ * rather than letting it quietly vanish from a family.
+ *
+ * The brand colour is the prospect's, and the standing rule is the opposite —
+ * it is offered only where it is legal and never nudged until it passes, since
+ * a shifted colour is not their colour. That test is per cell: a brand colour
+ * can be perfectly legible on a cream Heritage and illegible on a carbon
+ * Forge, and offering it where it works beats offering it nowhere.
+ */
+function offeredAccents(tone: PresetScheme, brand?: AccentSwatch): AccentSwatch[] {
+  if (!brand) return tone.accents;
+  return clearsGate(tone.palette, brand) ? [...tone.accents, brand] : tone.accents;
 }
 
 /** One tone of one preset, with the swatches it offers this client. */
@@ -251,8 +270,8 @@ export function offeredPresets(theme: ThemeSelection): OfferedPreset[] {
         scheme,
         palette: data.palette,
         // The prospect's own extracted brand colour rides along inside every
-        // cell it was cleared for, exactly as the matrix emits it.
-        accents: theme.brandAccent ? [...data.accents, theme.brandAccent] : data.accents,
+        // cell it was cleared for — and only those. See `offeredAccents`.
+        accents: offeredAccents(data, theme.brandAccent),
       };
     }),
     fonts: preset.fonts,
