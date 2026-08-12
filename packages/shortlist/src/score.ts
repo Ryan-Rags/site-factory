@@ -55,27 +55,39 @@ export interface OpportunityResult {
   value: number;
   /** Plain words for the reasons column. */
   reason: string;
+  /**
+   * False when the site is live but nothing measured it. Carried so the reason
+   * ranking can treat "unmeasured" as the caveat it is rather than as a fact
+   * about a good site.
+   */
+  measured: boolean;
 }
 
 export function opportunityOf(input: OpportunityInput): OpportunityResult {
   switch (input.websiteStatus) {
     case "none":
-      return { value: OPPORTUNITY.none, reason: "no website at all" };
+      return { value: OPPORTUNITY.none, reason: "no website at all", measured: true };
     case "dead":
-      return { value: OPPORTUNITY.dead, reason: "listed website is dead" };
+      return { value: OPPORTUNITY.dead, reason: "listed website is dead", measured: true };
     case "parked":
-      return { value: OPPORTUNITY.parked, reason: "listed website is a parked domain" };
+      return {
+        value: OPPORTUNITY.parked,
+        reason: "listed website is a parked domain",
+        measured: true,
+      };
     case "live": {
       if (input.neglect === undefined) {
         return {
           value: LIVE_FLOOR,
           reason: "live site, not audited this run — condition unmeasured",
+          measured: false,
         };
       }
       const value = LIVE_FLOOR + LIVE_RANGE * clamp01(input.neglect);
       const pct = Math.round(input.neglect * 100);
       return {
         value,
+        measured: true,
         reason:
           pct >= 50
             ? `live site failing ${pct}% of weighted audit checks`
@@ -207,9 +219,27 @@ export function scoreProspect(input: ScoreInput): ScoreResult {
   const score = Math.round(100 * opportunity.value * viability.value);
 
   const candidates: ReasonCandidate[] = [
-    // Opportunity is the single largest lever and always the most explanatory
-    // thing about a row, so it competes on its full value.
-    { text: opportunity.reason, contribution: opportunity.value, forfeited: 0, negative: false },
+    /**
+     * Opportunity forfeits what it did not claim, exactly as a viability
+     * component does. Without this, a live site the audit cap skipped scored
+     * 0.10 on opportunity — below every viability component — so its one
+     * caveat fell out of the top three and the row read
+     * "4.5 stars from 80 reviews · phone number on the listing · copy pack
+     * ready": three positives and no hint that its site was never measured.
+     * The score was right and the sentence was a lie.
+     *
+     * Because opportunity's bands are 0.10-0.65 and 0.90-1.00, max(value,
+     * 1 - value) is never below 0.65 — above any viability component — so the
+     * website's condition is always the headline. That is how a call list
+     * actually reads: what is wrong with their site first, then whether they
+     * are worth ringing.
+     */
+    {
+      text: opportunity.reason,
+      contribution: opportunity.value,
+      forfeited: 1 - opportunity.value,
+      negative: !opportunity.measured,
+    },
     ...viability.reasons,
   ];
 
