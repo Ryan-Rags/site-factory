@@ -109,6 +109,18 @@ export interface BrandColors {
 export type ThemePreset = 'forge' | 'precision' | 'heritage';
 
 /**
+ * What is actually at the prospect's listed web address.
+ *
+ * See `ingest/parked.ts` for how it is decided. The short version: a URL that
+ * answers is not the same as a website. `parked` and `dead` are treated
+ * exactly as `none` for content derivation — nothing on a registrar's sale
+ * page is a fact about the business — but the three are recorded distinctly,
+ * because "your domain has lapsed and somebody is selling it" is a different
+ * conversation from "you have never had a site".
+ */
+export type WebsiteStatus = 'live' | 'parked' | 'dead' | 'none';
+
+/**
  * A value two sources disagreed about. The higher-precedence source wins and
  * the loser is recorded here rather than dropped: a live site whose phone
  * number differs from the Places listing is a fact worth knowing at first
@@ -137,6 +149,11 @@ export interface ProspectConfig {
   services: Field<ProspectService[]>;
   foundedYear: Field<number>;
   currentSiteUrl: Field<string>;
+  /**
+   * What is at `currentSiteUrl`. Always known after an ingest run that was not
+   * given `--skip-website`: `none` is an answer, not a gap.
+   */
+  websiteStatus: Field<WebsiteStatus>;
   ratingSummary: Field<{ rating: number; count: number }>;
   reviews: Field<ProspectReview[]>;
   photos: Field<ProspectPhoto[]>;

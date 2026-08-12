@@ -4,6 +4,7 @@ import { slugify } from "@site-factory/discover";
 
 import { known, type ProspectAddress, type ProspectHours, type ProspectService } from "../types.js";
 import type { Contribution } from "./merge.js";
+import { classifyWebsite, type SiteSignals, type WebsiteClassification } from "./parked.js";
 
 /**
  * Read the prospect's current website.
@@ -14,6 +15,14 @@ import type { Contribution } from "./merge.js";
  * contact — because everything it is looking for is either on the home page or
  * one click from it, and a smaller budget is a smaller imposition on someone
  * who has not agreed to be crawled.
+ *
+ * The home page is classified before anything is taken from it — see
+ * `parked.ts`. A domain that turns out to be parked or dead contributes
+ * **nothing**: no name, no phone, no address, no services, and no logo for
+ * palette extraction. Not "less", not "held at lower confidence" — nothing.
+ * What sits on a registrar's sale page is a fact about the registrar, and the
+ * moment any of it is let through it becomes a claim published under the
+ * business's own name.
  */
 
 const MAX_NAVIGATIONS = 5;
@@ -36,6 +45,24 @@ interface PageFacts {
   headings: string[];
   navLinks: { href: string; text: string }[];
   jsonLdName?: string;
+
+  // ---- classification signals -------------------------------------------
+  // Collected on every page because it costs nothing, read only from the home
+  // page. See `parked.ts` for what each one is for.
+  bodyText: string;
+  contentWords: number;
+  metaRefreshUrl?: string;
+  hasContactLink: boolean;
+  hasBusinessJsonLd: boolean;
+  jsonLdNames: string[];
+}
+
+/** One navigation's result: what the page said, and what the network said. */
+interface PageRead {
+  facts: PageFacts;
+  /** After redirects. */
+  finalUrl: string;
+  httpStatus: number;
 }
 
 const DAY_NAMES = [
@@ -54,7 +81,7 @@ const DAY_NAMES = [
  * service, which phone number wins — happens in Node, where it can be read and
  * argued with.
  */
-async function readPage(browser: Browser, url: string): Promise<PageFacts | null> {
+async function readPage(browser: Browser, url: string): Promise<PageRead | null> {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     // Identify honestly. A crawler that hides what it is has no business
@@ -65,8 +92,12 @@ async function readPage(browser: Browser, url: string): Promise<PageFacts | null
   const page = await context.newPage();
   try {
     const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
-    if (!response || !response.ok()) return null;
-    return await page.evaluate((dayNames) => {
+    // A non-OK response is *returned* rather than swallowed: an HTTP 404 or a
+    // refused connection is how a dead domain announces itself, and the
+    // classifier needs to see it. Callers reading a follow-up page still skip
+    // anything that is not OK.
+    if (!response) return null;
+    const facts = await page.evaluate((dayNames) => {
       const text = (el: Element | null): string => (el?.textContent ?? "").trim();
       const attr = (sel: string, name: string): string | undefined =>
         document.querySelector(sel)?.getAttribute(name) ?? undefined;
@@ -83,6 +114,8 @@ async function readPage(browser: Browser, url: string): Promise<PageFacts | null
       let jsonLdName: string | undefined;
       let foundedYear: number | undefined;
       let logoUrl: string | undefined;
+      let hasBusinessJsonLd = false;
+      const jsonLdNames: string[] = [];
 
       const visit = (node: unknown): void => {
         if (Array.isArray(node)) {
@@ -109,10 +142,12 @@ async function readPage(browser: Browser, url: string): Promise<PageFacts | null
           }
         }
 
-        if (!jsonLdName && typeof obj["name"] === "string" && typeof obj["@type"] === "string") {
-          if (/business|organization|store|shop|company/i.test(obj["@type"])) {
-            jsonLdName = obj["name"];
-          }
+        if (typeof obj["name"] === "string" && obj["name"].trim() !== "") {
+          jsonLdNames.push(obj["name"]);
+        }
+        if (typeof obj["@type"] === "string" && /business|organization|store|shop|company/i.test(obj["@type"])) {
+          hasBusinessJsonLd = true;
+          if (!jsonLdName && typeof obj["name"] === "string") jsonLdName = obj["name"];
         }
 
         if (!foundedYear && typeof obj["foundingDate"] === "string") {
@@ -184,12 +219,51 @@ async function readPage(browser: Browser, url: string): Promise<PageFacts | null
         .filter((l) => l.href.startsWith("http") && l.text.length > 0)
         .slice(0, 60);
 
+      // Prose, with the furniture removed. Nav, header and footer are on every
+      // page of every site including the emptiest holding page, so counting
+      // them would make "has content" meaningless.
+      const body = document.body;
+      let contentWords = 0;
+      if (body) {
+        const clone = body.cloneNode(true) as HTMLElement;
+        for (const el of clone.querySelectorAll("nav, header, footer, script, style, noscript")) {
+          el.remove();
+        }
+        const prose = (clone.innerText ?? clone.textContent ?? "").replace(/\s+/g, " ").trim();
+        contentWords = prose === "" ? 0 : prose.split(" ").length;
+      }
+      const bodyText = (body?.innerText ?? "").replace(/\s+/g, " ").trim().slice(0, 20_000);
+
+      // A meta refresh is how a holding page bounces a visitor to a sale
+      // listing without a server-side redirect. Resolved absolute here, where
+      // `location` is available, so Node does not have to guess the base.
+      let metaRefreshUrl: string | undefined;
+      const refresh = document
+        .querySelector('meta[http-equiv="refresh" i]')
+        ?.getAttribute("content");
+      if (refresh) {
+        const target = /url\s*=\s*['"]?([^'";]+)/i.exec(refresh)?.[1];
+        if (target) {
+          try {
+            metaRefreshUrl = new URL(target.trim(), document.location.href).href;
+          } catch {
+            /* an unparseable refresh target tells us nothing */
+          }
+        }
+      }
+
       const facts: PageFacts = {
         phones,
         emails,
         headings,
         navLinks,
+        bodyText,
+        contentWords,
+        hasContactLink: phones.length > 0 || emails.length > 0,
+        hasBusinessJsonLd,
+        jsonLdNames: jsonLdNames.slice(0, 20),
       };
+      if (metaRefreshUrl) facts.metaRefreshUrl = metaRefreshUrl;
       const title = document.title.trim();
       if (title) facts.title = title;
       const siteName = attr('meta[property="og:site_name"]', "content");
@@ -203,11 +277,45 @@ async function readPage(browser: Browser, url: string): Promise<PageFacts | null
       if (jsonLdName) facts.jsonLdName = jsonLdName;
       return facts;
     }, DAY_NAMES);
+    return { facts, finalUrl: page.url(), httpStatus: response.status() };
   } catch {
     return null;
   } finally {
     await context.close();
   }
+}
+
+/** Assemble the classifier's input from one navigation. */
+function signalsFrom(requestedUrl: string, read: PageRead | null): SiteSignals {
+  if (read === null) {
+    return {
+      requestedUrl,
+      finalUrl: requestedUrl,
+      httpStatus: null,
+      title: "",
+      bodyText: "",
+      contentWords: 0,
+      hasContactLink: false,
+      hasBusinessJsonLd: false,
+      jsonLdNames: [],
+      headings: [],
+    };
+  }
+  const { facts } = read;
+  const signals: SiteSignals = {
+    requestedUrl,
+    finalUrl: read.finalUrl,
+    httpStatus: read.httpStatus,
+    title: facts.title ?? "",
+    bodyText: facts.bodyText,
+    contentWords: facts.contentWords,
+    hasContactLink: facts.hasContactLink,
+    hasBusinessJsonLd: facts.hasBusinessJsonLd,
+    jsonLdNames: facts.jsonLdNames,
+    headings: facts.headings,
+  };
+  if (facts.metaRefreshUrl !== undefined) signals.metaRefreshUrl = facts.metaRefreshUrl;
+  return signals;
 }
 
 /** Pages worth a second navigation, in priority order. */
@@ -221,6 +329,8 @@ export interface WebsiteIngest {
   visited: string[];
   /** Set when the site could not be read at all. */
   failure?: string;
+  /** What is actually at that address. Never `none` here — a URL was given. */
+  classification: WebsiteClassification;
 }
 
 export async function ingestWebsite(
@@ -229,10 +339,29 @@ export async function ingestWebsite(
   retrievedAt: string,
 ): Promise<WebsiteIngest> {
   const visited: string[] = [];
-  const home = await readPage(browser, siteUrl);
+  const read = await readPage(browser, siteUrl);
   visited.push(siteUrl);
+
+  const classification = classifyWebsite(signalsFrom(siteUrl, read));
+
+  // The gate. Everything past this line reads the page as the business
+  // speaking, so nothing that is not the business gets past it — and the
+  // crawler stops here rather than spending four more navigations on a
+  // registrar's server.
+  if (classification.status !== "live") {
+    return { contribution: {}, visited, classification };
+  }
+
+  // `read` is non-null whenever the classification is `live`: a null read
+  // produces `httpStatus: null`, which the classifier resolves to `dead`.
+  const home = read?.facts;
   if (!home) {
-    return { contribution: {}, visited, failure: `could not load ${siteUrl}` };
+    return {
+      contribution: {},
+      visited,
+      failure: `could not load ${siteUrl}`,
+      classification,
+    };
   }
 
   const origin = new URL(siteUrl).origin;
@@ -264,9 +393,9 @@ export async function ingestWebsite(
   const pages: PageFacts[] = [home];
   for (const href of unique) {
     await sleep(MIN_INTERVAL_MS);
-    const facts = await readPage(browser, href);
+    const followed = await readPage(browser, href);
     visited.push(href);
-    if (facts) pages.push(facts);
+    if (followed && followed.httpStatus < 400) pages.push(followed.facts);
   }
 
   const contribution: Contribution = {};
@@ -318,7 +447,7 @@ export async function ingestWebsite(
   }
 
   const logoUrl = first((p) => p.logoUrl);
-  const out: WebsiteIngest = { contribution, visited };
+  const out: WebsiteIngest = { contribution, visited, classification };
   if (logoUrl) out.logoUrl = logoUrl;
   return out;
 }

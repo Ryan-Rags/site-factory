@@ -14,6 +14,17 @@ import type { ProspectConfig } from "./types.js";
  * that says so.
  */
 
+/** Wall-clock milliseconds per stage, plus the total. Set by `run.ts`. */
+export interface RunTimings {
+  ingest: number;
+  project: number;
+  build: number;
+  shots: number;
+  deploy: number;
+  cards: number;
+  total: number;
+}
+
 export interface DemoManifest {
   id: string;
   generatedAt: string;
@@ -24,6 +35,34 @@ export interface DemoManifest {
   preset: string | null;
   brandCreatedByUs: boolean;
   colors: { primary: string; accent: string } | null;
+
+  /**
+   * What is at their listed address: `live`, `parked`, `dead` or `none`.
+   *
+   * Read by `scripts/pitch/compare.mjs`, which must not run Lighthouse against
+   * a parking page and present the result as their site's score — an empty
+   * page scores well precisely because it is empty, and "their site beat the
+   * demo on performance" would be an artefact of the domain having lapsed.
+   */
+  websiteStatus: string | null;
+  /** Why the classification came out the way it did. */
+  websiteStatusReason: string | null;
+
+  /** Which copy pack ran, or `null` when none did. */
+  copyPack: string | null;
+  /** The copy engine's account of itself, for the operator. */
+  copyNotes: string[];
+  /** Questions the record could not answer. Worth asking on the call. */
+  droppedQuestions: { field: string; question: string }[];
+  /** Titles and descriptions that overrun their listing budget. */
+  seoWarnings: { field: string; length: number; budget: number; text: string }[];
+
+  /** Structural parity with the five hand-authored clients, at a glance. */
+  hasDesign: boolean;
+  hasFaq: boolean;
+  hasServiceAreas: boolean;
+
+  timings: RunTimings | null;
   cards: { qr: string | null; comparison: string | null };
   shots: {
     before: { desktop: string | null; mobile: string | null; source: string; reason?: string };
@@ -52,9 +91,19 @@ export function buildManifest(input: {
   before: { desktop?: string; mobile?: string; source: string; reason?: string };
   after: { desktop?: string; mobile?: string };
   log: string[];
+  /** Absent when the run failed before the projection ran. */
+  copy?: {
+    pack: string | null;
+    notes: string[];
+    droppedQuestions: { field: string; question: string }[];
+    seoWarnings: { field: string; length: number; budget: number; text: string }[];
+  };
+  site?: { design?: unknown; faq?: unknown[]; serviceAreas?: unknown } | undefined;
+  timings?: RunTimings | undefined;
 }): DemoManifest {
   const { prospect } = input;
   const colors = prospect.brand.colors.status === "known" ? prospect.brand.colors.value : null;
+  const status = prospect.websiteStatus;
   const before: DemoManifest["shots"]["before"] = {
     desktop: rel(input.before.desktop),
     mobile: rel(input.before.mobile),
@@ -73,6 +122,16 @@ export function buildManifest(input: {
     preset: prospect.preset.status === "known" ? prospect.preset.value : null,
     brandCreatedByUs: prospect.brand.createdByUs,
     colors,
+    websiteStatus: status.status === "known" ? status.value : null,
+    websiteStatusReason: status.status === "known" ? (status.note ?? null) : status.reason,
+    copyPack: input.copy?.pack ?? null,
+    copyNotes: input.copy?.notes ?? [],
+    droppedQuestions: input.copy?.droppedQuestions ?? [],
+    seoWarnings: input.copy?.seoWarnings ?? [],
+    hasDesign: input.site?.design !== undefined,
+    hasFaq: (input.site?.faq?.length ?? 0) > 0,
+    hasServiceAreas: input.site?.serviceAreas !== undefined,
+    timings: input.timings ?? null,
     cards: { qr: rel(input.qrCard), comparison: rel(input.comparisonCard) },
     shots: {
       before,
@@ -108,6 +167,55 @@ export function printSummary(manifest: DemoManifest): void {
       : "—",
   );
   line("preset", manifest.preset ?? "—");
+  line(
+    "their site",
+    manifest.websiteStatus === null
+      ? "not checked"
+      : `${manifest.websiteStatus.toUpperCase()}${
+          manifest.websiteStatus === "parked" || manifest.websiteStatus === "dead"
+            ? "   ← treated as NO WEBSITE"
+            : ""
+        }`,
+  );
+  if (
+    manifest.websiteStatusReason &&
+    manifest.websiteStatus !== null &&
+    manifest.websiteStatus !== "live"
+  ) {
+    console.log(`                 ${manifest.websiteStatusReason}`);
+  }
+
+  // Structural parity with the hand-authored five, in one line. This is the
+  // thing the whole stream is for, so it is printed whether or not it is good
+  // news — a demo missing a design block should be as visible as one missing a
+  // phone number.
+  line(
+    "parity",
+    [
+      `design ${manifest.hasDesign ? "yes" : "NO"}`,
+      `faq ${manifest.hasFaq ? "yes" : "no"}`,
+      `service areas ${manifest.hasServiceAreas ? "yes" : "no"}`,
+      `copy pack ${manifest.copyPack ?? "none"}`,
+    ].join("  ·  "),
+  );
+  if (manifest.timings) {
+    const t = manifest.timings;
+    const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
+    line("time", `${secs(t.total)} total`);
+    console.log(
+      `                 ingest ${secs(t.ingest)} · project ${secs(t.project)} · build ${secs(t.build)} · ` +
+        `shots ${secs(t.shots)} · deploy ${secs(t.deploy)} · cards ${secs(t.cards)}`,
+    );
+  }
+
+  // The notes already say "copy:" where that is the useful prefix; adding a
+  // second one produced "copy: copy: 7 FAQ entries".
+  for (const note of manifest.copyNotes) console.log(`  ${note.startsWith("copy:") ? "" : "copy: "}${note}`);
+
+  if (manifest.droppedQuestions.length > 0) {
+    console.log(`  ${manifest.droppedQuestions.length} question(s) to ask the owner:`);
+    for (const q of manifest.droppedQuestions) console.log(`    ${q.question}`);
+  }
 
   if (manifest.conflicts.length > 0) {
     console.log(`  sources disagreed on ${manifest.conflicts.length} field(s):`);

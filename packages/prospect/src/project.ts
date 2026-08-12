@@ -1,5 +1,7 @@
 import { slugify } from "@site-factory/discover";
 
+import { writeCopy, type CopyResult } from "./copy.js";
+import { buildDesign } from "./design.js";
 import type { SiteConfig, SiteIconName } from "./site-config.js";
 import { type ProspectConfig, type ProspectService, isKnown, valueOf } from "./types.js";
 
@@ -74,6 +76,8 @@ export interface ProjectionResult {
   requiredContent: { about: string; services: { slug: string; title: string }[] };
   /** Decisions worth printing, e.g. what fell back to a marker. */
   notes: string[];
+  /** What the copy engine produced, or why it produced nothing. */
+  copy: CopyResult;
 }
 
 export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): ProjectionResult {
@@ -196,6 +200,54 @@ export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): P
   if (seed?.updates) site.updates = seed.updates;
   if (seed?.equipment) site.equipment = seed.equipment;
 
+  /* -- the copy engine ---------------------------------------------------- */
+
+  // Run for every prospect, seeded or not. A seeded client keeps its
+  // hand-authored page copy — a person wrote it and it is better than anything
+  // derived here — but the FAQ and the town-by-town service-area sections are
+  // things the five configs do not carry at all, so there is nothing to
+  // overwrite and everything to gain.
+  const copy = writeCopy(prospect);
+  notes.push(...copy.notes);
+
+  if (copy.faq !== undefined) site.faq = copy.faq;
+  if (copy.serviceAreas !== undefined) site.serviceAreas = copy.serviceAreas;
+
+  if (copy.seo !== undefined && !seed) {
+    site.seo.defaultDescription = copy.seo.defaultDescription;
+  }
+  if (copy.pages !== undefined && !seed) {
+    site.pages = {
+      home: {
+        servicesHeading: copy.pages.home.servicesHeading,
+        servicesIntro: copy.pages.home.servicesIntro,
+        ...(copy.seo !== undefined
+          ? { title: copy.seo.home.title, metaDescription: copy.seo.home.description }
+          : {}),
+      },
+      services: copy.pages.services,
+      about: copy.pages.about,
+      contact: copy.pages.contact,
+    };
+    notes.push("copy: page titles and meta descriptions came from the copy engine");
+  }
+
+  /* -- the design family -------------------------------------------------- */
+
+  // Last, because it reads the finished `SiteConfig`: every headline, service
+  // card and review it renders is a value that has already been through the
+  // sourcing rules above. `deriveDesign` composes the hand-authored clients
+  // the same way and for the same reason — two copies of a sentence are two
+  // chances for one to be corrected and the other not.
+  const designed = buildDesign({
+    prospect,
+    site,
+    copy,
+    preset: preset ?? "precision",
+  });
+  site.design = designed.design;
+  notes.push(...designed.notes);
+
   return {
     site,
     requiredContent: {
@@ -203,6 +255,7 @@ export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): P
       services: site.services.map((s) => ({ slug: s.slug, title: s.title })),
     },
     notes,
+    copy,
   };
 }
 

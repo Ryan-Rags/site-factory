@@ -67,6 +67,9 @@ importers:
 
   packages/prospect:
     dependencies:
+      '@site-factory/copy':
+        specifier: workspace:*
+        version: link:../copy
       '@site-factory/discover':
         specifier: workspace:*
         version: link:../discover

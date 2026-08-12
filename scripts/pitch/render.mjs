@@ -36,6 +36,18 @@ export function headline(result) {
   if (theirs.status === 'no-site') {
     return `You have no website today. ${newSide}`;
   }
+  /*
+   * A parked or dead domain is a *stronger* pitch than no domain at all, and
+   * the line says so rather than flattening it to "no website": the owner is
+   * paying for, or has lost, an address that is currently working against
+   * them. Deliberately not scored — see `websiteStatusFor` in paths.mjs.
+   */
+  if (theirs.status === 'parked') {
+    return `Your domain shows a for-sale page, not your business. ${newSide}`;
+  }
+  if (theirs.status === 'dead') {
+    return `Your domain does not load at all. ${newSide}`;
+  }
   if (theirs.status === 'unreachable') {
     return `Your site: would not load (${theirs.error}). ${newSide}`;
   }
@@ -51,8 +63,15 @@ const escapeHtml = (value) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 
+const NOT_A_SITE = {
+  'no-site': 'no site',
+  parked: 'parked domain',
+  dead: 'dead domain',
+};
+
 function scoreCell(side, key) {
-  if (side.status === 'no-site') return '<td class="none">no site</td>';
+  const label = NOT_A_SITE[side.status];
+  if (label !== undefined) return `<td class="none">${label}</td>`;
   const value = side.scores ? side.scores[key] : undefined;
   if (typeof value !== 'number') return '<td class="none">unavailable</td>';
   const band = value >= 90 ? 'good' : value >= 50 ? 'mid' : 'poor';
@@ -70,8 +89,13 @@ export function pitchCard(result) {
       `<tr><th scope="row">${label}</th>${scoreCell(result.live, key)}${scoreCell(result.demo, key)}</tr>`,
   ).join('\n        ');
 
+  const LIVE_LABEL = {
+    'no-site': 'No current website',
+    parked: 'Domain parked on a for-sale page',
+    dead: 'Domain does not load',
+  };
   const liveLabel =
-    result.live.status === 'no-site' ? 'No current website' : escapeHtml(result.live.url ?? '—');
+    LIVE_LABEL[result.live.status] ?? escapeHtml(result.live.url ?? '—');
 
   return `<!doctype html>
 <html lang="en">
@@ -137,7 +161,7 @@ export function pitchCard(result) {
         ${
           result.live.screenshot
             ? `<img src="${escapeHtml(result.live.screenshot)}" alt="The current site on a phone" />`
-            : `<div class="missing">${result.live.status === 'no-site' ? 'No current website' : 'Screenshot unavailable'}</div>`
+            : `<div class="missing">${LIVE_LABEL[result.live.status] ?? 'Screenshot unavailable'}</div>`
         }
       </figure>
       <figure>
