@@ -10,6 +10,7 @@ import Testimonials from '../components/Testimonials.astro';
 import Equipment from '../components/Equipment.astro';
 import Updates from '../components/Updates.astro';
 import CtaBand from '../components/CtaBand.astro';
+import QuickQuote from '../components/QuickQuote.astro';
 import DesignLayout from '../components/design/DesignLayout.astro';
 import DesignHome from '../components/design/DesignHome.astro';
 
@@ -59,6 +60,12 @@ const excerpt =
     >
       <Hero />
       <TrustStrip />
+      {/* The quote block sits directly under the trust strip, above the
+          services grid: on a phone that is the first screen after the hero, and
+          the whole point of the block is to catch somebody who has not yet
+          decided to go looking for a contact page. It renders nothing at all —
+          not an empty section — unless this client's config asks for it here. */}
+      <QuickQuote placement="home" />
       <ServicesGrid
         heading={site.pages.home.servicesHeading}
         intro={site.pages.home.servicesIntro}

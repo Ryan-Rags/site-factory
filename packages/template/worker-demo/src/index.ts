@@ -3,31 +3,36 @@
  *
  * One Worker behind every prospect demo. Each demo site posts the same form
  * with one extra field — `prospectId`, which is that build's client slug — and
- * this Worker tags the email with it so the inbox says which shop the enquiry
- * came from before I have opened it.
+ * this Worker decides, from that id alone, who the lead belongs to.
  *
- * Why one Worker instead of one per prospect: they all deliver to the same
- * inbox. Five prospects would otherwise mean five deployments, five KV
- * namespaces and five origin lists to keep in step, for no difference in
- * behaviour. The single-tenant Worker next door (`../worker/`) stays as it is —
- * that one is what a real client eventually gets, pointed at their own inbox.
+ * Why one Worker instead of one per prospect: they used to all deliver to the
+ * same inbox, so five prospects would have meant five deployments, five KV
+ * namespaces and five origin lists to keep in step for no difference in
+ * behaviour. That is still true now that they deliver to *different* inboxes —
+ * the difference is a lookup, not a deployment. The single-tenant Worker next
+ * door (`../worker/`) stays as it is; that one is what a real client eventually
+ * gets, pointed at their own inbox with none of this machinery.
  *
  * Order of operations, cheapest rejection first:
  *   1. method / origin gate
  *   2. honeypot
  *   3. prospect id — must be one we know, or this is an open relay
  *   4. per-prospect rate limit
- *   5. field validation
+ *   5. field validation, against *that prospect's* rules
  *   6. KV write, BEFORE the email, so a mail outage never loses a lead
- *   7. Resend send
+ *   7. Resend send to the routed recipient (+ my permanent bcc)
+ *   8. the visitor's receipt, if it is switched on and can actually arrive
  *
  * No secret is read from a committed file. Everything sensitive comes from
  * `env`, set with `wrangler secret put`.
  */
 
+import { confirmationDecision, sendConfirmation } from './lib/confirm';
 import { sendDemoEmail, type DemoSubmission } from './lib/email';
+import { rulesFor } from './lib/fields';
 import { corsHeaders, json, parseList, type OriginRules } from './lib/http';
-import { PROSPECT_ID_RE, validate } from './lib/validate';
+import { routeFor } from './lib/routing';
+import { cleanLine, PROSPECT_ID_RE, validate } from './lib/validate';
 
 export interface Env {
   // vars (wrangler.jsonc, not secret)
@@ -36,8 +41,20 @@ export interface Env {
   ALLOWED_ORIGIN_SUFFIXES: string;
   /** Comma-separated slugs of every prospect whose demo may post here. */
   KNOWN_PROSPECTS: string;
+  /**
+   * `slug=addr,slug=addr`. Who each prospect's leads belong to. A prospect
+   * with no entry falls back to `MAIL_TO`. See lib/routing.ts.
+   */
+  PROSPECT_RECIPIENTS?: string;
+  /** The fallback recipient — mine, for every prospect still being pitched. */
   MAIL_TO: string;
+  /** Optional permanent bcc, so a live client's leads stay visible to me. */
+  BCC_ALWAYS?: string;
   MAIL_FROM: string;
+  /** `slug=name!,phone,email,…`. Per-prospect form fields. See lib/fields.ts. */
+  PROSPECT_FIELDS?: string;
+  /** `true` sends the visitor a receipt. Inert on a resend.dev sender. */
+  CONFIRMATIONS_ENABLED?: string;
   MAX_UPLOAD_MB: string;
   /** Submissions accepted per prospect per hour. */
   PROSPECT_RATE_PER_HOUR: string;
@@ -117,8 +134,9 @@ export default {
     /*
      * The prospect id is what makes this endpoint shared rather than open.
      * Anything not on the known list is refused: without this check, anyone
-     * who found the URL could post arbitrary text into my inbox under an
-     * arbitrary label, and the tag on the email would mean nothing.
+     * who found the URL could post arbitrary text into an inbox under an
+     * arbitrary label, and — now that the label decides *whose* inbox — the
+     * routing would be theirs to choose too.
      */
     const prospectId = String(form.get('prospectId') ?? '').trim();
     const known = parseList(env.KNOWN_PROSPECTS);
@@ -130,8 +148,9 @@ export default {
       return json({ ok: false, error: 'rate_limited' }, 429, cors);
     }
 
+    const fieldRules = rulesFor(prospectId, env.PROSPECT_FIELDS);
     const maxBytes = Number(env.MAX_UPLOAD_MB || '10') * 1024 * 1024;
-    const { errors, file } = validate(form, maxBytes);
+    const { errors, file, values, extras } = validate(form, maxBytes, fieldRules);
     if (errors.length > 0) {
       return json({ ok: false, error: 'validation_failed', fields: errors }, 422, cors);
     }
@@ -139,26 +158,28 @@ export default {
     const submission: DemoSubmission = {
       prospectId,
       // The demo sends the business's display name when it has one; the slug
-      // is a readable fallback, never a fabricated name.
-      prospectName: String(form.get('prospectName') ?? '').trim() || prospectId,
-      name: String(form.get('name') ?? '').trim(),
-      phone: String(form.get('phone') ?? '').trim(),
-      email: String(form.get('email') ?? '').trim(),
-      service: String(form.get('service') ?? '').trim(),
-      message: String(form.get('message') ?? '').trim(),
+      // is a readable fallback, never a fabricated name. Cleaned because it
+      // ends up in a subject line and in a sender's display name.
+      prospectName: cleanLine(String(form.get('prospectName') ?? ''), 80) || prospectId,
+      ...values,
       file: file ? { name: file.name, type: file.type, size: file.size } : null,
+      extras,
       receivedAt: new Date().toISOString(),
       userAgent: request.headers.get('User-Agent') ?? '',
       country: request.headers.get('CF-IPCountry') ?? '',
       origin: origin ?? '',
     };
 
+    // Who this lead belongs to. Resolved after the known-prospect gate, so an
+    // unknown id can never reach a recipient at all.
+    const route = routeFor(prospectId, env);
+
     // Backup FIRST. If Resend is down or the key is wrong, the lead is still
     // recoverable from KV rather than gone. Keyed by prospect so one demo's
     // submissions can be listed with a prefix scan.
     const key = `demo:${prospectId}:${submission.receivedAt}:${crypto.randomUUID()}`;
     try {
-      await env.SUBMISSIONS.put(key, JSON.stringify(submission), {
+      await env.SUBMISSIONS.put(key, JSON.stringify({ ...submission, routedTo: route.to }), {
         // 90 days. These are demo submissions, not a client's lead archive —
         // long enough to recover a real enquiry that arrived during a mail
         // outage, short enough that we are not sitting on contact details.
@@ -178,12 +199,32 @@ export default {
       }
     }
 
-    const sent = await sendDemoEmail(submission, file, env);
+    const sent = await sendDemoEmail(submission, file, env, route);
     if (!sent.ok) {
-      console.error(`Email not sent (${sent.detail}) — submission retained in KV at ${key}`);
+      // The intended recipient goes in the failure line too, not only the
+      // success one: the question after a mail outage is "whose lead is sitting
+      // in KV?", and the answer should not require re-deriving the routing.
+      console.error(
+        `Email not sent to ${route.to} (${sent.detail}) — submission retained in KV at ${key}`,
+      );
       // The lead is safe in KV, but the visitor must not be shown a success
       // animation for a message nobody has been notified about.
       return json({ ok: false, error: 'delivery_failed' }, 502, cors);
+    }
+    console.log(`lead ${prospectId} -> ${route.to} (${route.via}), bcc ${route.bcc.length}`);
+
+    /*
+     * The receipt. Last, and incapable of changing the answer: by this point
+     * the lead is in KV and in the shop's inbox, and the visitor is entitled to
+     * the success card whatever happens to a courtesy email.
+     */
+    const decision = confirmationDecision(submission, env);
+    if (!decision.send) {
+      console.log(`no receipt sent for ${prospectId}: ${decision.reason}`);
+    } else {
+      const receipt = await sendConfirmation(submission, env, route.to);
+      if (receipt.ok) console.log(`receipt sent to the visitor for ${prospectId}`);
+      else console.error(`receipt not sent for ${prospectId}: ${receipt.detail}`);
     }
 
     return json({ ok: true }, 200, cors);

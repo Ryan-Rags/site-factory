@@ -1,13 +1,14 @@
 ---
-import { clientSlug, demoFormEndpoint, resolveForms, site } from '../../site.config';
+import { site } from '../../site.config';
 import { smsHref, telHref } from '../lib/business';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ContactForm from '../components/ContactForm';
 import PageHeader from '../components/PageHeader.astro';
 import Icon from '../components/Icon.astro';
 import TextUsLink from '../components/TextUsLink.astro';
+import { buildForms, contactFormProps } from '../lib/quote-form';
 
-const { business, services } = site;
+const { business } = site;
 const hours = business.hours ?? [];
 
 /**
@@ -15,8 +16,14 @@ const hours = business.hours ?? [];
  * (`DEMO_FORM_ENDPOINT` set) points every prospect at the one shared Worker;
  * without it this is exactly the client's own `site.forms`. See site.config.ts.
  */
-const resolved = resolveForms();
-const forms = { ...site.forms, mode: resolved.mode, workerEndpoint: resolved.endpoint };
+const forms = buildForms();
+
+/**
+ * Which fields this client asks for, and everything else the island needs.
+ * Resolving throws when the rules would accept a lead nobody can answer, which
+ * is a build failure by design — see `src/lib/form-fields.ts`.
+ */
+const formProps = forms.mode === 'disabled' ? null : contactFormProps();
 
 // `mailto` needs an inbox to send to. A config that asks for it without a
 // confirmed email is a configuration error, not something to paper over with
@@ -144,7 +151,7 @@ const fmt = (t: string) => {
         </div>
 
         {
-          forms.mode !== 'disabled' && (
+          forms.mode !== 'disabled' && formProps && (
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-5 sm:p-8">
               <h2 class="text-2xl">{site.cta.buttonText}</h2>
               {/* The "fields marked * are required" hint lives inside the form
@@ -153,19 +160,7 @@ const fmt = (t: string) => {
                   message after a submission. */}
 
               <div class="mt-6">
-                <ContactForm
-                  client:visible
-                  mode={forms.mode}
-                  mailto={business.email ?? ''}
-                  services={services.map((s) => ({ slug: s.slug, title: s.title }))}
-                  endpoint={forms.workerEndpoint}
-                  prospectId={demoFormEndpoint ? clientSlug : ''}
-                  prospectName={demoFormEndpoint ? business.name : ''}
-                  phone={business.phone}
-                  maxUploadMB={forms.maxUploadMB}
-                  acceptedFileTypes={forms.acceptedFileTypes}
-                  turnstileSiteKey={forms.turnstileSiteKey}
-                />
+                <ContactForm client:visible {...formProps} />
               </div>
             </div>
           )

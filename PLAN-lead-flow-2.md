@@ -296,3 +296,245 @@ Stop at the PR.
    nobody pitches.
 
 Everything else I have decided and stated above. Say go and I will build it.
+
+---
+
+# Execution record
+
+Approved 2026-08-12 with both questions answered:
+
+1. **Resend** — the domain verification is in progress on Ryan's side. Proceed
+   with the stated default: no real key is handled by me at any point, a
+   verified-*looking* `MAIL_FROM` (`receipts@DOMAIN_TBD.test`) proves the gate
+   and the payload, and **no receipt was delivered to anyone**. When the domain
+   verifies, Ryan sets `MAIL_FROM`, flips `CONFIRMATIONS_ENABLED` and runs the
+   live end-to-end receipt himself from the deployed demo. Key custody is his.
+2. **Second prospect** — a throwaway ninth config, `zz-fixture-phone-optional`,
+   not KTS. The five pitchable demos stay uniform. It is in `KNOWN_PROSPECTS`
+   with a comment marking it a fixture, and it is never deployed.
+
+## What changed from the plan while building it
+
+- **The quick block's contact fields are narrowed, not inherited wholesale.**
+  The plan said the compact form inherits the client's contact rules. Rendering
+  *both* halves of an either/or pair in a "quick" block makes it most of a
+  contact form again, so `quickFields()` collapses the pair to a **required
+  phone number** and hides the other field. It can only tighten what is asked
+  for, never loosen it, so a legal rule set stays legal — and there is an
+  assertion in the function saying so. For a client with asymmetric rules (the
+  fixture: email required, phone optional) the quick block asks for the email
+  and drops the phone.
+- **The honeypot was invisible-by-Tailwind.** `className="hidden"` is a
+  Tailwind utility, and a design-family page does not load Tailwind — only
+  `BaseLayout` imports `global.css`. On the contact page that was fine, because
+  the contact page is a base-layout page; putting the island on a design-family
+  home page would have rendered the honeypot **on screen**, asking a real
+  customer for their company and then discarding their message when they
+  answered. Fixed with the native `hidden` attribute alongside the class.
+- **`design.css` gained a `.d-quick` block** for the same reason: the island's
+  Tailwind classes are inert on a design page, and the block would otherwise
+  render as browser defaults in the middle of a pitch demo.
+- **A ninth config broke two Node-side gates' assumptions**, both about configs
+  that inherit via spread. `check-form-fields.mjs` follows the spread. The
+  pre-existing `check-contact-links.mjs` does not — see "Flagged" below.
+- **`build-all.mjs` skips `zz-fixture-*`.** `scripts/deploy/deploy-mockups.mjs`
+  publishes every directory under `dist/`, so keeping the fixture out of `dist/`
+  during a batch build is what makes "never deployed" a property of the pipeline
+  rather than a note in a README.
+
+## Gates
+
+| Gate | Result |
+|---|---|
+| `astro check` | 0 errors, 0 warnings, 4 hints (all pre-existing) |
+| `pnpm build:all` | 8/8 clients built and checked (fixture skipped, by design) |
+| `check-markers.mjs` (per client, in the batch) | pass |
+| `check-contrast.mjs` | 240 checks passed (WCAG AA) |
+| `check-form-fields.mjs` (new) | pass over 9 configs + both wrangler configs |
+| `check-contact-links.mjs` — fixture build | pass |
+| `check-contact-links.mjs --all` | **fails, pre-existing** — see Flagged |
+| `wrangler deploy --dry-run` | bundles clean, 39.08 KiB / gzip 10.65 KiB |
+
+The fixture builds on its own and passes every per-client gate:
+
+```
+SITE_CLIENT=zz-fixture-phone-optional pnpm --filter @site-factory/template build
+✓ 9 client(s): every form keeps a contact channel, and worker-demo/wrangler.jsonc agree with them.
+✓ zz-fixture-phone-optional: noindex build — no markers.
+✓ 240 contrast checks passed (WCAG AA).
+✓ zz-fixture-phone-optional: every page taps through to tel:+15550100199, no sms link
+```
+
+### The new gate, caught doing its job
+
+The first `wrangler.local.jsonc` written for the dev run had a deliberately
+malformed routing entry in it. The gate refused the build:
+
+```
+✗ worker-demo/wrangler.local.jsonc: PROSPECT_RECIPIENTS entry "broken-entry-no-address" is not slug=address
+1 problem(s) in the form field rules.
+```
+
+That is the negative test for the routing half. The runtime's skip-and-continue
+behaviour for the same input is proved against the module below, since the gate
+will not let a config carrying one reach a build.
+
+## Abuse table — `wrangler dev -c wrangler.local.jsonc`, probed with curl
+
+Every row from `PLAN-demo-support.md` was re-run (routing changed the code path
+they cover), plus the new ones. `RESEND_API_KEY` was deliberately **not set**,
+so no request left the machine and a valid submission stops at the mail step
+with a 502 — the same shape as the previous transcript. Recipients are
+stand-ins on `.test`.
+
+| Case | Expected | Got |
+|---|---|---|
+| Origin `https://attacker.example` | 403 | 403 `origin_not_allowed` |
+| Origin `https://evil.pages.dev.attacker.com` | 403 | 403 `origin_not_allowed` |
+| Origin `http://kh-preview.pages.dev` (no TLS) | 403 | 403 `origin_not_allowed` |
+| Origin `https://kh-preview.pages.dev` (suffix ok) | past the gate | 422 `unknown_prospect` |
+| `prospectId=not-a-client` | 422 | 422 `unknown_prospect` |
+| no `prospectId` | 422 | 422 `unknown_prospect` |
+| `prospectId=../../etc` | 422 | 422 `unknown_prospect` |
+| honeypot `company` filled | 200 (bot believes it worked) | 200 `{ok:true}` |
+| kh: 2-character message | 422 | 422 `validation_failed {message}` |
+| kh: no phone and no email | 422 | 422 `validation_failed {contact}` |
+| kh: 5-digit phone | 422 | 422 `validation_failed {phone}` |
+| kh: valid, phone only | past validation | 502 `delivery_failed` |
+| kh: valid, email only | past validation | 502 `delivery_failed` |
+| **kh (mapped recipient)** | routes to the mapped inbox | `Email not sent to kh-owner@example.test … retained in KV` |
+| **ks-welding (mapped)** | routes to its own inbox | `Email not sent to ks-owner@example.test …` |
+| **kts-machine-shop (unmapped)** | falls back to `MAIL_TO` | `Email not sent to fallback-inbox@example.test …` |
+| **fixture: email only** | accepted | 502 `delivery_failed` (past validation) |
+| **fixture: phone only, no email** | 422 | 422 `validation_failed {email}` |
+| **fixture: neither** | 422 | 422 `validation_failed {email}` |
+| **fixture: `not-an-address`** | 422 | 422 `validation_failed {email}` |
+| **fixture: hidden `service` posted anyway** | accepted, value kept | 502 (past validation), `extras.service` in KV |
+| 21st submission in an hour | 429 | 429 `rate_limited` (19th and 20th: 502) |
+| different prospect, same hour | unaffected | 502 (i.e. past the limiter) |
+
+The stored submission for the hidden-field row, read back out of the local KV —
+note `service: ""` among the collected fields, the value preserved under
+`extras`, and the resolved recipient recorded with the lead:
+
+```
+$ wrangler kv key get "demo:zz-fixture-phone-optional:…" --binding SUBMISSIONS --local -c wrangler.local.jsonc
+{"prospectId":"zz-fixture-phone-optional","prospectName":"zz-fixture-phone-optional",
+ "name":"Bob","phone":"","email":"bob@example.test","service":"",
+ "message":"Testing the asymmetric rules","file":null,
+ "extras":{"service":"welding"},"receivedAt":"2026-08-12T18:22:21.997Z",
+ "userAgent":"curl/8.15.0","country":"","origin":"http://localhost:4321",
+ "routedTo":"fallback-inbox@example.test"}
+```
+
+## Confirmation path — exercised against the modules, not over the wire
+
+`wrangler dev` cannot reach step 8 without a live Resend key, because step 7
+fails first and correctly short-circuits. So the receipt was exercised by
+importing the **real** modules (`node --experimental-strip-types`) with `fetch`
+stubbed to capture the payload. **No confirmation email was delivered to
+anybody, and no Resend API key was handled at any point.**
+
+| Case | Result |
+|---|---|
+| flag off, verified sender | skip — `CONFIRMATIONS_ENABLED is off` |
+| flag on, `onboarding@resend.dev` | skip — resend.dev delivers only to the account owner |
+| flag on, `a@mail.resend.dev` | skip — the subdomain is caught too |
+| flag on, no API key | skip — `RESEND_API_KEY is not set` |
+| flag on, verified sender, visitor gave no email | skip — `the visitor gave no email address` |
+| flag on, verified sender, visitor gave email | **SEND** |
+| flag on, `MAIL_FROM` carries a display name | **SEND** (address parsed out, no doubling) |
+
+Captured payloads:
+
+```
+notification to          | ["kh-owner@example.test"]
+notification bcc         | ["always-bcc@example.test"]
+notification reply_to    | visitor@example.test          (the visitor)
+notification subject     | [DEMO kh-machine-works] K-H Machine Works — Bob Fixture
+
+receipt from             | "K-H Machine Works" <receipts@DOMAIN_TBD.test>
+receipt to               | ["visitor@example.test"]
+receipt reply_to         | kh-owner@example.test         (the routed shop, not the sender)
+receipt subject          | Thanks — K-H Machine Works got your message
+receipt body             | Thanks, Bob — K-H Machine Works has your message.
+                         |
+                         | Someone will call you back soon. If you need to add anything, just reply to
+                         | this email and it goes straight to them.
+                         |
+                         | — K-H Machine Works
+```
+
+Routing, the same way:
+
+```
+route for kh-machine-works              | kh-owner@example.test (map), bcc ["always-bcc@example.test"]
+route for kts-machine-shop (unmapped)   | fallback-inbox@example.test (fallback)
+BCC_ALWAYS equal to the recipient       | []            (deduped, no double delivery)
+malformed entry skipped, others survive | kh-machine-works, ks-welding
+```
+
+Two fail-closed paths, also from the modules:
+
+```
+PROSPECT_FIELDS[bad-shop]: phone=optional email=hidden would accept a lead with no way
+to reply — falling back to the default field rules.
+bad-shop resolved to: {"name":"required","phone":"optional","email":"optional",
+                       "service":"optional","message":"required","file":"optional"}
+```
+
+```
+business name "Evil\r\nBcc: attacker@example.test <x>"
+  → from: "\"Evil Bcc: attacker@example.test x\" <receipts@DOMAIN_TBD.test>"
+```
+
+The business name arrives on the form, so it is visitor-reachable input that
+ends up in a subject line and in a sender's display name. CR/LF and every other
+control character are stripped, the length is capped, and the display name is
+emitted as a quoted string.
+
+## Built output
+
+- **K-H home page** — two quick blocks, as configured (`placements: ['home',
+  'cta']`): one after the hero, one above the footer, both rendered through
+  `DesignHome` because K-H carries a design block. Each asks for name, phone
+  and one line; email is hidden because the either/or pair collapses to a
+  required phone in the compact layout. Fields present in
+  `dist/kh-machine-works/index.html`: `company` (honeypot), `name`, `phone`,
+  `message` — twice.
+- **Fixture home page** — one quick block, fields `name`, `email`, `message`.
+  No phone field at all, derived from that config's own rules.
+- Every other client's home page is unchanged: no config opts in, so nothing
+  renders — not an empty section, nothing.
+
+## Flagged for Ryan
+
+1. **`check-contact-links.mjs --all` fails, and did before this branch.** It
+   regexes a `business:` block out of each config, and the three design-family
+   comparison builds (`ks-welding-forge` / `-precision` / `-heritage`) have none
+   — they are `{ ...ksWelding, … }`. So `--all` has been broken since the design
+   families landed; per-client runs, which is what `pnpm build` does, are fine.
+   The fix is the spread-following logic already written in
+   `check-form-fields.mjs`. Not done here: that gate belongs to another stream,
+   and quietly editing gate scripts is what the merge policy asks me not to do.
+2. **A fixture build left in `dist/` would be deployed.** `build:all` skips it,
+   but if you build the fixture by hand and then run `deploy:mockups`, that
+   script publishes every directory under `dist/`. Either remove
+   `dist/zz-fixture-phone-optional` first, or grant a one-line skip in
+   `scripts/deploy/deploy-mockups.mjs` — I did not touch that file.
+3. **Existing clients' built HTML moved slightly** even where behaviour did not:
+   the contact page's island props are now spread from one object so their
+   serialised order changed, and the honeypot gained a `hidden` attribute.
+   `clients/EQUIVALENCE.md` is a record of the refactor at the commit it landed
+   rather than an automated gate, so nothing fails — but K-H's bytes are no
+   longer identical to that table's, and this is the change that did it.
+4. **The two `validate()` copies have now genuinely diverged** (per-prospect
+   here, fixed-shape in `../worker/`). The backlog entry is updated to say so.
+
+## Deliberately not done
+
+- The single-client `worker/` is untouched.
+- No new dependency, no lockfile change, so still no true `tsc` for the Workers.
+- No multi-recipient routing (one address per prospect).
+- No Turnstile changes, no sticky-call-bar changes, no SMS anywhere.
+- No deploys. No merge. Stop at the PR.

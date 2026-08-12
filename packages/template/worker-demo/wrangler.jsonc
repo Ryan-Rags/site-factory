@@ -29,13 +29,46 @@
     "ALLOWED_ORIGIN_SUFFIXES": "pages.dev",
 
     // Which prospects may post here. Must match the clients/index.ts registry;
-    // update when clients change. Anything not listed is refused, so this list
-    // is what stops a shared endpoint from being an open relay — and a slug
-    // missing here means that demo's form 422s in front of a prospect.
-    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage",
+    // `scripts/check-form-fields.mjs` fails the build when the two drift.
+    // Anything not listed is refused, so this list is what stops a shared
+    // endpoint from being an open relay — and a slug missing here means that
+    // demo's form 422s in front of a prospect.
+    //
+    // `zz-fixture-phone-optional` is a TEST FIXTURE, not a prospect. It exists
+    // to exercise a non-default field rule server-side, and it is never
+    // deployed. See clients/zz-fixture-phone-optional.config.ts.
+    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage,zz-fixture-phone-optional",
 
-    // Where demo enquiries land — my own inbox, not a client's.
+    // Who each prospect's leads belong to: `slug=address,slug=address`.
+    // A prospect with no entry falls back to MAIL_TO, which is how every demo
+    // behaved before routing existed.
+    //
+    // PLACEHOLDERS, like MAIL_TO. The real addresses — mine, and a client's
+    // once they say yes — live in the gitignored wrangler.local.jsonc. A
+    // client's inbox is their data and does not belong in a committed file.
+    "PROSPECT_RECIPIENTS": "kh-machine-works=PLACEHOLDER@example.com",
+
+    // Where a lead lands when no prospect entry matches — my own inbox.
     "MAIL_TO": "PLACEHOLDER@example.com",
+
+    // Optional permanent bcc. Once a client goes live and their leads route to
+    // them, this is what keeps them visible to me without a forwarding rule in
+    // somebody else's mailbox. Deduped against the resolved recipient, so a
+    // lead that already comes to me does not arrive twice.
+    "BCC_ALWAYS": "",
+
+    // Which fields each prospect's form asks for, and which it insists on:
+    // `slug=name!,phone,email,…` — `!` means required, an unlisted field is
+    // hidden, a prospect with no entry gets the default rule set. This is the
+    // server's copy of `forms.fields` in that client's config, and the build
+    // gate fails when the two disagree. See src/lib/fields.ts.
+    "PROSPECT_FIELDS": "zz-fixture-phone-optional=name!,phone,email!,message!,file",
+
+    // The visitor's receipt. Off by default, and INERT while MAIL_FROM is on
+    // resend.dev — from that sender Resend delivers only to the account owner,
+    // so a receipt would never reach the visitor at all. Verify a domain, set
+    // MAIL_FROM to an address on it, then flip this. See README.md.
+    "CONFIRMATIONS_ENABLED": "false",
 
     // Resend's free tier sends from onboarding@resend.dev without any DNS
     // setup, and delivers only to the address that owns the Resend account —

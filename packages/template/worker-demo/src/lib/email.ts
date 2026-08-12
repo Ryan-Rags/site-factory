@@ -1,11 +1,15 @@
 /**
  * Resend delivery for a demo submission.
  *
- * Every demo lands in one inbox — mine — so the subject line and the body have
- * to answer "which shop was this?" before anything else. A tag rides along on
- * the API call as well, so the Resend dashboard can be filtered by prospect
- * without parsing subject lines.
+ * A lead used to have exactly one destination — my inbox — so the subject line
+ * and the body only had to answer "which shop was this?". They still answer it
+ * first, because a bcc'd copy of a live client's lead lands in the same place
+ * as a pitch demo's and the two have to be told apart at a glance. What is new
+ * is that the recipient is resolved per prospect (`lib/routing.ts`) rather than
+ * assumed, and that a lead can carry values the form never asked for.
  */
+
+import type { Route } from './routing';
 
 export interface DemoSubmission {
   prospectId: string;
@@ -17,6 +21,12 @@ export interface DemoSubmission {
   service: string;
   message: string;
   file: { name: string; type: string; size: number } | null;
+  /**
+   * Values posted into fields this prospect's form does not ask for. Reported
+   * separately rather than mixed into the rows above, so the reader can see the
+   * form asked for one thing and received another. See `lib/validate.ts`.
+   */
+  extras: Record<string, string>;
   receivedAt: string;
   userAgent: string;
   country: string;
@@ -44,23 +54,53 @@ function base64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/** The one place this Worker talks to Resend. Shared with `lib/confirm.ts`. */
+export async function sendViaResend(
+  payload: Record<string, unknown>,
+  apiKey: string,
+): Promise<SendResult> {
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) return { ok: true, detail: '' };
+    return { ok: false, detail: `Resend responded ${res.status}: ${await res.text()}` };
+  } catch (error) {
+    return { ok: false, detail: `Resend request threw: ${String(error)}` };
+  }
+}
+
 export async function sendDemoEmail(
   sub: DemoSubmission,
   file: File | null,
-  env: { RESEND_API_KEY?: string | undefined; MAIL_FROM: string; MAIL_TO: string },
+  env: { RESEND_API_KEY?: string | undefined; MAIL_FROM: string },
+  route: Route,
 ): Promise<SendResult> {
   if (!env.RESEND_API_KEY) return { ok: false, detail: 'RESEND_API_KEY is not set' };
+  if (!route.to) return { ok: false, detail: 'no recipient: PROSPECT_RECIPIENTS and MAIL_TO are both empty' };
+
+  const extraLines = Object.entries(sub.extras).map(
+    ([field, value]) => `${field.padEnd(9)} ${value}`,
+  );
 
   const lines = [
     `PROSPECT: ${sub.prospectName}  (${sub.prospectId})`,
     `Demo:     ${sub.origin}`,
     '',
-    `Name:     ${sub.name}`,
+    `Name:     ${sub.name || '—'}`,
     `Phone:    ${sub.phone || '—'}`,
     `Email:    ${sub.email || '—'}`,
     `Service:  ${sub.service || '—'}`,
     '',
     sub.message,
+    ...(extraLines.length > 0
+      ? ['', 'Sent, but not asked for by this form:', ...extraLines]
+      : []),
     '',
     '---',
     `Received: ${sub.receivedAt}`,
@@ -71,7 +111,8 @@ export async function sendDemoEmail(
 
   const payload: Record<string, unknown> = {
     from: env.MAIL_FROM,
-    to: [env.MAIL_TO],
+    to: [route.to],
+    ...(route.bcc.length > 0 ? { bcc: route.bcc } : {}),
     subject: `[DEMO ${sub.prospectId}] ${sub.prospectName} — ${sub.name}`,
     text: lines.join('\n'),
     // Reply in the inbox goes to whoever filled the form in, not to me.
@@ -84,18 +125,5 @@ export async function sendDemoEmail(
     payload['attachments'] = [{ filename: file.name, content: base64(bytes) }];
   }
 
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) return { ok: true, detail: '' };
-    return { ok: false, detail: `Resend responded ${res.status}: ${await res.text()}` };
-  } catch (error) {
-    return { ok: false, detail: `Resend request threw: ${String(error)}` };
-  }
+  return sendViaResend(payload, env.RESEND_API_KEY);
 }

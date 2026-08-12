@@ -1,10 +1,20 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { contactMode, type ResolvedFields } from '../lib/form-fields';
 
 /**
  * The only JavaScript on the site. Everything else is static HTML.
  *
  * All copy and limits arrive as props from site.config.ts — nothing
  * client-specific is written in here.
+ *
+ * Two things vary per client now. **Which fields exist** comes from
+ * `forms.fields`, resolved by `src/lib/form-fields.ts` and mirrored by the
+ * Worker, so a shop that only ever calls people can stop collecting email
+ * addresses. **How it is laid out** is `layout`: the full contact-page form, or
+ * the compact quote block that sits on the home page and in the CTA band. The
+ * compact one is this component with a narrower field set, not a second
+ * component — a quick form that validated differently from the real one would
+ * be found by a customer rather than by a build.
  */
 
 export interface ContactFormProps {
@@ -35,6 +45,12 @@ export interface ContactFormProps {
   acceptedFileTypes: string[];
   /** Empty string hides the Turnstile widget. */
   turnstileSiteKey: string;
+  /** Resolved per-client field rules. See `src/lib/form-fields.ts`. */
+  fields: ResolvedFields;
+  /** `compact` is the quote block: fewer fields, one column, no headings. */
+  layout?: 'full' | 'compact';
+  /** Submit button label. The compact block passes its own. */
+  submitLabel?: string;
 }
 
 type Status =
@@ -89,6 +105,9 @@ export default function ContactForm({
   maxUploadMB,
   acceptedFileTypes,
   turnstileSiteKey,
+  fields,
+  layout = 'full',
+  submitLabel,
 }: ContactFormProps) {
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
@@ -100,6 +119,11 @@ export default function ContactForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const compact = layout === 'compact';
+  const shows = (field: keyof ResolvedFields) => fields[field] !== 'hidden';
+  const requires = (field: keyof ResolvedFields) => fields[field] === 'required';
+  const eitherContact = contactMode(fields) === 'either';
 
   // Object URLs are revoked whenever the selection changes and on unmount, so
   // repeatedly picking files cannot leak memory.
@@ -149,27 +173,54 @@ export default function ContactForm({
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  /**
+   * The same rules the Worker will apply, in the same order — see
+   * `worker-demo/src/lib/validate.ts`. A field this client does not render is
+   * not judged here at all.
+   */
   function validate(data: FormData): FieldErrors {
     const next: FieldErrors = {};
     const name = String(data.get('name') ?? '').trim();
-    const phone = String(data.get('phone') ?? '').trim();
+    const phoneValue = String(data.get('phone') ?? '').trim();
     const email = String(data.get('email') ?? '').trim();
     const message = String(data.get('message') ?? '').trim();
 
-    if (name.length < 2) next.name = 'Please tell us your name.';
-    if (!phone && !email) {
-      next.phone = 'We need a phone number or an email address so we can reply.';
-      next.email = 'We need a phone number or an email address so we can reply.';
-    } else {
-      if (phone && digits(phone).length < 10) next.phone = 'That phone number looks too short.';
-      if (email && !EMAIL_RE.test(email)) next.email = 'That email address does not look right.';
+    if (shows('name')) {
+      if (requires('name') && name.length < 2) next.name = 'Please tell us your name.';
+      else if (name && name.length < 2) next.name = 'Please tell us your name.';
     }
-    if (message.trim().length < 10) {
+
+    if (eitherContact) {
+      if (!phoneValue && !email) {
+        const both = 'We need a phone number or an email address so we can reply.';
+        next.phone = both;
+        next.email = both;
+      }
+    } else {
+      if (requires('phone') && !phoneValue) {
+        next.phone = 'We need a phone number so we can call you back.';
+      }
+      if (requires('email') && !email) {
+        next.email = 'We need an email address so we can reply.';
+      }
+    }
+    if (shows('phone') && phoneValue && digits(phoneValue).length < 10) {
+      next.phone = 'That phone number looks too short.';
+    }
+    if (shows('email') && email && !EMAIL_RE.test(email)) {
+      next.email = 'That email address does not look right.';
+    }
+
+    if (shows('message') && requires('message') && message.length < 10) {
       next.message = 'A sentence or two about the part or the job, please.';
     }
-    if (file) {
-      const fileError = validateFile(file);
-      if (fileError) next.file = fileError;
+
+    if (shows('file')) {
+      if (requires('file') && !file) next.file = 'Please attach a photo of the part.';
+      else if (file) {
+        const fileError = validateFile(file);
+        if (fileError) next.file = fileError;
+      }
     }
     return next;
   }
@@ -271,12 +322,34 @@ export default function ContactForm({
       errors[field] ? 'border-red-600' : 'border-slate-300',
     ].join(' ');
 
+  /**
+   * The `*` and the space before it, together.
+   *
+   * Together on purpose: written as `Phone {mark}` in the label, an optional
+   * field would still emit a trailing space and every existing client's built
+   * HTML would move by one byte for no reason. The space belongs to the mark.
+   */
+  const requiredMark = (field: keyof ResolvedFields) =>
+    requires(field) ? (
+      <>
+        {' '}
+        <span className="text-red-700">*</span>
+      </>
+    ) : null;
+
+  const errorFor = (field: keyof FieldErrors) =>
+    errors[field] ? (
+      <p id={id(`${field}-error`)} className="form-error mt-2 text-sm font-semibold text-red-700">
+        {errors[field]}
+      </p>
+    ) : null;
+
   if (status.kind === 'offline') {
     return (
       <div
         role="status"
         aria-live="polite"
-        className="rounded-lg border-2 border-amber-500 bg-amber-50 p-6 sm:p-8"
+        className="form-status rounded-lg border-2 border-amber-500 bg-amber-50 p-6 sm:p-8"
       >
         <h3 className="font-heading text-2xl font-bold text-slate-900">No signal right now.</h3>
         <p className="mt-3 text-base leading-relaxed text-slate-800">
@@ -307,11 +380,17 @@ export default function ContactForm({
       <div
         role="status"
         aria-live="polite"
-        className="success-card rounded-lg border-2 border-primary bg-primary-wash p-6 text-center sm:p-8"
+        className={`form-status success-card rounded-lg border-2 border-primary bg-primary-wash text-center ${
+          compact ? 'p-5' : 'p-6 sm:p-8'
+        }`}
       >
-        <span className="success-ring mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+        <span
+          className={`success-ring mx-auto flex items-center justify-center rounded-full bg-primary/10 ${
+            compact ? 'h-14 w-14' : 'h-20 w-20'
+          }`}
+        >
           <svg
-            className="h-12 w-12"
+            className={compact ? 'h-8 w-8' : 'h-12 w-12'}
             viewBox="0 0 52 52"
             fill="none"
             stroke="currentColor"
@@ -325,7 +404,11 @@ export default function ContactForm({
           </svg>
         </span>
 
-        <h3 className="success-line success-line-1 mt-5 font-heading text-2xl font-bold text-slate-900">
+        <h3
+          className={`success-line success-line-1 mt-5 font-heading font-bold text-slate-900 ${
+            compact ? 'text-xl' : 'text-2xl'
+          }`}
+        >
           Thanks — that's with us.
         </h3>
         <p className="success-line success-line-2 mx-auto mt-3 max-w-prose text-base leading-relaxed text-slate-700">
@@ -341,11 +424,7 @@ export default function ContactForm({
           <a className="btn-primary" href={`tel:${phone.replace(/[^\d+]/g, '')}`}>
             Call {phone}
           </a>
-          <button
-            type="button"
-            className="btn-outline"
-            onClick={() => setStatus({ kind: 'idle' })}
-          >
+          <button type="button" className="btn-outline" onClick={() => setStatus({ kind: 'idle' })}>
             Send another
           </button>
         </div>
@@ -359,177 +438,194 @@ export default function ContactForm({
       onSubmit={onSubmit}
       noValidate
       encType="multipart/form-data"
-      className="space-y-5"
+      className={compact ? 'space-y-4' : 'space-y-5'}
     >
-      <p className="text-base text-slate-600">
-        Fields marked <span className="font-bold text-red-700">*</span> are required.
-      </p>
+      {!compact && (
+        <p className="text-base text-slate-600">
+          Fields marked <span className="font-bold text-red-700">*</span> are required.
+        </p>
+      )}
 
       {/* Honeypot. Hidden from people and from screen readers; bots fill it in
-          and the Worker drops the submission. */}
-      <div className="hidden" aria-hidden="true">
+          and the Worker drops the submission.
+
+          The native `hidden` attribute as well as the utility class, because
+          the utility class is Tailwind's and a design-family page does not load
+          Tailwind — on those pages the class alone left the honeypot on screen,
+          asking a real customer for their company and then throwing their
+          message away when they answered. */}
+      <div hidden className="hidden" aria-hidden="true">
         <label htmlFor={id('company')}>Company (leave this empty)</label>
         <input id={id('company')} type="text" name="company" tabIndex={-1} autoComplete="off" />
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor={id('name')} className="block text-sm font-bold text-slate-900">
-            Your name <span className="text-red-700">*</span>
-          </label>
-          <input
-            id={id('name')}
-            name="name"
-            type="text"
-            autoComplete="name"
-            required
-            aria-invalid={errors.name ? true : undefined}
-            aria-describedby={describedBy('name')}
-            className={`mt-2 ${fieldClass('name')}`}
-          />
-          {errors.name && (
-            <p id={id('name-error')} className="mt-2 text-sm font-semibold text-red-700">
-              {errors.name}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor={id('phone')} className="block text-sm font-bold text-slate-900">
-            Phone
-          </label>
-          <input
-            id={id('phone')}
-            name="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            aria-invalid={errors.phone ? true : undefined}
-            aria-describedby={describedBy('phone', id('contact-hint'))}
-            className={`mt-2 ${fieldClass('phone')}`}
-          />
-          {errors.phone && (
-            <p id={id('phone-error')} className="mt-2 text-sm font-semibold text-red-700">
-              {errors.phone}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor={id('email')} className="block text-sm font-bold text-slate-900">
-          Email
-        </label>
-        <input
-          id={id('email')}
-          name="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={errors.email ? true : undefined}
-          aria-describedby={describedBy('email', id('contact-hint'))}
-          className={`mt-2 ${fieldClass('email')}`}
-        />
-        <p id={id('contact-hint')} className="mt-2 text-sm text-slate-600">
-          A phone number or an email address — whichever you'd rather we used.
-        </p>
-        {errors.email && (
-          <p id={id('email-error')} className="mt-2 text-sm font-semibold text-red-700">
-            {errors.email}
-          </p>
+      <div className={compact ? 'grid gap-4 sm:grid-cols-2' : 'grid gap-5 sm:grid-cols-2'}>
+        {shows('name') && (
+          <div>
+            <label htmlFor={id('name')} className="block text-sm font-bold text-slate-900">
+              Your name{requiredMark('name')}
+            </label>
+            <input
+              id={id('name')}
+              name="name"
+              type="text"
+              autoComplete="name"
+              required={requires('name')}
+              aria-invalid={errors.name ? true : undefined}
+              aria-describedby={describedBy('name')}
+              className={`mt-2 ${fieldClass('name')}`}
+            />
+            {errorFor('name')}
+          </div>
         )}
-      </div>
 
-      <div>
-        <label htmlFor={id('service')} className="block text-sm font-bold text-slate-900">
-          What do you need?
-        </label>
-        <select
-          id={id('service')}
-          name="service"
-          defaultValue=""
-          className="mt-2 w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-900"
-        >
-          <option value="">Not sure / something else</option>
-          {services.map((service) => (
-            <option key={service.slug} value={service.slug}>
-              {service.title}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor={id('message')} className="block text-sm font-bold text-slate-900">
-          About the job <span className="text-red-700">*</span>
-        </label>
-        <textarea
-          id={id('message')}
-          name="message"
-          rows={5}
-          required
-          placeholder="What the part is, what went wrong, what it goes in, and when you need it."
-          aria-invalid={errors.message ? true : undefined}
-          aria-describedby={describedBy('message')}
-          className={`mt-2 ${fieldClass('message')}`}
-        />
-        {errors.message && (
-          <p id={id('message-error')} className="mt-2 text-sm font-semibold text-red-700">
-            {errors.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor={id('file')} className="block text-sm font-bold text-slate-900">
-          Photo of your part
-        </label>
-        <p id={id('file-hint')} className="mt-1 text-sm text-slate-600">
-          Optional, and it helps more than anything else you can tell us. Up to {maxUploadMB} MB.{' '}
-          {extensionsFor(acceptedFileTypes)}.
-        </p>
-        <input
-          ref={fileInputRef}
-          id={id('file')}
-          name="file"
-          type="file"
-          accept={acceptedFileTypes.join(',')}
-          onChange={onFileChange}
-          aria-invalid={errors.file ? true : undefined}
-          aria-describedby={describedBy('file', id('file-hint'))}
-          className="mt-2 block w-full cursor-pointer rounded-md border border-slate-300 bg-white text-sm text-slate-700 file:mr-4 file:cursor-pointer file:border-0 file:bg-slate-100 file:px-4 file:py-3 file:text-sm file:font-bold file:text-slate-800 hover:file:bg-slate-200"
-        />
-        {errors.file && (
-          <p id={id('file-error')} className="mt-2 text-sm font-semibold text-red-700">
-            {errors.file}
-          </p>
-        )}
-        {file && (
-          <div className="mt-3 flex items-center gap-4 rounded-md border border-slate-200 bg-slate-50 p-3">
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt={`Preview of ${file.name}`}
-                className="h-16 w-16 rounded object-cover"
-              />
-            ) : (
-              <span className="flex h-16 w-16 items-center justify-center rounded bg-slate-200 text-xs font-bold text-slate-600">
-                PDF
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-800">{file.name}</p>
-              <p className="text-xs text-slate-600">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
-            </div>
-            <button
-              type="button"
-              onClick={clearFile}
-              className="shrink-0 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
-            >
-              Remove
-            </button>
+        {shows('phone') && (
+          <div>
+            <label htmlFor={id('phone')} className="block text-sm font-bold text-slate-900">
+              Phone{requiredMark('phone')}
+            </label>
+            <input
+              id={id('phone')}
+              name="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              required={requires('phone')}
+              aria-invalid={errors.phone ? true : undefined}
+              aria-describedby={describedBy(
+                'phone',
+                ...(eitherContact && shows('email') ? [id('contact-hint')] : []),
+              )}
+              className={`mt-2 ${fieldClass('phone')}`}
+            />
+            {errorFor('phone')}
           </div>
         )}
       </div>
+
+      {shows('email') && (
+        <div>
+          <label htmlFor={id('email')} className="block text-sm font-bold text-slate-900">
+            Email{requiredMark('email')}
+          </label>
+          <input
+            id={id('email')}
+            name="email"
+            type="email"
+            autoComplete="email"
+            required={requires('email')}
+            aria-invalid={errors.email ? true : undefined}
+            aria-describedby={describedBy(
+              'email',
+              ...(eitherContact && shows('phone') ? [id('contact-hint')] : []),
+            )}
+            className={`mt-2 ${fieldClass('email')}`}
+          />
+          {/* The either/or hint only makes sense when both fields are on the
+              page and neither is compulsory on its own. */}
+          {eitherContact && shows('phone') && (
+            <p id={id('contact-hint')} className="mt-2 text-sm text-slate-600">
+              A phone number or an email address — whichever you'd rather we used.
+            </p>
+          )}
+          {errorFor('email')}
+        </div>
+      )}
+
+      {shows('service') && (
+        <div>
+          <label htmlFor={id('service')} className="block text-sm font-bold text-slate-900">
+            What do you need?{requiredMark('service')}
+          </label>
+          <select
+            id={id('service')}
+            name="service"
+            defaultValue=""
+            required={requires('service')}
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-900"
+          >
+            <option value="">Not sure / something else</option>
+            {services.map((service) => (
+              <option key={service.slug} value={service.slug}>
+                {service.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {shows('message') && (
+        <div>
+          <label htmlFor={id('message')} className="block text-sm font-bold text-slate-900">
+            {compact ? 'What do you need?' : 'About the job'}{requiredMark('message')}
+          </label>
+          <textarea
+            id={id('message')}
+            name="message"
+            rows={compact ? 2 : 5}
+            required={requires('message')}
+            placeholder={
+              compact
+                ? 'One line is plenty — what the job is.'
+                : 'What the part is, what went wrong, what it goes in, and when you need it.'
+            }
+            aria-invalid={errors.message ? true : undefined}
+            aria-describedby={describedBy('message')}
+            className={`mt-2 ${fieldClass('message')}`}
+          />
+          {errorFor('message')}
+        </div>
+      )}
+
+      {shows('file') && (
+        <div>
+          <label htmlFor={id('file')} className="block text-sm font-bold text-slate-900">
+            Photo of your part{requiredMark('file')}
+          </label>
+          <p id={id('file-hint')} className="mt-1 text-sm text-slate-600">
+            {requires('file') ? 'Required, and it' : 'Optional, and it'} helps more than anything
+            else you can tell us. Up to {maxUploadMB} MB. {extensionsFor(acceptedFileTypes)}.
+          </p>
+          <input
+            ref={fileInputRef}
+            id={id('file')}
+            name="file"
+            type="file"
+            accept={acceptedFileTypes.join(',')}
+            onChange={onFileChange}
+            aria-invalid={errors.file ? true : undefined}
+            aria-describedby={describedBy('file', id('file-hint'))}
+            className="mt-2 block w-full cursor-pointer rounded-md border border-slate-300 bg-white text-sm text-slate-700 file:mr-4 file:cursor-pointer file:border-0 file:bg-slate-100 file:px-4 file:py-3 file:text-sm file:font-bold file:text-slate-800 hover:file:bg-slate-200"
+          />
+          {errorFor('file')}
+          {file && (
+            <div className="mt-3 flex items-center gap-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={`Preview of ${file.name}`}
+                  className="h-16 w-16 rounded object-cover"
+                />
+              ) : (
+                <span className="flex h-16 w-16 items-center justify-center rounded bg-slate-200 text-xs font-bold text-slate-600">
+                  PDF
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">{file.name}</p>
+                <p className="text-xs text-slate-600">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+              </div>
+              <button
+                type="button"
+                onClick={clearFile}
+                className="shrink-0 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Cloudflare Turnstile mounts here when a site key is configured. The
           widget script is only loaded when there is a key, so the default
@@ -556,7 +652,7 @@ export default function ContactForm({
       </div>
 
       <button type="submit" className="btn-primary w-full sm:w-auto" disabled={busy}>
-        {busy ? 'Sending…' : 'Send it over'}
+        {busy ? 'Sending…' : (submitLabel ?? 'Send it over')}
       </button>
 
       <p className="text-sm text-slate-600">

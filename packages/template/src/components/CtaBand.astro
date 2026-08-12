@@ -2,8 +2,18 @@
 import { site } from '../../site.config';
 import { telHref } from '../lib/business';
 import TextUsLink from './TextUsLink.astro';
+import QuickQuote from './QuickQuote.astro';
+import { quickQuoteFor } from '../lib/quote-form';
 
 const { cta, business } = site;
+
+/**
+ * The quote block joins the band rather than replacing its buttons. Calling is
+ * still the fastest route for the customer who is ready to call, and the block
+ * is for the one who is not — taking the buttons away to make room would trade
+ * a lead for a lead.
+ */
+const withQuote = quickQuoteFor('cta') !== null;
 ---
 
 <section class="bg-primary-dark text-white" aria-labelledby="cta-heading">
@@ -20,5 +30,13 @@ const { cta, business } = site;
         <TextUsLink class="btn-secondary" label={`Text ${business.phone}`} icon={false} />
       </div>
     </div>
+
+    {
+      withQuote && (
+        <div class="pb-12 sm:pb-16">
+          <QuickQuote placement="cta" />
+        </div>
+      )
+    }
   </div>
 </section>
