@@ -1,0 +1,126 @@
+check-injection.mjs — every rule demonstrated failing before the gate landed.
+
+NOTE ON RULE 5: the first pass of this demo reported GREEN on a planted ?ref
+parameter. The binder regex required var|let|const immediately before the
+identifier, and DesignLayout's no-flash script declares
+
+    var d=document.documentElement,q=new URLSearchParams(location.search),s={};
+
+where q is the second declarator in a comma list. The gate was therefore blind
+to the only file that reads query parameters at all — a fail-open on the exact
+surface rule 5 exists to bound. It was widened to match any assignment from
+`new URLSearchParams(…)`, and a companion rule now fails closed when a file
+reads location.search in a shape the gate cannot follow. Both are demonstrated
+below.
+
+--- baseline (clean tree) ---
+✓ injection surface: 58 source files, no sinks, 9 reviewed interpolation(s), query surface bounded.
+exit=0
+
+--- rule 1: banned-sink ---
+
+✗ injection surface: 1 violation(s).
+
+  [banned-sink]
+    src/lib/business.ts:65  innerHTML
+    → There is no HTML sink in this template and there must not be one. If this is genuinely required, re-run the audit in docs/injection-surface.md first.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 2: unreviewed-interpolation (expression changed) ---
+
+✗ injection surface: 2 violation(s).
+
+  [unreviewed-interpolation]
+    src/components/LocalBusinessJsonLd.astro:117  set:html  hash 25192a2a2922
+    → This expression is interpolated into markup and has not been reviewed, or it has changed since it was. Read it, satisfy yourself it can only ever carry build-time data, then add the hash to REVIEWED in this file with a justification. Run with --list to see it.
+
+  [stale-manifest-entry]
+    500eece9d9c3  LocalBusinessJsonLd.astro:117 — FAQPage graph
+    → This reviewed interpolation no longer exists in src/. Delete the entry.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 3: not-static / adapter-present ---
+
+✗ injection surface: 2 violation(s).
+
+  [not-static]
+    astro.config.mjs no longer declares output: "static"
+    → docs/injection-surface.md concludes what it concludes because nothing is rendered per-request. Redo the audit before changing this.
+
+  [adapter-present]
+    astro.config.mjs declares an adapter
+    → An adapter means server-rendered responses, which is a new injection surface. Redo the audit before changing this.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 4: request-reflection ---
+
+✗ injection surface: 1 violation(s).
+
+  [request-reflection]
+    src/components/LocalBusinessJsonLd.astro:32  const ref = Astro.request.headers.get("referer");
+    → Reading the request implies per-request rendering. See rule 3.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 5: unbounded-query-param (the rule that first failed open) ---
+
+✗ injection surface: 1 violation(s).
+
+  [unbounded-query-param]
+    src/components/design/DesignLayout.astro:123  reads ?ref
+    → Only theme, scheme, accent, font may be read from the URL, and only through the allowlist resolver. A new parameter is a new path from a visitor-supplied string into the page — audit it, prove it is resolved, then widen ALLOWED_PARAMS.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 5b: the widened trigger now sees new URL(...).searchParams ---
+
+✗ injection surface: 1 violation(s).
+
+  [unbounded-query-param]
+    src/components/design/DesignLayout.astro:123  reads ?ref
+    → Only theme, scheme, accent, font may be read from the URL, and only through the allowlist resolver. A new parameter is a new path from a visitor-supplied string into the page — audit it, prove it is resolved, then widen ALLOWED_PARAMS.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 5c: unbounded direct read, never bound to a name ---
+
+✗ injection surface: 1 violation(s).
+
+  [unbounded-query-param]
+    src/components/design/DesignLayout.astro:123  reads ?ref (unbound)
+    → Only theme, scheme, accent, font may be read from the URL.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- rule 5d: unreadable-param-surface (query reached through a helper) ---
+
+✗ injection surface: 1 violation(s).
+
+  [unreadable-param-surface]
+    src/components/design/DesignLayout.astro touches the query string in a shape this gate cannot follow
+    → The parameter surface here cannot be bounded by inspection, so it is treated as unbounded. Bind it to a variable (e.g. `const q = new URLSearchParams(location.search)`) so rule 5 can see which keys are read, or extend BINDERS.
+
+  See docs/injection-surface.md. Do not delete this check.
+
+exit=1
+
+--- restored: gate green again ---
+✓ injection surface: 58 source files, no sinks, 9 reviewed interpolation(s), query surface bounded.
+exit=0
