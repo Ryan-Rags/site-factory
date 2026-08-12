@@ -11,6 +11,7 @@ import ksWeldingForge from './ks-welding-forge.config';
 import ksWeldingPrecision from './ks-welding-precision.config';
 import ksWeldingHeritage from './ks-welding-heritage.config';
 import zzFixturePhoneOptional from './zz-fixture-phone-optional.config';
+import zzFixtureGoLive from './zz-fixture-go-live.config';
 
 /**
  * Every buildable client, keyed by slug.
@@ -44,6 +45,13 @@ export const clients = {
   // other than a shop we are pitching. `build-all.mjs` skips it and it is never
   // deployed. See its config header.
   'zz-fixture-phone-optional': zzFixturePhoneOptional,
+
+  // A TEST FIXTURE, not a prospect: the one config with `seo.noindex: false`,
+  // so the indexable build path — sitemap emitted, robots.txt allowing, markers
+  // strictly refused — is exercised somewhere other than a real client's real
+  // domain. Its `siteUrl` is on `.test`, which RFC 6761 reserves permanently.
+  // `build-all.mjs` skips it and it is never deployed. See its config header.
+  'zz-fixture-go-live': zzFixtureGoLive,
 } satisfies Record<string, SiteConfig>;
 
 export type ClientSlug = keyof typeof clients;

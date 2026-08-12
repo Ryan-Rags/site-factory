@@ -24,6 +24,7 @@
     "check:injection": "node scripts/check-injection.mjs",
     "check:metadata": "node scripts/check-metadata.mjs",
     "check:schema": "node scripts/check-schema.mjs",
+    "check:go-live": "node scripts/check-go-live.mjs",
     "gen:placeholders": "node scripts/gen-placeholders.mjs",
     "clean": "node -e \"const{rmSync}=require('node:fs');for(const d of ['dist','.astro'])rmSync(d,{recursive:true,force:true})\"",
     "gen:brand": "node scripts/gen-brand-assets.mjs",
