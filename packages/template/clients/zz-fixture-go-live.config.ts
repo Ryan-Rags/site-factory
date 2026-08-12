@@ -203,7 +203,23 @@ export const site: SiteConfig = {
     workerEndpoint: '',
     maxUploadMB: 10,
     acceptedFileTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'],
-    turnstileSiteKey: '',
+    /*
+     * Cloudflare's published "always passes, visible" **test** site key. Not a
+     * secret, not tied to any account, and documented by Cloudflare for exactly
+     * this use.
+     *
+     * It is here because no real client sets `turnstileSiteKey`, which left the
+     * Turnstile path — a third-party script from challenges.cloudflare.com, and
+     * the iframe it injects — unexercised by any build. A CSP measured only on
+     * builds where Turnstile is absent would say nothing about whether the CSP
+     * permits Turnstile, and the first person to find out would be a client
+     * whose contact form silently stopped accepting submissions.
+     *
+     * With the key set, this fixture's contact page carries the real widget, so
+     * gen-headers.mjs measures the script host and the frame host, and
+     * check-csp-runtime.mjs loads the page and fails on any violation.
+     */
+    turnstileSiteKey: '1x00000000000000000000AA',
   },
 
   faq: [
