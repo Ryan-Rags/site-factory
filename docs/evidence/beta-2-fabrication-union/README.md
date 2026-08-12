@@ -87,3 +87,59 @@ Ruled: **union, not replace** (see the commit that follows this one). Replace
 semantics stay correct for a purely generated prospect, where the existing
 reasoning — nobody has read that copy — genuinely holds, and a slug with neither
 record still errors out hard.
+
+---
+
+# After the fix
+
+Same dist, same present record, same command:
+
+```
+$ node scripts/check-fabrication.mjs kh-machine-works       # prospects/kh-machine-works/prospect.json PRESENT
+✓ kh-machine-works: every claim in the built pages traces to a sourced fact (2 testimonial quote(s) excluded).
+exit: 0
+```
+
+## The two paths that had to keep behaving
+
+A union is only correct if it does not become a way to launder an unsourced
+claim through a record that has nothing to do with it. Both remaining branches
+were exercised rather than reasoned about, against a throwaway probe slug
+(`zz-fixture-union-probe`) holding a copy of the same `dist/` — chosen because
+that dist contains a sentence sourced **only** in the curated pack, so borrowing
+the curated pack would show up as a pass.
+
+**A purely generated prospect still gets its ingested record and nothing else.**
+The probe slug has an ingested record and no copy-pack entry. It stays red on the
+identical bytes that pass for `kh-machine-works` — the curated allowances are
+not reachable from a slug that does not own them:
+
+```
+✗ zz-fixture-union-probe: 1 claim(s) with nothing behind them.
+
+    zz-fixture-union-probe\about\index.html
+      "cheapest" reads as a superlative or ranking
+      …We are not the cheapest shop in the county and we do not pretend to be. …
+
+exit: 1
+```
+
+**A slug with neither record still fails hard**, and says which record it wanted:
+
+```
+✗ zz-fixture-union-probe: no prospect record, so nothing here can be checked against a source.
+  No prospect record for "zz-fixture-union-probe". Known: kh-machine-works, kts-machine-shop, american-machine-specialty, industrial-machine-corp, ks-welding.
+Add src/prospects/zz-fixture-union-probe.ts and register it here.
+  A generated prospect should have prospects/zz-fixture-union-probe/prospect.json; a
+  hand-authored client should have a record in @site-factory/copy.
+exit: 1
+```
+
+So the change is exactly one new behaviour — a slug that owns *both* records is
+checked against both — and no allowance moves between slugs.
+
+## What did not change
+
+Content precedence is untouched. Hand-authored config still wins for everything
+that ships; the union applies only to the allowance set this gate consults when
+deciding whether a rendered sentence has a source behind it.
