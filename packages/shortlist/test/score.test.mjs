@@ -161,3 +161,57 @@ test('the score is 0-100', () => {
   assert.ok(worst.score >= 0 && worst.score < best.score);
   assert.equal(best.score, 100);
 });
+
+/**
+ * The defect the served-site exercise caught.
+ *
+ * A live site the audit cap skipped scored 0.10 on opportunity — below every
+ * viability component — so its one caveat fell out of the top three reasons.
+ * The row read as three positives with no hint its site was never measured.
+ * The score was right and the sentence was a lie.
+ */
+test('an unaudited live site leads with the caveat, not with its good reviews', () => {
+  const s = scoreProspect({
+    result: result({ rating: '4.5', reviewCount: '80' }),
+    websiteStatus: 'live',
+    neglect: undefined,
+  });
+  assert.match(
+    s.reasons[0],
+    /not audited/,
+    `an unmeasured site must say so first. Got: ${JSON.stringify(s.reasons)}`,
+  );
+});
+
+test('the website condition is always the headline reason', () => {
+  const cases = [
+    ['none', undefined],
+    ['dead', undefined],
+    ['parked', undefined],
+    ['live', 0],
+    ['live', 0.5],
+    ['live', 1],
+    ['live', undefined],
+  ];
+  for (const [status, neglect] of cases) {
+    const s = scoreProspect({
+      result: result({ rating: '5', reviewCount: '5000' }),
+      websiteStatus: status,
+      neglect,
+    });
+    assert.match(
+      s.reasons[0],
+      /website|live site/,
+      `${status}/${neglect}: expected the site's condition to lead, got ${JSON.stringify(s.reasons)}`,
+    );
+  }
+});
+
+test('a healthy live site still says its site is fine rather than hiding it', () => {
+  const s = scoreProspect({
+    result: result({ rating: '4.8', reviewCount: '300' }),
+    websiteStatus: 'live',
+    neglect: 0,
+  });
+  assert.match(s.reasons[0], /passing every audit check/);
+});
