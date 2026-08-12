@@ -12,8 +12,9 @@
  * - **delivered** (the default) — one `:root` block for the theme the client
  *   chose. No matrix, no panel, no extra script.
  * - **pitch** (`features.customizer`) — the whole preset matrix as static CSS
- *   keyed on `<html data-theme|data-accent|data-font>`, a ~200-byte blocking
- *   script that stamps those attributes before first paint, and the panel.
+ *   keyed on `<html data-theme|data-scheme|data-accent|data-font>`, a small
+ *   blocking script that resolves and stamps those attributes before first
+ *   paint, and the panel.
  *
  * The mode is decided here rather than inside the customizer so there is one
  * place to look when asking "can this build leak the panel?". `SITE_DELIVERED`
@@ -25,7 +26,7 @@ import LocalBusinessJsonLd from '../LocalBusinessJsonLd.astro';
 import Reveal from './Reveal.astro';
 import Customizer from './Customizer.astro';
 import ServiceWorker from '../ServiceWorker.astro';
-import { designTokens, themeMatrixCss } from '../../lib/design';
+import { designTokens, offeredIds, themeMatrixCss } from '../../lib/design';
 import { resolveTheme } from '../../design/presets';
 import type { DesignConfig } from '../../types/design';
 import '../../styles/design.css';
@@ -77,8 +78,18 @@ const tokens = customizer
  * corner ticks and the rules along with the palette — rather than repainting
  * a Forge page's colours while it keeps Precision's blueprint grid.
  *
+ * `data-scheme` is emitted on pitch builds only, unlike `data-theme`.
+ * `data-theme` earns its place on a delivered page: `design.css` keys its
+ * decorative rules off it, so a family's texture and rules follow it. Nothing
+ * keys off `data-scheme` — a delivered page receives its tone already
+ * resolved, inside the single `:root` token block — so there the attribute
+ * would be an inert string that changes the bytes of eight shipped client
+ * sites and nothing about how they render.
+ *
  * This note lives in the frontmatter, and must stay there. Both obvious
- * places to put it in the template are traps:
+ * places to put it in the template are traps — and the second one was walked
+ * into again while adding the scheme axis, which is why the parity check now
+ * compares the `<html>` tag as a region of its own:
  *
  *   - an Astro `{/* … *\/}` expression above <html> makes the compiler treat
  *     the file as a fragment and silently drop <html>, <head> and <body>;
@@ -88,12 +99,34 @@ const tokens = customizer
  *     <meta> tag. It cost a Lighthouse run reporting NO_LCP and a mojibake
  *     em dash in every <title> to find that.
  */
+/*
+ * It resolves rather than obeys. A URL parameter or a localStorage entry can
+ * name a combination that does not exist — a link shared before a swatch was
+ * renamed, a hand-edited address, or an accent carried over from another
+ * preset, whose ids are disjoint. Stamping it anyway is what produced the
+ * stale-accent bug: the attribute pointed at a cell the matrix never emitted,
+ * so the accent silently fell back to this client's shipped `:root` colour and
+ * the page showed one family's orange over another family's cream.
+ *
+ * `offeredIds()` is the id skeleton of the very CSS emitted above, so what
+ * this accepts and what has styles cannot drift apart.
+ */
 const noFlash = `(function(){try{
 var d=document.documentElement,q=new URLSearchParams(location.search),s={};
 try{s=JSON.parse(localStorage.getItem('sf-theme')||'{}')||{}}catch(e){}
-d.setAttribute('data-theme',q.get('theme')||s.theme||${JSON.stringify(theme.preset.id)});
-d.setAttribute('data-accent',q.get('accent')||s.accent||${JSON.stringify(design.theme.accent)});
-d.setAttribute('data-font',q.get('font')||s.font||${JSON.stringify(design.theme.fontPairing)});
+var M=${JSON.stringify(offeredIds(design))},F=${JSON.stringify({
+  theme: theme.preset.id,
+  scheme: theme.scheme,
+  accent: design.theme.accent,
+  font: design.theme.fontPairing,
+})};
+var t=q.get('theme')||s.theme||F.theme;if(!M[t])t=F.theme;
+var o=M[t];
+var c=q.get('scheme')||s.scheme||(t===F.theme?F.scheme:o.d);if(!o.s[c])c=o.d;
+var a=q.get('accent')||s.accent||F.accent;if(o.s[c].indexOf(a)<0)a=o.s[c][0];
+var f=q.get('font')||s.font||F.font;if(o.f.indexOf(f)<0)f=o.f[0];
+d.setAttribute('data-theme',t);d.setAttribute('data-scheme',c);
+d.setAttribute('data-accent',a);d.setAttribute('data-font',f);
 }catch(e){}})();`;
 ---
 
@@ -101,6 +134,7 @@ d.setAttribute('data-font',q.get('font')||s.font||${JSON.stringify(design.theme.
 <html
   lang="en"
   data-theme={theme.preset.id}
+  data-scheme={customizer ? theme.scheme : undefined}
   data-accent={design.theme.accent}
   data-font={design.theme.fontPairing}
 >

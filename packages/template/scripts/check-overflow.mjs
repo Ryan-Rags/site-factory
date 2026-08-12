@@ -20,6 +20,20 @@ const BASE = process.env['PREVIEW_URL'] ?? 'http://localhost:4321';
 const WIDTHS = [320, 390];
 const ROUTES = ['/', '/services', '/about', '/contact', '/404'];
 
+/**
+ * A specific customizer combination, as a query string.
+ *
+ * Overflow is a property of a *combination*, not of a build. The widest
+ * display type in the matrix is uppercase Georgia at +0.05em tracking, and it
+ * is reachable only by switching to it — so checking the shipped combination
+ * alone leaves every other cell a prospect can select unchecked.
+ *
+ *   THEME='theme=heritage&scheme=dark&font=signwriter' pnpm check:overflow
+ */
+const THEME = process.env['THEME'] ?? '';
+const withTheme = (route) =>
+  THEME ? `${route}${route.includes('?') ? '&' : '?'}${THEME}` : route;
+
 const CHROME_CANDIDATES = [
   process.env['CHROME_PATH'],
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -49,7 +63,7 @@ try {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 2, isMobile: true });
 
     for (const route of ROUTES) {
-      const response = await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      const response = await page.goto(`${BASE}${withTheme(route)}`, { waitUntil: 'networkidle0' });
       // /404 is served with a 404 status by design. Everything else must be a
       // success or a cache revalidation — a warm preview server answers 304.
       const status = response?.status() ?? 0;

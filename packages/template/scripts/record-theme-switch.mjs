@@ -61,21 +61,37 @@ if ((await toggle.count()) === 0) {
 await toggle.click();
 await page.waitForTimeout(600);
 
-// Each family, then an accent, then a lettering change — the three controls,
-// in the order a prospect actually tries them.
+/**
+ * The four controls, in the order a prospect actually tries them.
+ *
+ * Each family, then an accent inside it, then both tones, then the lettering.
+ * The accent is chosen *before* the tone is flipped, on purpose: a switch that
+ * quietly reassigned the colour a prospect had just picked was the bug this
+ * panel was fixed for, and a recording that never carries an accent across a
+ * preset or tone boundary would not show whether it holds.
+ */
+const visible = (group) =>
+  page.locator(`.d-cust__opts input[name="${group}"]:not([disabled]) + label`);
+
 for (const preset of ['precision', 'heritage', 'forge']) {
   await page.locator(`label[for="d-theme-${preset}"]`).click();
-  await page.waitForTimeout(1100);
-}
-
-const accents = page.locator('.d-cust__opts input[name="d-accent"]:not([disabled]) + label');
-const accentCount = await accents.count();
-if (accentCount > 1) {
-  await accents.nth(1).click();
   await page.waitForTimeout(900);
+
+  const accents = visible('d-accent');
+  if ((await accents.count()) > 2) {
+    await accents.nth(2).click();
+    await page.waitForTimeout(800);
+  }
+
+  // Tone, with that accent already chosen: the swatch keeps its id and its
+  // chip recolours to this tone's value, which is the thing to watch.
+  for (const scheme of ['light', 'dark']) {
+    await page.locator(`label[for="d-scheme-${scheme}"]`).click();
+    await page.waitForTimeout(900);
+  }
 }
 
-const fonts = page.locator('.d-cust__opts input[name="d-font"]:not([disabled]) + label');
+const fonts = visible('d-font');
 if ((await fonts.count()) > 1) {
   await fonts.nth(1).click();
   await page.waitForTimeout(900);

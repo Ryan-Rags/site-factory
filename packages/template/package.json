@@ -17,6 +17,8 @@
     "check:fabrication": "node scripts/check-fabrication.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:overflow": "node scripts/check-overflow.mjs",
+    "check:switching": "node scripts/check-switching.mjs",
+    "check:parity": "node scripts/check-delivered-parity.mjs",
     "check:contact-links": "node scripts/check-contact-links.mjs",
     "check:form-fields": "node scripts/check-form-fields.mjs",
     "gen:placeholders": "node scripts/gen-placeholders.mjs",
