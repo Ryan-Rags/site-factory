@@ -1,61 +1,69 @@
 # site-factory — agent rules
-- Plan first: write/append PLAN.md and STOP for approval before writing code.
-- STOP and report on any ambiguity. Never guess silently.
+
+## Ground rules
+- Plan first: write PLAN-<stream>.md and STOP for approval before code.
+  A prompt ending in explicit execute-through language counts as pre-approval.
+- STOP and report on ambiguity. Never guess silently.
 - Assert current branch before every commit. Push before reporting done.
+- Stack: Node 20, TypeScript strict, pnpm workspaces. No other package managers.
+- Secrets live in .env / wrangler.local.jsonc (gitignored). Never commit keys,
+  tokens, or client contact data. Never echo secret values into chat, logs, PRs.
 - NEVER automate or scrape Google Search/Maps or any Google property.
   Discovery uses the official Places API only, key from .env.
-- Never fabricate audit data. Failed checks are marked "unavailable".
-- Secrets live in .env (gitignored). Never commit keys, tokens, or client data.
-- Stack: Node 20, TypeScript strict, pnpm workspaces. No other package managers.
-- Audits are read-only GETs. The rate limit governs crawler page navigations:
-  max 1 page navigation/sec/domain, max 10 page navigations/site. A single
-  Lighthouse run counts as one page navigation.
-- This is a solo repo: commit to main only in the foundation phase;
-  after worktrees exist, work stays on your assigned branch.
-# Worktree + merge protocol (solo-repo mode)
-- Streams create their own worktrees; never work in the main checkout.
-- Shared files (root configs, lockfile, .gitignore, claude.md, data/*.csv
-  schema, root README) merge only with explicit grant in the task prompt.
-- Plan files are per-stream: PLAN-pipeline.md / PLAN-template.md. Root
-  PLAN.md is foundation-only.
-- Plan gate: STOP after plan by default; a prompt ending in explicit
-  execute-through language counts as pre-approval.
+- Never fabricate data. Unmeasured = "unavailable", never estimated. Facts
+  about real businesses require evidence; unsourced claims are markers, never
+  prose.
+- Audits are read-only GETs. Max 1 page navigation/sec/domain, 10/site.
+  A Lighthouse run counts as one navigation.
 
-# Stream ownership
-- feat/pipeline: packages/discover, packages/audit, packages/outreach, PLAN-pipeline.md
-- feat/template: packages/template, PLAN-template.md
+## Worktrees & claims
+- Every stream: fresh worktree + unique branch, worktree dir = branch name.
+  Branch-push is the claim; check `git branch -r` before creating yours.
+- One session per worktree, ever. If files change that you did not write:
+  STOP, commit "WIP: foreign writes detected", ask Ryan. git stash is banned.
+- Cold start: copy .env and gitignored data/*.csv fixtures from the main
+  checkout into your worktree. They are inputs, never commits.
+- Ownership is granted per task prompt, by path. No grant = not yours. An edit
+  outside granted paths must be necessary for acceptance, minimal, and listed
+  in the PR under "Cross-boundary edits" — its presence HOLDs the PR.
 
-# Stream isolation & merge rules
-1. Every stream gets a fresh worktree and a unique branch. Worktree dir =
-   branch name. Branch-push is the claim; check `git branch -r` for an
-   existing claim before creating yours.
-2. One session per worktree, ever. At session start, verify the worktree is
-   clean or contains only your own prior work. If files change during your
-   session that you did not write, STOP immediately, commit a WIP snapshot
-   ("WIP: foreign writes detected"), and ask Ryan. Never stash (banned
-   repo-wide).
-3. Finish = push + open a PR. Never merge, never approve. PR description
-   must list: shared files touched (site.ts, package.json,
-   pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore, clients/*), gates run
-   with results, and anything deliberately not done.
-4. Ryan merges serially and re-runs gates between merges. A green check is
-   necessary, not sufficient.
-- Exception: an explicitly-assigned integration stream may merge feature
-  branches into an integration branch (never main). The integration PR to
-  main is merged only by Ryan.
+## PRs & merging (policy v3 — replaces ALL earlier merge rules)
+- Finish = push + open a PR targeting main. Integration branches exist only
+  for an explicitly assigned integrator.
+- Every PR body: paths touched (shared/cross-boundary flagged), every gate
+  with its result, anything deliberately not done, and a Decision Brief —
+  numbered judgment items, each with a recommendation. None = say "Brief: empty".
+- Before opening (and again if the PR goes stale): merge main INTO the branch
+  and re-run the FULL gate suite on the merged state. Green pre-merge does not
+  count. A held PR is kept mergeable while it waits; that duty is the author's.
 
-  ## Merge policy v2 (supersedes "Ryan merges serially")
-Default: push + open PR. An agent may SELF-MERGE its own PR only when ALL hold:
-1. Merge main into the branch first and re-run the FULL gate suite green on that
-   merged state. Green on the pre-merge branch does not count. No conflicts.
-2. The diff touches NONE of: clients/** or any content that ships on a page about
-   a real business; packages/template/src/types/**; worker/ or worker-demo/;
-   scripts/deploy/**; root package.json, pnpm-workspace.yaml, pnpm-lock.yaml,
-   .gitignore, CLAUDE.md; anything reading or writing .env*.
-3. No new dependencies, no edits to gate scripts themselves.
+### Green lane — self-merge allowed only when ALL hold
+1. Merged-with-main gates green, no conflicts.
+2. Diff touches NONE of: clients/** or any content shipped about a real
+   business; packages/template/src/types/**; worker/ or worker-demo/;
+   scripts/deploy/**; any gate script; root package.json, pnpm-workspace.yaml,
+   pnpm-lock.yaml, .gitignore, CLAUDE.md; anything reading/writing .env*;
+   any path outside your granted paths.
+3. No new dependencies.
 4. Nothing outward-facing: no deploys, no Worker behavior, no email paths.
-5. The stream's own report contains zero "you should look at" flags. An open
-   judgment flag holds the PR for Ryan regardless of the diff.
-If any condition fails: stop at the PR and state which number failed. Every
-self-merge posts the PR link + gate results. One self-merged regression and
-this policy tightens again.
+5. Decision Brief is empty.
+Self-merge posts the PR link + gate results. One self-merged regression and
+this lane closes.
+
+### Held lane — everything else
+- Stop at the PR, state which condition failed, keep it current with main.
+- If 2+ held PRs are queued, say so and propose an integration batch.
+
+### Integration batches
+- An explicitly assigned integrator: fresh worktree, integrate/<name> off
+  main, merge the named branches serially per the precedence rules in the
+  task, full gates after each, ONE PR to main with a per-branch conflict log
+  and combined Decision Brief. The integrator never merges to main.
+
+## Verification norms
+- Green ≠ correct: acceptance is behavior of the built artifact.
+- Verify you're measuring your own build — ports move; confirm client/URL
+  before trusting a run.
+- Existing clients render byte-identical unless the task says otherwise; any
+  drift is a defect in this work.
+- A new gate lands with its failure demonstrated first, then the fix.
