@@ -21,6 +21,20 @@ export const FIELD_MASK = [
   "nextPageToken",
 ].join(",");
 
+/**
+ * The mask the county-wide discovery sweep sends.
+ *
+ * Named separately from {@link FIELD_MASK} because the sweep is the leveraged
+ * caller — 70 municipalities x 3 niches is 210 requests of whatever this string
+ * says — and its billing tier is asserted by a gate (`test/sku.test.mjs`)
+ * rather than left to whoever edits it next.
+ *
+ * Today it is an alias: the sweep would send exactly what `pnpm discover` has
+ * always sent. The gate is red against it, which is the point — see
+ * PLAN-discovery.md §1.1.
+ */
+export const DISCOVERY_FIELD_MASK = FIELD_MASK;
+
 /** Text Search (New) returns 20 per page and allows two token follow-ups. */
 export const PAGE_SIZE = 20;
 export const MAX_RESULTS = 60;
