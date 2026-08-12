@@ -1,10 +1,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 
-import { CallBudget, loadEnv } from "@site-factory/discover";
+import { CallBudget, PLACES_KEY, resolvePlacesApiKey } from "@site-factory/discover";
 import type { Browser } from "playwright";
 
-import { generatePalette, styleForNiche } from "../niches.js";
+import { generatePalette, presetFor } from "../niches.js";
 import { extractPalette } from "../palette.js";
 import { prospectPaths } from "../paths.js";
 import { emptyProspect, today } from "../schema.js";
@@ -15,6 +15,7 @@ import {
   type ThemePreset,
   known,
   unavailable,
+  valueOf,
 } from "../types.js";
 import { readFolder } from "./folder.js";
 import { findLeadRow } from "./leads.js";
@@ -146,9 +147,10 @@ export async function ingestProspect(
   if (opts.skipPlaces) {
     log.push("places: skipped (--skip-places)");
   } else {
-    const apiKey = (process.env["GOOGLE_MAPS_API_KEY"] ?? loadEnv()["GOOGLE_MAPS_API_KEY"] ?? "").trim();
+    const resolved = resolvePlacesApiKey();
+    const apiKey = resolved?.key ?? "";
     if (!apiKey) {
-      log.push("places: no GOOGLE_MAPS_API_KEY — every Places-sourced field stays unavailable");
+      log.push(`places: no ${PLACES_KEY} — every Places-sourced field stays unavailable`);
       const reason = "no Places API key was configured, so no listing data was fetched";
       prospect.reviews = unavailable(reason);
       prospect.photos = prospect.photos.status === "known" ? prospect.photos : unavailable(reason);
@@ -185,10 +187,36 @@ export async function ingestProspect(
   if (opts.skipWebsite) {
     log.push("website: skipped (--skip-website)");
   } else if (!currentUrl) {
+    prospect.websiteStatus = known(
+      "none",
+      "places",
+      at,
+      "no source supplied a website address for this business",
+    );
     log.push("website: none known — no before shot and no site-sourced fields");
   } else {
     const result = await ingestWebsite(browser, currentUrl, at);
-    if (result.failure) {
+    prospect.websiteStatus = known(
+      result.classification.status,
+      "website",
+      at,
+      result.classification.reason,
+    );
+
+    if (result.classification.status !== "live") {
+      // Deliberately not a failure. We learned something true and useful about
+      // the prospect — arguably the most useful thing in the whole run, since
+      // "your domain is parked and someone is selling it" is the opening line
+      // of the call. It just is not content.
+      log.push(
+        `website: ${result.classification.status.toUpperCase()} — ${result.classification.reason}`,
+      );
+      log.push(
+        `website: treated as NO WEBSITE — nothing on that page is a fact about ` +
+          `${prospect.businessName.status === "known" ? prospect.businessName.value : opts.id}, ` +
+          `so no services, name, phone, address or logo were taken from it`,
+      );
+    } else if (result.failure) {
       log.push(`website: ${result.failure}`);
     } else {
       applyContribution(prospect, result.contribution);
@@ -207,8 +235,17 @@ export async function ingestProspect(
   if (opts.preset) {
     prospect.preset = known(opts.preset, "manual", at, "--preset");
   } else if (prospect.preset.status !== "known") {
-    const style = styleForNiche(niche);
-    prospect.preset = known(style.preset, "generated", at, `chosen from the niche: ${style.rationale}`);
+    // `heritage` is chosen from evidence about this business, not from its
+    // trade — see `presetFor`. Everything passed here is a sourced value or
+    // `undefined`; there is no path by which an unavailable field becomes a
+    // "legacy shop".
+    const choice = presetFor(niche, {
+      foundedYear: valueOf(prospect.foundedYear),
+      legalName: valueOf(prospect.legalName),
+      businessName: valueOf(prospect.businessName),
+    });
+    prospect.preset = known(choice.preset, "generated", at, choice.rationale);
+    log.push(`preset: ${choice.preset} — ${choice.rationale}`);
   }
 
   return { prospect, log };

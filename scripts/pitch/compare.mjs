@@ -45,8 +45,10 @@ import {
   currentSiteUrlFor,
   defaultDemoUrl,
   distDirFor,
+  isParkedOrDead,
   pitchDirFor,
   repoRoot,
+  websiteStatusFor,
 } from './paths.mjs';
 
 const USAGE = `
@@ -216,7 +218,28 @@ async function compareOne(slug, opts, ctx) {
 
   // The prospect's current site. `null` means they have none — the strongest
   // case there is, and the one this must not report as a failure.
-  const liveUrl = opts.live ?? currentSiteUrlFor(slug);
+  let liveUrl = opts.live ?? currentSiteUrlFor(slug);
+
+  /*
+   * A parked or dead domain is not their site, and must not be scored as one.
+   *
+   * The temptation is to measure it anyway — there is a page there, Lighthouse
+   * will happily return numbers for it. But a registrar's holding page has no
+   * images, no scripts and no fonts, so it scores *well*, and a card reading
+   * "their site 96, your new site 91" would be an accurate measurement of
+   * something that is not their site, put in front of the owner as though it
+   * were. The honest framing is the one the pipeline already found: they do
+   * not have a website.
+   */
+  const websiteStatus = websiteStatusFor(slug);
+  const parked = isParkedOrDead(websiteStatus);
+  if (parked && liveUrl) {
+    console.log(
+      `  current site: ${websiteStatus.toUpperCase()} — not scored. ` +
+        `${liveUrl} answers, but what answers is a ${websiteStatus} domain, not their site.`,
+    );
+    liveUrl = null;
+  }
 
   let demoUrl = opts.demo ?? defaultDemoUrl(slug);
   let server = null;
@@ -238,7 +261,13 @@ async function compareOne(slug, opts, ctx) {
     slug,
     name: businessNameFor(slug) ?? slug,
     measuredAt: new Date().toISOString(),
-    live: { url: liveUrl, status: 'no-site', scores: null, error: '', screenshot: null },
+    live: {
+      url: liveUrl,
+      status: parked ? websiteStatus : 'no-site',
+      scores: null,
+      error: '',
+      screenshot: null,
+    },
     demo: { url: demoUrl, status: 'ok', scores: null, error: '', screenshot: null },
   };
 

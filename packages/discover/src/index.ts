@@ -27,7 +27,16 @@ export type { AppendResult } from "./csv.js";
 
 export { slugify, uniqueSlug } from "./slug.js";
 export { hostOf, normalizeUrl } from "./url.js";
-export { loadEnv, parseEnv, requireApiKey } from "./env.js";
+export {
+  loadEnv,
+  parseEnv,
+  requireApiKey,
+  resolvePlacesApiKey,
+  resetDeprecationWarning,
+  PLACES_KEY,
+  PLACES_KEY_DEPRECATED,
+  type ResolvedApiKey,
+} from "./env.js";
 
 export {
   auditCacheDir,

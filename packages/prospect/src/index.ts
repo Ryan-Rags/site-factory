@@ -31,6 +31,7 @@ export type {
   ProspectService,
   ThemePreset,
   UnavailableField,
+  WebsiteStatus,
 } from "./types.js";
 export { isKnown, known, unavailable, valueOf, valueOr } from "./types.js";
 
@@ -41,9 +42,37 @@ export { checkSchemaDrift, type SiteConfig } from "./site-config.js";
 export { projectToSite, phoneHref, type ProjectionResult } from "./project.js";
 
 export { ingestProspect, type IngestOptions, type IngestResult } from "./ingest/index.js";
-export { generatePalette, styleForNiche, NICHE_STYLES } from "./niches.js";
+export {
+  classifyWebsite,
+  isUsableSite,
+  MIN_CONTENT_WORDS,
+  type SiteSignals,
+  type WebsiteClassification,
+  type WebsiteRule,
+} from "./ingest/parked.js";
+export {
+  generatePalette,
+  legacySignal,
+  presetFor,
+  styleForNiche,
+  DEFAULT_STYLE,
+  LEGACY_YEARS,
+  NICHE_STYLES,
+  type PresetChoice,
+} from "./niches.js";
 export { extractPalette } from "./palette.js";
-export { contrastPairings, palettePasses, repairPalette } from "./color.js";
+export {
+  contrastPairings,
+  designAccentPasses,
+  designPairings,
+  onColorFor,
+  palettePasses,
+  repairPalette,
+  type DesignPalette,
+} from "./color.js";
+export { buildRecord, nicheIdFor, type RecordResult } from "./record.js";
+export { writeCopy, type CopyResult } from "./copy.js";
+export { buildDesign, loadPresets, type DesignBlock, type DesignResult } from "./design.js";
 
 export { buildSite, copyAssets, planAssets } from "./build.js";
 export { deploySite, projectNameFor } from "./deploy.js";

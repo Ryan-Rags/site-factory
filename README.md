@@ -51,7 +51,7 @@ searched for. Rows from a run with no `--city` have an empty `city`.
 ## Getting started
 
 ```sh
-cp .env.example .env   # add GOOGLE_MAPS_API_KEY
+cp .env.example .env   # add GOOGLE_PLACES_API_KEY
 pnpm install
 pnpm -r build
 ```

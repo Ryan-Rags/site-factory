@@ -188,6 +188,121 @@ export function darkenUntilAA(
   return null;
 }
 
+/* --------------------------------------------------- the design-layer gate */
+
+/**
+ * The design families' colour model, and the second half of the contrast
+ * problem this file exists to solve.
+ *
+ * `contrastPairings` above covers the *legacy* two-colour model that
+ * `BaseLayout` renders — still the model `/about`, `/services` and `/contact`
+ * use for every client. A `DesignConfig`, though, renders from a preset
+ * palette in `packages/template/src/design/presets.json` with one accent
+ * swatch: either one of the preset's curated four, or the prospect's own
+ * extracted `brandAccent`.
+ *
+ * `scripts/check-contrast.mjs --matrix` checks every preset × every accent,
+ * and finds per-prospect brand accents by reading `clients/design/*.json`. A
+ * generated config handed to the build through `SITE_CONFIG_FILE` is not in
+ * that directory and never will be — ingested third-party data does not go in
+ * the repo — so the gate structurally cannot see it. That leaves two options:
+ * offer a brand accent nothing has checked, or check it here.
+ *
+ * The derivations below are copied from `checkPalette()` in that script, which
+ * itself models `designTokens()`. Three implementations of one rule is one too
+ * many, and it is worth saying plainly: if the tokens change, all three change
+ * together, and a divergence shows up as a demo that passes here and fails the
+ * real gate. Editing the gate script is outside this stream's grant; this is
+ * the seam that leaves.
+ */
+export interface DesignPalette {
+  base: string;
+  surface: string;
+  surfaceAlt: string;
+  ink: string;
+  inkMuted: string;
+  line: string;
+  primary: string;
+  onPrimary: string;
+}
+
+const isDarkPalette = (palette: DesignPalette): boolean => luminance(palette.base) < 0.2;
+
+/**
+ * Every pair a design family renders text on, with one accent applied.
+ *
+ * Text pairs at 4.5:1; the one control boundary at WCAG 1.4.11's 3:1. The set
+ * and the thresholds mirror `checkPalette()` exactly — including which pairs
+ * are deliberately *not* checked. `--d-line` draws dividers beside content
+ * that is already separated by background and spacing, which 1.4.11 exempts;
+ * holding it to 3:1 fails every palette in the file.
+ */
+export function designPairings(palette: DesignPalette, accent: string, onAccent: string): Pairing[] {
+  const dark = isDarkPalette(palette);
+  const accentStrong = mix(accent, 80, dark ? palette.ink : BLACK);
+  const accentSoft = mix(accent, 12, palette.surface);
+  const primarySoft = mix(palette.primary, 10, palette.surface);
+  const tint2 = mix(palette.ink, 4, palette.base);
+  const tint6 = mix(palette.ink, 8, palette.base);
+  const lineStrong = mix(palette.ink, 55, palette.base);
+
+  const pairs: { label: string; fg: string; bg: string; min: number }[] = [
+    { label: "ink on base", fg: palette.ink, bg: palette.base, min: 4.5 },
+    { label: "ink on surface", fg: palette.ink, bg: palette.surface, min: 4.5 },
+    { label: "ink on surfaceAlt", fg: palette.ink, bg: palette.surfaceAlt, min: 4.5 },
+    { label: "inkMuted on base", fg: palette.inkMuted, bg: palette.base, min: 4.5 },
+    { label: "inkMuted on surface", fg: palette.inkMuted, bg: palette.surface, min: 4.5 },
+    { label: "onPrimary on primary", fg: palette.onPrimary, bg: palette.primary, min: 4.5 },
+    { label: "onAccent on accent", fg: onAccent, bg: accent, min: 4.5 },
+    { label: "accent on base", fg: accent, bg: palette.base, min: 4.5 },
+    { label: "accent on surface", fg: accent, bg: palette.surface, min: 4.5 },
+    { label: "onAccent on accent-strong", fg: onAccent, bg: accentStrong, min: 4.5 },
+    { label: "ink on accent-soft", fg: palette.ink, bg: accentSoft, min: 4.5 },
+    { label: "ink on primary-soft", fg: palette.ink, bg: primarySoft, min: 4.5 },
+    { label: "ink on tint-2", fg: palette.ink, bg: tint2, min: 4.5 },
+    { label: "inkMuted on tint-2", fg: palette.inkMuted, bg: tint2, min: 4.5 },
+    { label: "ink on tint-6", fg: palette.ink, bg: tint6, min: 4.5 },
+    { label: "line-strong on base", fg: lineStrong, bg: palette.base, min: 3.0 },
+    { label: "line-strong on surface", fg: lineStrong, bg: palette.surface, min: 3.0 },
+  ];
+
+  return pairs.map((p) => {
+    const ratio = contrast(p.fg, p.bg);
+    // 1e-9 of slack, matching `assertPair`: a ratio landing exactly on the
+    // threshold should not fail on a floating-point remainder.
+    return { label: p.label, ratio, min: p.min, ok: ratio + 1e-9 >= p.min };
+  });
+}
+
+/**
+ * Would this accent be safe in this family?
+ *
+ * Called before a prospect's extracted brand colour is offered as
+ * `theme.brandAccent`. A `false` means the colour is **dropped**, never
+ * adjusted: `presets.ts` is explicit that a shifted colour is not their
+ * colour, and offering a nudged version of somebody's brand as their brand is
+ * the visual form of making a fact up.
+ */
+export function designAccentPasses(
+  palette: DesignPalette,
+  accent: string,
+  onAccent: string,
+): boolean {
+  return designPairings(palette, accent, onAccent).every((p) => p.ok);
+}
+
+/**
+ * Black or white on the given colour, whichever is more legible.
+ *
+ * A brand accent arrives as one hex value; `AccentSwatch` needs both halves of
+ * the pair. The curated swatches pick their `onAccent` by hand; this picks the
+ * better of the two extremes, and the pairing check then decides whether the
+ * result is usable at all.
+ */
+export function onColorFor(accent: string): string {
+  return contrast(BLACK, accent) >= contrast(WHITE, accent) ? BLACK : WHITE;
+}
+
 export interface RepairResult {
   primary: string;
   accent: string;

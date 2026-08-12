@@ -37,6 +37,7 @@ export function emptyProspect(id: string, generatedAt: string = new Date().toISO
     services: none("a service list"),
     foundedYear: none("a founding year"),
     currentSiteUrl: none("a current website"),
+    websiteStatus: none("a website classification — the site was never checked"),
     ratingSummary: none("a rating"),
     reviews: none("reviews"),
     photos: none("photos"),

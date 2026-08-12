@@ -12,6 +12,8 @@ Skeleton only, no feature logic.
 - `data/businesses.sample.csv` — 3 fake rows
   (`name,url,niche,city,phone,source,notes`)
 - `.env.example` — `GOOGLE_MAPS_API_KEY=`
+  (renamed to `GOOGLE_PLACES_API_KEY` by `feat/prospect-parity`; the old name
+  is still read, with a deprecation warning, for one release)
 - `README.md` — four-part architecture overview
 
 Gate: `pnpm install` and `pnpm -r build` run clean; commit + push to `main`.

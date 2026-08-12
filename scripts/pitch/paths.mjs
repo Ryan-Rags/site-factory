@@ -85,3 +85,33 @@ export function currentSiteUrlFor(slug) {
   }
   return url;
 }
+
+/**
+ * What the demo pipeline found at the prospect's listed address.
+ *
+ * `live`, `parked`, `dead`, `none` — or `null` when this prospect has no
+ * `demo.json`, which is every hand-authored client that has not been through
+ * `pnpm demo`.
+ *
+ * It matters here because of what Lighthouse does to a parking page. An empty
+ * holding page has no images, no scripts and no fonts, so it scores *well* —
+ * and a pitch card reading "their site 96, your new site 91" would be a true
+ * measurement of a page that is not their site, presented to the owner as
+ * though it were. That is worse than no comparison. See
+ * `packages/prospect/src/ingest/parked.ts`.
+ */
+export function websiteStatusFor(slug) {
+  const file = join(repoRoot, 'prospects', slug, 'demo.json');
+  if (!existsSync(file)) return null;
+  try {
+    const manifest = JSON.parse(readFileSync(file, 'utf8'));
+    return typeof manifest.websiteStatus === 'string' ? manifest.websiteStatus : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True when nothing at that address may be measured as "their site". */
+export function isParkedOrDead(status) {
+  return status === 'parked' || status === 'dead';
+}
