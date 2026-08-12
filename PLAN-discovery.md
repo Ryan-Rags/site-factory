@@ -1,7 +1,49 @@
 # PLAN-discovery — county-wide discovery + scoring → ranked call list
 
 Stream: `feat/discovery` · worktree `D:/sf-discovery` · branch pushed as the claim.
-Status: **awaiting approval. No code written.**
+Status: **approved and built.** See the addendum immediately below — one ruling
+during implementation replaced the two-pass design this plan proposed.
+
+---
+
+## ADDENDUM — the two-pass survivor design is dead (ruled during step 1)
+
+The gate this plan promised in §4 landed red, as intended. It named **four**
+offenders rather than the two §1.1 predicted:
+
+```
+places.websiteUri, places.nationalPhoneNumber, places.rating, places.userRatingCount
+```
+
+`websiteUri` and `nationalPhoneNumber` are **Enterprise**, not Pro. §1.1's tier
+table was wrong about them. That kills the two-pass design outright, because the
+survivor filter in §3.5 is defined on exactly those two fields — website status
+decides opportunity, and a lead with no phone cannot go on a call list — so a Pro
+sweep would have had nothing to filter on, and Details would have had to run
+against every deduplicated business in the county to learn who has no website.
+
+Once the call is Enterprise for `websiteUri`, `rating` and `userRatingCount` ride
+along at **no marginal cost**. Ruling: **one Enterprise sweep, no second pass.**
+
+What that changes in the sections below:
+
+- **§1.1** — the tier table stands as corrected; the "discovery = Pro" claim does not.
+- **§3.1** — unchanged.
+- **§3.5** — scoring weights unchanged and approved. The **survivor pass and
+  `--details-cap` are removed entirely**; the 0.5 neutral rating is now the rare
+  path (Google returning no rating at all) rather than the common one.
+- **§3.7** — budget defaults are **250 total / 250 Enterprise**, not 400/150.
+- **§4** — the gate asserts the invariant that protects money now: mask equality
+  byte-for-byte, the Enterprise + Atmosphere class banned outright, every field
+  priced. The red run stands in history as the failure-first record.
+- **§6 item 2** — sidecar approved; ids are read from the sweep's own results at
+  zero extra calls, so "zero Places calls beyond the sweep" holds.
+- **Acceptance**, restated: (a) zero Places calls beyond the sweep; (b) zero
+  Enterprise + Atmosphere fields anywhere in this package; (c) the emitted mask
+  equals the declared sweep mask exactly.
+
+Backlog, noted and **not built**: a refresh-run optimisation — an Essentials/Pro
+sweep to detect new place ids, with Enterprise calls only on the deltas.
 
 ---
 
