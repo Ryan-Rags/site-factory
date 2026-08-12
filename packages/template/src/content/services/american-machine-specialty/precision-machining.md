@@ -1,16 +1,15 @@
 ---
-title: Precision Machining
-summary: 5-axis milling and CNC turning to print, from first article to production.
+title: 'Precision Machining'
+summary: 'Machining to your drawing, done in Westwood.'
 highlights:
-  - 5-axis, 3-axis and horizontal milling in-house
-  - CNC turning on Doosan Lynx lathes
-  - First articles through to repeat production runs
-  - Work from your drawing, STEP file or PDF
+  - 'Machined to your drawing or your sample'
+  - 'You deal with the people doing the work'
 ---
 
-Send the print and we will make the part to it. Complex geometry that would take
-several setups elsewhere goes on the 5-axis in one, which keeps the tolerance
-stack short and the lead time honest.
+Work to print: turning, milling, drilling and grinding, in the materials the job calls for. Send the drawing and we will tell you whether it is work we take on and what it involves.
 
-Where a feature on the drawing is going to be expensive to hold, we will tell you
-before we quote it rather than after we machine it.
+5-axis and 3-axis milling alongside CNC turning, on HAAS and Doosan machining centres.
+
+Quantities from a first article through to a repeat order, quoted the same way each time.
+
+Call the shop and tell us what the part is, what it does and when you need it.

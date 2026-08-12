@@ -24,6 +24,7 @@ import Seo from '../Seo.astro';
 import LocalBusinessJsonLd from '../LocalBusinessJsonLd.astro';
 import Reveal from './Reveal.astro';
 import Customizer from './Customizer.astro';
+import ServiceWorker from '../ServiceWorker.astro';
 import { designTokens, themeMatrixCss } from '../../lib/design';
 import { resolveTheme } from '../../design/presets';
 import type { DesignConfig } from '../../types/design';
@@ -158,6 +159,8 @@ d.setAttribute('data-font',q.get('font')||s.font||${JSON.stringify(design.theme.
     {customizer && <Customizer design={design} />}
 
     <Reveal />
+
+    <ServiceWorker />
   </body>
 </html>
 

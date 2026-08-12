@@ -1,17 +1,16 @@
 ---
-title: Welding
-summary: Repairs and joining work, most of it done while you wait.
+title: 'Welding'
+summary: 'Welding repairs and joining work in Bergenfield.'
 highlights:
-  - Walk-ins welcome — no appointment needed
-  - Many repairs done in minutes
-  - Price agreed before the work starts
-  - Bring the part in or send a photo first
+  - 'Repairs to steel, stainless and aluminium'
+  - 'Walk-ins welcome'
+  - 'Told honestly when welding is not the right fix'
 ---
 
-Something cracked, snapped, or worn through at the joint — bring it in. Most
-repair welding is quick work, and a lot of it gets done while you wait.
+Cracked, snapped, worn through or never strong enough in the first place — most welding work that comes through the door is a repair, and most of it is on something the owner would rather not replace.
 
-If it is fixed to something you cannot move, send a photo and we will tell you
-what is involved.
+Steel, stainless and aluminium are all welded here.
 
-You will get the price before we start, not after.
+Bring the piece and you will be told whether welding is actually the right fix. Sometimes it is not, and hearing that is worth more than a weld that fails again in a month.
+
+Bring it in, or send a photo and we will tell you what it takes.

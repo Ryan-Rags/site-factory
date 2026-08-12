@@ -47,8 +47,8 @@
       "motion": "none",
       "eyebrow": "Elmwood Park, New Jersey - Since 1987",
       "badges": [
-        "Same-week turnaround",
-        "Prototypes and rush repairs"
+        "Rush repairs taken on",
+        "Prototypes and replacement parts"
       ]
     },
     "stickyCta": {
@@ -63,7 +63,7 @@
     "services": {
       "eyebrow": "What we do",
       "heading": "Machining, on your schedule",
-      "intro": "Prototypes, replacement parts and rush repairs, turned around in the same week.",
+      "intro": "General machining, prototypes, replacement parts and rush repairs.",
       "variant": "cards"
     },
     "reviews": {
@@ -101,7 +101,7 @@
       "items": [
         {
           "q": "How quickly can you turn a job around?",
-          "a": "Same-week turnaround is what the shop is built for, and rush repairs are a service in their own right. Call and ask about your job."
+          "a": "Rush repairs are a service in their own right. If the job is urgent, say so when you call — that is the kind of work the shop is set up for."
         },
         {
           "q": "Can you work from a sample instead of a drawing?",

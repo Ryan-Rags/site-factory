@@ -1,22 +1,30 @@
 import type { SiteConfig } from '../src/types/site';
-import { designFor } from './design';
 import { VERIFY_MARKER as V } from '../src/types/site';
+import { copyFor } from './from-copy';
+import { designFor } from './design';
 
 /**
- * KTS MACHINE SHOP — Elmwood Park, NJ.
+ * KTS MACHINE SHOP — Elmwood Park, NJ. Bergen County.
  *
  * PITCH MOCKUP. `seo.noindex: true`; nothing here is published or indexed.
  *
- * Confirmed: name, address, phone, founding year, the people, the kind of
- * work, walk-in policy, and weekday hours. Everything else is either omitted
- * (email, postal-code-less fields we do not hold) or carries
- * `[verify with client]`. Weekend hours are explicitly unconfirmed: sources
- * conflict and an earlier "Sat 7–12" came from a stale listing, so it is
- * marked rather than guessed.
+ * All copy is generated from `packages/copy/src/prospects/kts-machine-shop.ts`.
+ * This file holds identity, theme, testimonials and form configuration.
  *
- * No age is hard-coded anywhere. `foundedYear` is the only place 1987 is
- * stated as a number; copy says "Since 1987", which never goes stale.
+ * The first client with real Bergen County service-area sections: eight towns,
+ * each with its own block, none of them claiming a distance or a landmark we
+ * have not verified.
+ *
+ * Weekend hours are still absent rather than marked. Sources conflict, an
+ * earlier "Sat 7–12" came from a stale listing, and the FAQ's opening-hours
+ * answer is now generated from this same data — so a wrong Saturday would
+ * appear in the hours table, the FAQ and the JSON-LD at once.
  */
+const copy = copyFor('kts-machine-shop');
+
+// Annotated rather than `satisfies` on purpose: the annotation keeps the
+// optional fields (mapUrl, fonts.faces) present in the type even when this
+// config leaves them out, so consumers can read them without casts.
 const base: SiteConfig = {
   business: {
     name: 'KTS Machine Shop',
@@ -35,11 +43,6 @@ const base: SiteConfig = {
       country: 'US',
     },
     serviceArea: ['Elmwood Park', 'Bergen County', 'Northern New Jersey'],
-    // Required by the "open now" badge and used by nothing else. Every shop
-    // in this directory is in New Jersey, so this is a fact about the
-    // confirmed address rather than an inference; without it the badge does
-    // not render at all.
-    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '07:00', closes: '17:00' },
       { day: 'Tuesday', opens: '07:00', closes: '17:00' },
@@ -68,69 +71,23 @@ const base: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
-    // PNG rather than SVG because several platforms refuse SVG for og:image,
-    // and an unfurled demo link is the first thing a prospect sees.
-    ogImage: '/og/kts-machine-shop.png',
+    ogImage: '/images/og.svg',
   },
 
   hero: {
-    headline: 'Precision Machining Since 1987. Same-Week Turnaround.',
-    subhead:
-      'An Elmwood Park machine shop doing prototypes, replacement parts and rush repairs for manufacturers. Walk-ins welcome.',
+    ...copy.hero,
     ctaPrimary: { text: 'Call the shop', href: '/contact' },
     ctaSecondary: { text: 'See what we do', href: '/services' },
     image: '/images/hero.svg',
-    imageAlt: 'Machinist setting up a part on a lathe on the KTS Machine Shop floor',
   },
 
-  trustStrip: [
-    { icon: 'badge', label: 'Machining since 1987' },
-    { icon: 'clock', label: 'Same-week turnaround' },
-    { icon: 'wrench', label: 'Prototypes, replacement parts and rush repairs' },
-    { icon: 'gear', label: 'Walk-ins welcome' },
-  ],
-
-  services: [
-    {
-      slug: 'general-machining',
-      title: 'General Machining',
-      oneLiner: 'Quick-turnaround machining for manufacturers, from one piece upward.',
-      icon: 'precision',
-      image: '/images/service-precision-machining.svg',
-      imageAlt: 'Finished machined components on a workbench',
-    },
-    {
-      slug: 'prototypes',
-      title: 'Prototypes',
-      oneLiner: 'First articles and one-off proof parts, made from your drawing or your sample.',
-      icon: 'gear',
-      image: '/images/service-custom-fabrication.svg',
-      imageAlt: 'A one-off prototype part beside the drawing it was made from',
-    },
-    {
-      slug: 'replacement-parts',
-      title: 'Replacement Parts',
-      oneLiner: 'Bring the worn part in and we will make you a new one.',
-      icon: 'wrench',
-      image: '/images/service-repairs-rebuilds.svg',
-      imageAlt: 'Worn industrial shaft being measured with a micrometer',
-    },
-    {
-      slug: 'rush-repairs',
-      title: 'Rush Repairs',
-      oneLiner: 'Line down? Walk it in and we will tell you straight away what we can do.',
-      icon: 'clock',
-      image: '/images/service-repairs-rebuilds.svg',
-      imageAlt: 'Machinist working on an urgent repair at the bench',
-    },
-  ],
+  trustStrip: copy.trustStrip,
+  services: copy.services,
 
   about: {
-    headline: 'Machining in Elmwood Park since 1987.',
+    ...copy.about,
     entry: 'about',
     image: '/images/story.svg',
-    imageAlt: 'The KTS Machine Shop floor with lathes and milling machines',
   },
 
   // Paraphrases of sentiment relayed about this shop. The wording is ours,
@@ -159,50 +116,15 @@ const base: SiteConfig = {
     },
   ],
 
-  certifications: [
-    {
-      label: `Certifications — ${V}`,
-      detail: 'Confirm which certifications or affiliations the shop holds before publishing.',
-    },
-  ],
-
-  cta: {
-    headline: 'Need a part made or a repair done this week?',
-    body: 'Call the shop or walk it in. Stanley, Chris or Mike will tell you what it takes and how quickly it can be done.',
-    buttonText: 'Call the shop',
-    buttonHref: '/contact',
-  },
-
-  pages: {
-    home: {
-      servicesHeading: 'Prototypes, replacement parts and rush repairs',
-      servicesIntro: 'Quick turnaround on the work manufacturers need back fast.',
-    },
-    services: {
-      title: 'What we do',
-      intro:
-        'Quick-turnaround machining for manufacturers. Bring us a drawing, a sample, or the broken part itself.',
-      metaDescription:
-        'General machining, prototypes, replacement parts and rush repairs from KTS Machine Shop in Elmwood Park, NJ.',
-    },
-    about: {
-      eyebrow: 'KTS Machine Shop · Elmwood Park, NJ · Est. 1987',
-      metaDescription:
-        'KTS Machine Shop has been machining prototypes, replacement parts and rush repairs in Elmwood Park, NJ since 1987.',
-    },
-    contact: {
-      title: 'Tell us about the job',
-      intro:
-        'Call the shop or walk in. We will tell you what the job takes and how quickly we can turn it around.',
-      metaDescription:
-        'Call or visit KTS Machine Shop in Elmwood Park, NJ for prototypes, replacement parts and rush repairs.',
-    },
-  },
+  certifications: copy.certifications,
+  cta: copy.cta,
+  pages: copy.pages,
+  faq: copy.faq,
+  serviceAreas: copy.serviceAreas,
 
   seo: {
     titleTemplate: '%s | KTS Machine Shop',
-    defaultDescription:
-      'KTS Machine Shop is a machine shop in Elmwood Park, NJ, doing quick-turnaround prototypes, replacement parts and rush repairs for manufacturers since 1987.',
+    defaultDescription: copy.seoDescription,
     // No domain is registered or pointed at this build.
     siteUrl: 'https://example.invalid',
     noindex: true,
@@ -230,13 +152,14 @@ const base: SiteConfig = {
     turnstileSiteKey: '',
   },
 };
+
 /**
  * The design family.
  *
- * Composed from the confirmed content above and the theme, stats, FAQ and
- * service-area copy in `clients/design/kts-machine-shop.brief.json`. Nothing is
- * restated: every headline, service one-liner and review below comes from the
- * literal above, so the two cannot drift apart.
+ * Composed from the copy generated above and the theme, stats, FAQ and
+ * service-area copy in `clients/design/kts-machine-shop.brief.json`. Nothing is restated:
+ * every headline, service one-liner and review below comes from the
+ * copy-generated literal above, so the two cannot drift apart.
  */
 export const site: SiteConfig = { ...base, design: designFor('kts-machine-shop', base) };
 

@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    // Palette extraction and the card renderers evaluate callbacks inside the
+    // page, so this package needs the DOM typings on top of the Node-only
+    // base config — same reason `packages/audit` widens `lib`.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts"]
+}

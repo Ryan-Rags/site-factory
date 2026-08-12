@@ -1,22 +1,13 @@
 ---
-title: Repairs & Rebuilds
-summary: Bring us the broken part. We measure it, make it, and get you running again.
+title: 'Repairs & Rebuilds'
+summary: 'Repair and rebuild work for machinery around North Bergen and beyond.'
 highlights:
-  - Reverse-engineered from the worn or broken original
-  - Obsolete parts nobody stocks any more
-  - Shafts, bushings, bearing housings, pump and gearbox components
-  - Same-week turnaround on most repair work
+  - 'Worn parts measured and remade'
+  - 'No drawing needed — we work from the part'
 ---
 
-The part you need is discontinued, the lead time is eleven weeks, or the
-manufacturer wants to sell you the whole assembly. This is the work we do most
-of.
+A worn shaft, a seized housing, a component the manufacturer no longer supports. Bring us what came out and we will work out what failed and what it takes to put it right.
 
-Hand us the failed component and we will measure what is left of it, work out
-the original dimensions, and cut a new one. Where the failure was a design
-weakness rather than fair wear, we will say so and, if it makes sense, change
-the material or the geometry so the replacement outlasts the original.
+Where a replacement can no longer be bought, it can usually be made. That is often the difference between a repair and a new machine.
 
-Repairs are quoted before we start. If we open it up and find the job is not
-worth doing, you get a phone call and an honest answer, not a surprise on the
-invoice.
+Send a photo and the dimensions, or bring the part to the shop in North Bergen.

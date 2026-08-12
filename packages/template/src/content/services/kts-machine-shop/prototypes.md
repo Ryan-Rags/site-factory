@@ -1,16 +1,14 @@
 ---
-title: Prototypes
-summary: First articles and one-off proof parts, made from your drawing or your sample.
+title: 'Prototypes'
+summary: 'The part that has to exist before the run can be committed.'
 highlights:
-  - One-off parts with no minimum order
-  - Made from a drawing, a CAD file, or a physical sample
-  - Quick turnaround so a design decision is not left waiting
-  - Feedback on anything that will be awkward to machine in production
+  - 'One-off proof parts and first articles'
+  - 'Made from a drawing, a sketch or a sample'
+  - 'Told up front where a design will be awkward to produce'
 ---
 
-Before a design is committed to a run, somebody has to hold the part. We make
-that part.
+A prototype is a different job from a production part: the drawing is still moving, the tolerances are still being argued about, and what you need is something real to test.
 
-Send the drawing or bring the sample. If something in the geometry is going to
-be difficult or expensive to machine at volume, we will say so while it is still
-cheap to change.
+Bring the drawing or the sketch and we will make the piece — and tell you where the design is going to be awkward or costly to produce before you commit a run to it.
+
+Call, or bring the part to the shop in Elmwood Park.

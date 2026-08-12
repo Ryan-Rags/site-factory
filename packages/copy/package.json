@@ -1,0 +1,28 @@
+{
+  "name": "@site-factory/copy",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Niche-aware copywriting engine: turns a confirmed prospect record into site copy, FAQ, service-area sections and SEO.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "report": "node dist/cli.js report",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

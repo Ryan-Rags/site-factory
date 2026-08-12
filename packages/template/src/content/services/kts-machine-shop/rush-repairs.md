@@ -1,16 +1,13 @@
 ---
-title: Rush Repairs
-summary: Line down? Walk it in and we will tell you straight away what we can do.
+title: 'Rush Repairs'
+summary: 'Urgent work, and an honest answer about it.'
 highlights:
-  - Same-week turnaround on most repair work
-  - Walk-ins welcome — no appointment needed
-  - An honest answer up front about what is realistic
-  - Repairs for manufacturing plant and production equipment
+  - 'A straight answer on timing, up front'
+  - 'Walk it in — no appointment needed'
 ---
 
-When something breaks and the line stops, the useful answer is the honest one.
-Walk the part in and you will get it: what it takes, what it costs, and when you
-can have it back.
+When a line is down the only thing worth knowing is whether this shop can help today, and if not, when. You will be told which it is.
 
-If we cannot do it in the time you need, we will say that too, rather than take
-the job and leave you waiting.
+What we will not do is take the job, keep it on the bench and let you find out on Friday that it was never going to be ready. If the timing does not work, you hear that up front while you still have options.
+
+Call, or bring the part to the shop in Elmwood Park.

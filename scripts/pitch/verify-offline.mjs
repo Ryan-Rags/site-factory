@@ -87,11 +87,19 @@ async function loadPlaywright() {
  * The colour check reads the computed colour of the header's phone button: it
  * comes from a custom property that only exists in the inlined stylesheet, so
  * a naked fallback document or an error page cannot satisfy it.
+ *
+ * Two properties, because there are two page shells. `BaseLayout` names its
+ * brand colour `--color-primary`; a design-family page renders through
+ * `DesignLayout`, whose equivalent token is `--d-accent`. Either one proves the
+ * same thing — the inlined stylesheet arrived and applied — and a page that has
+ * neither is the failure this check exists to catch.
  */
 function inspectPage() {
   const h1 = document.querySelector('h1');
   const images = Array.from(document.images);
-  const styled = getComputedStyle(document.documentElement).getPropertyValue('--color-primary');
+  const root = getComputedStyle(document.documentElement);
+  const styled =
+    root.getPropertyValue('--color-primary') || root.getPropertyValue('--d-accent');
   return {
     title: document.title,
     h1: h1 ? h1.textContent.trim() : '',

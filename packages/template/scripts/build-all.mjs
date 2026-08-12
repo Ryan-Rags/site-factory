@@ -50,11 +50,20 @@ for (const slug of CLIENT_SLUGS) {
     failed++;
     continue;
   }
-  const check = spawnSync(process.execPath, [join(pkgRoot, 'scripts', 'check-markers.mjs'), slug], {
-    cwd: pkgRoot,
-    stdio: 'inherit',
-  });
-  if (check.status !== 0) failed++;
+  /*
+   * The same per-client chain `pnpm build` runs, and for the same reason: a
+   * batch build that checked less than a single build would make `build:all`
+   * the easier way to ship something the gates would have caught.
+   */
+  let clientFailed = false;
+  for (const script of ['check-markers.mjs', 'check-fabrication.mjs', 'check-contact-links.mjs']) {
+    const check = spawnSync(process.execPath, [join(pkgRoot, 'scripts', script), slug], {
+      cwd: pkgRoot,
+      stdio: 'inherit',
+    });
+    if (check.status !== 0) clientFailed = true;
+  }
+  if (clientFailed) failed++;
 }
 
 /*

@@ -1,20 +1,15 @@
 ---
-title: Welding & Fitting
-summary: Steel, stainless and aluminium welding, plus on-bench fitting and assembly.
+title: 'Welding & Fitting'
+summary: 'Welding and assembly work alongside the machining.'
 highlights:
-  - MIG and TIG on steel, stainless and aluminium
-  - Structural repair, build-up of worn surfaces, and cracked castings
-  - Machining after welding so the finished face is true
-  - Assembly and fit-up checked before collection
+  - 'Welding and machining under one roof'
+  - 'Assemblies finished and fitted before they leave'
 ---
 
-Welding on its own is easy to find. Welding by the shop that is also going to
-machine the face afterwards is not.
+Welding and fitting done in the same building as the machining, which means an assembly does not have to travel between two trades and two schedules to get finished.
 
-We build up worn shafts and bores and cut them back to size, repair cracked
-housings and frames, fabricate and weld steel assemblies, and handle the
-stainless and aluminium work that needs TIG rather than a wire feed.
+Steel, stainless and aluminium are all worked here, along with on-bench fitting and assembly.
 
-Because the same shop does the welding and the machining, distortion gets dealt
-with instead of discovered later. The part goes on the machine after it comes
-off the bench, and the finished dimension is the one on the print.
+Tell us what the material is and what the joint has to do. If it is not work we take on, you will be told that rather than sold it.
+
+Send a photo and the dimensions, or bring the part to the shop in North Bergen.

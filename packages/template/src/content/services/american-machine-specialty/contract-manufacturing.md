@@ -1,16 +1,16 @@
 ---
-title: Contract Manufacturing
-summary: Ongoing build-to-print production for medical, aerospace and instrumentation.
+title: 'Contract Manufacturing'
+summary: 'Build-to-print production for customers who have to prove every dimension.'
 highlights:
-  - Repeat production to a fixed print and a fixed process
-  - Medical, aerospace and instrumentation customers
-  - ISO 9001:2015 quality system throughout
-  - Documentation and inspection records with the parts
+  - 'Build to your print, to your revision'
+  - 'First article through to ongoing production'
+  - 'Documented process, so parts do not drift between runs'
 ---
 
-Once a part is proven, the job becomes making it the same way every time. That is
-what the quality system is for: a fixed process, recorded, so the hundredth part
-matches the first.
+Build-to-print production: you own the design, we make it repeatably. First article through to ongoing runs, with the process documented so the parts do not drift between orders.
 
-We take on ongoing build-to-print work for customers who need a supplier they do
-not have to re-qualify every year.
+Build-to-print production for medical, aerospace and instrumentation customers.
+
+Repeat schedules are planned with you rather than quoted job by job, so the parts are on the shelf when your build needs them.
+
+Send the drawing package and the quantities and we will come back with a quote and a lead time.

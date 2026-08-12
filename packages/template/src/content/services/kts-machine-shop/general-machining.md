@@ -1,19 +1,14 @@
 ---
-title: General Machining
-summary: Quick-turnaround machining for manufacturers, from a single piece upward.
+title: 'General Machining'
+summary: 'Day-to-day machining work for shops and plants around Elmwood Park.'
 highlights:
-  - Work from your drawing, a CAD file, or the original part
-  - Single pieces and short runs
-  - Manufacturing customers a speciality
-  - Walk-ins welcome
+  - 'Work from a drawing, a sample or the part itself'
+  - 'Walk-ins welcome'
+  - 'Urgent work taken on — say so when you call'
 ---
 
-Bring us the drawing and we will make the part. Bring us the part and we will
-measure it and make another one.
+The everyday work: turning, milling, threading, boring and finishing, in steel, stainless and the other materials that come through a working shop. Bring the drawing, the sample or the part itself.
 
-The shop is set up for the jobs that need to move quickly — the piece that holds
-up an assembly, the fitting nobody stocks any more, the part that has to be right
-the first time because there is no second chance at the schedule.
+Most of what comes in is not a production run. It is one thing that has to be right, and back where it belongs.
 
-Tell us what the part does and where it fits. That usually matters more to
-getting it right than the drawing alone.
+Call, or bring the part to the shop in Elmwood Park.
