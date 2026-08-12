@@ -298,3 +298,127 @@ estimated.
 1. **`accent=N`** — keeping ids (`accent=brick`), not a numeric index. §1.
 2. **Curated swatches hard-fail; only `brandAccent` auto-drops.** §3.
 3. **No `prefers-color-scheme` auto-follow.** §2.
+
+All three confirmed as written before any code was committed.
+
+---
+
+# Results
+
+Everything below was run, not estimated. Where a number could not be measured
+it says so.
+
+## The bug, measured before and after
+
+Before, on `ks-welding` (shipped forge/ember, `#e2551f`):
+
+| step | `data-accent` | `--d-accent` | panel showed |
+|---|---|---|---|
+| select Heritage | `brick` | `#8c3b1f` ✓ | **`ember`** — the old family's |
+| click "Molten" | `molten` | **`#e2551f`** — ember, not molten | `molten` |
+| `?theme=heritage&accent=ember` | `ember` | **`#e2551f`** over cream | `ember` |
+
+After: `check:switching` walks all 112 cells and asserts the attributes, the
+computed tokens, the painted CTA and page, the chip on the checked control and
+the panel's own radios all agree with `presets.json` — then reloads on the URL
+the panel wrote, with `localStorage` cleared so the URL alone is doing the
+work. 4396 assertions, all green.
+
+## Gates
+
+| gate | result |
+|---|---|
+| `check:contrast` | **746/746**, 42 palettes, 112 cells (was 234/234, 12, 32) |
+| `check:switching` | **4396 checks over 112 cells**, apply + URL restore |
+| `check:overflow` | clean at 320/390 on all 5 routes, in **all three new tones** at their widest type, plus the shipped combo |
+| `check:parity` | 35 pages byte-identical, 5 changed only in panel machinery, **0 regressed** |
+| `astro check` | 0 errors, 0 warnings, 4 hints (the known `astro(4000)` JSON-LD notes) |
+| `build:all` | 8/8 clients |
+| `check:markers`, `check:contact-links` | green |
+
+The contrast count landed at 746 against a projected ~774: 42 palettes × 17
+assertions + 18 legacy + 2 selftest. The projection assumed 18 pairs per
+palette; there are 17.
+
+## Lighthouse (mobile, real runs)
+
+Heaviest new combo — heritage **dark**, signwriter, the widest display type in
+the matrix (uppercase Georgia at +0.05em) — and the shipped combo, both on
+`ks-welding`, against baseline `main` built and served identically:
+
+| | baseline `main` | shipped combo | heaviest new combo |
+|---|---|---|---|
+| Accessibility | 100 | 100 | **100** |
+| Best practices | 100 | 100 | **100** |
+| SEO | 69 | 69 | **69** |
+| Performance | `NO_LCP` | `NO_LCP` | `NO_LCP` |
+
+Nothing moved. The single SEO deduction is `is-crawlable` — the page is
+`noindex`, which is correct for a mockup and is what `check-markers.mjs`
+exists to enforce. Note that `PLAN-design-families.md` recorded SEO **93** for
+the same audit; that number came from an earlier Lighthouse, and baseline
+`main` scores 69 on the version installed here, so the drop is the tool, not
+this work.
+
+Performance remains unmeasurable for the reason that stream documented:
+Lighthouse mobile reports `NO_LCP` on a `DesignLayout` page under device
+emulation. FCP 0.8s, Speed Index 0.8s and CLS 0 all score 1. **The 90+ mobile
+bar is still not demonstrated**, and this branch has not changed that in
+either direction — baseline `main` reports exactly the same thing.
+
+## Byte cost (ks-welding pitch page)
+
+|  | matrix+tokens | panel | page | page gzipped |
+|---|---|---|---|---|
+| baseline, 32 cells | 8884 | 18542 | 104411 | 22390 |
+| 112 cells, uncompacted | 18659 | 35174 | 131788 | 26032 |
+| 112 cells, compacted | 19909 | 27768 | 125670 | **25809** |
+
+Compaction — one accent control per preset instead of one per preset per tone,
+with the chip colour arriving through `--d-swatch-*` — saved 6.1KB raw and
+**223 bytes gzipped**. Gzip had already absorbed the duplication, so the case
+for it is the simpler markup and a chip that cannot go stale, not transfer
+size. Net against baseline: +21KB raw, +3.4KB gzipped, on pitch builds only.
+
+## What the plan predicted and got wrong
+
+- **Tone-aware shadow tokens were not needed.** The plan expected the four
+  literal blacks in `design.css` to need `--d-shadow`/`--d-shade`. They do not:
+  every one means "darker than the surface", which is black in both tones. The
+  other 26 decorative rules are `color-mix()` against palette tokens and follow
+  the palette already. Checked by reading, then on screen in all three new
+  tones.
+- **The cell count is 3.5×, not 2×**, as flagged before starting: scheme
+  doubles it and 4→7 accents multiplies again.
+
+## Three mistakes the gates caught
+
+Recorded because each was a real defect in this work, not a near-miss:
+
+1. `data-scheme` was landing on delivered builds, changing the bytes of eight
+   shipped client sites to no effect. Now pitch-only.
+2. An Astro comment placed above `<html>` — the exact trap documented in
+   `DesignLayout`'s own frontmatter — silently dropped `<html>`, `<head>` and
+   `<body>` from every design page.
+3. Two bugs in `check-parity` itself: a `<style>` regex that missed
+   `<style is:global>` and so compared empty strings to empty strings, and a
+   `--d-base` filter that swept the whole inlined stylesheet in as "matrix". It
+   now refuses to report parity on a region it could not extract.
+
+A fourth, outside the diff: the first `check:switching` run was measured
+against **another worktree's preview server**. `astro preview` walks to the
+next free port silently when 4321 is taken, and several worktrees are open at
+once. The gate now refuses to run unless the served build is the client it was
+asked about.
+
+## Not done
+
+- **Performance is still not demonstrated.** See above. Finding what in
+  `DesignLayout` suppresses LCP under device emulation remains open, and is
+  not something this branch attempted.
+- **`color-scheme` is not emitted on delivered builds**, only in the matrix.
+  It belongs there too — a delivered dark site gets a light scrollbar without
+  it — but adding it changes how eight shipped sites render, which is a
+  deliberate decision to make rather than a side effect of this work.
+- No merge. The diff touches `packages/template/src/types/**`, which condition
+  2 of the merge policy excludes regardless of gate results.

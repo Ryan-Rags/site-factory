@@ -61,6 +61,16 @@ const activeScheme = schemeFor(design.theme);
  * only in the tones it is legible in — the union keeps its control, and
  * `inSchemes` is what hides it again in a tone that dropped it.
  */
+/**
+ * Whether a control belongs to the cell the page opens on.
+ *
+ * The tone matters as well as the preset: a brand colour offered in only one
+ * tone must not render enabled in the other, even for the moment before the
+ * panel's script runs.
+ */
+const isActive = (presetId: string, inSchemes: string[]) =>
+  presetId === design.theme.preset && inSchemes.includes(activeScheme);
+
 function accentsOf(schemes: OfferedScheme[]) {
   const order: string[] = [];
   const byId = new Map<string, { swatch: AccentSwatch; inSchemes: string[] }>();
@@ -213,13 +223,13 @@ const config = {
                 value={swatch.id}
                 data-preset={preset.id}
                 data-schemes={inSchemes.join(' ')}
-                checked={preset.id === design.theme.preset && swatch.id === design.theme.accent}
-                disabled={preset.id !== design.theme.preset}
+                checked={isActive(preset.id, inSchemes) && swatch.id === design.theme.accent}
+                disabled={!isActive(preset.id, inSchemes)}
               />
               <label
                 for={`d-accent-${preset.id}-${swatch.id}`}
                 data-preset={preset.id}
-                style={preset.id === design.theme.preset ? undefined : 'display:none'}
+                style={isActive(preset.id, inSchemes) ? undefined : 'display:none'}
               >
                 {/* Colour is never the only cue: the swatch is decorative and
                     the name is the label. */}
