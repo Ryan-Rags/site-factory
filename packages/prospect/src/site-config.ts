@@ -1,0 +1,197 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { templateDir } from "./paths.js";
+
+/**
+ * A structural mirror of the template's `SiteConfig`.
+ *
+ * The source of truth is `packages/template/src/types/site.ts`, which this
+ * package cannot import: the template is an Astro package with no compiled
+ * type output, and reaching across into its `src/` would drag the whole Astro
+ * program into this package's build.
+ *
+ * A mirror can drift, so it is checked rather than trusted —
+ * {@link checkSchemaDrift} reads the real file and compares the top-level
+ * keys before any config is generated. `site.ts` is hot across four streams;
+ * the demo pipeline should fail loudly when it stops emitting a field the
+ * template requires, not ship a site with a hole in it.
+ */
+
+export interface SiteAddress {
+  street?: string;
+  locality: string;
+  region: string;
+  postalCode?: string;
+  country: string;
+}
+
+export interface SiteHours {
+  day: string;
+  opens?: string;
+  closes?: string;
+  closed?: boolean;
+}
+
+export interface SiteBusiness {
+  name: string;
+  legalName: string;
+  tagline: string;
+  foundedYear?: number;
+  phone: string;
+  phoneHref: string;
+  email?: string;
+  address: SiteAddress;
+  serviceArea: string[];
+  hours?: SiteHours[];
+  mapUrl?: string;
+}
+
+export type SiteIconName =
+  | "precision"
+  | "clock"
+  | "shield"
+  | "wrench"
+  | "gear"
+  | "truck"
+  | "badge"
+  | "phone";
+
+export interface SiteConfig {
+  business: SiteBusiness;
+  theme: {
+    preset?: "forge" | "precision" | "heritage";
+    colors: { primary: string; accent: string };
+    fonts: { heading: string; body: string; faces?: unknown[] };
+  };
+  brand: { logo: string; favicon: string; ogImage: string };
+  hero: {
+    headline: string;
+    subhead: string;
+    ctaPrimary: { text: string; href: string };
+    ctaSecondary: { text: string; href: string };
+    image: string;
+    imageAlt: string;
+  };
+  trustStrip: { icon: SiteIconName; label: string }[];
+  services: {
+    slug: string;
+    title: string;
+    oneLiner: string;
+    icon: SiteIconName;
+    image: string;
+    imageAlt: string;
+  }[];
+  about: { headline: string; entry: string; image: string; imageAlt: string };
+  testimonials: {
+    quote: string;
+    attribution: string;
+    role: string;
+    rating: number;
+    sourceNote: string;
+    status: "verified" | "placeholder";
+  }[];
+  certifications: { label: string; detail: string }[];
+  updates?: { date: string; title: string; body: string }[];
+  equipment?: { name: string; detail?: string }[];
+  cta: { headline: string; body: string; buttonText: string; buttonHref: string };
+  pages: {
+    home: { servicesHeading: string; servicesIntro: string };
+    services: { title: string; intro: string; metaDescription: string };
+    about: { eyebrow: string; metaDescription: string };
+    contact: { title: string; intro: string; metaDescription: string };
+  };
+  seo: {
+    titleTemplate: string;
+    defaultDescription: string;
+    siteUrl: string;
+    noindex: boolean;
+  };
+  features: { gallery: boolean };
+  forms: {
+    mode: "worker" | "mailto" | "disabled";
+    workerEndpoint: string;
+    maxUploadMB: number;
+    acceptedFileTypes: string[];
+    turnstileSiteKey: string;
+  };
+}
+
+/** Top-level keys this mirror emits, and whether the template requires them. */
+const MIRRORED_KEYS: Record<string, "required" | "optional"> = {
+  business: "required",
+  theme: "required",
+  brand: "required",
+  hero: "required",
+  trustStrip: "required",
+  services: "required",
+  about: "required",
+  testimonials: "required",
+  certifications: "required",
+  updates: "optional",
+  equipment: "optional",
+  cta: "required",
+  pages: "required",
+  seo: "required",
+  features: "required",
+  forms: "required",
+};
+
+export interface DriftReport {
+  /** Fatal: the template needs a field this package does not emit. */
+  errors: string[];
+  /** Non-fatal: the template grew an optional field we ignore. */
+  warnings: string[];
+}
+
+/**
+ * Compare the mirror's top-level keys against the real `SiteConfig`.
+ *
+ * Deliberately shallow and textual: a full type check would mean compiling the
+ * template, and the failure this guards against is a whole field appearing or
+ * disappearing, not a nested rename. Additive-optional changes — which is all
+ * `site.ts` is allowed to receive while it is shared across streams — surface
+ * as warnings, so an unrelated stream's edit cannot break a demo run.
+ */
+export function checkSchemaDrift(
+  siteTypesFile: string = join(templateDir, "src", "types", "site.ts"),
+): DriftReport {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  let source: string;
+  try {
+    source = readFileSync(siteTypesFile, "utf8");
+  } catch {
+    return {
+      errors: [`could not read ${siteTypesFile} — is the template package present?`],
+      warnings,
+    };
+  }
+
+  const block = source.match(/export interface SiteConfig \{([\s\S]*?)\n\}/);
+  if (!block?.[1]) {
+    return { errors: [`no \`export interface SiteConfig\` found in ${siteTypesFile}`], warnings };
+  }
+
+  const actual = new Map<string, boolean>();
+  for (const line of block[1].split("\n")) {
+    const match = line.match(/^\s{2}(\w+)(\??):/);
+    if (match?.[1]) actual.set(match[1], match[2] === "?");
+  }
+
+  for (const [key, optional] of actual) {
+    if (MIRRORED_KEYS[key] === undefined) {
+      const message = `SiteConfig.${key} exists in the template but this package does not emit it`;
+      if (optional) warnings.push(message);
+      else errors.push(message);
+    }
+  }
+  for (const key of Object.keys(MIRRORED_KEYS)) {
+    if (!actual.has(key)) {
+      warnings.push(`this package emits SiteConfig.${key}, which the template no longer declares`);
+    }
+  }
+
+  return { errors, warnings };
+}

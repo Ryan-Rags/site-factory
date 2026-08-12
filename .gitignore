@@ -150,6 +150,9 @@ vite.config.ts.timestamp-*
 # future edit to the framework blocks above.
 /audit/
 /outreach/
+# Ingested prospect data: their photos, logo, reviews, address and the
+# generated config built from them. Same category as the two above.
+/prospects/
 
 # Real lead data. Ignore the whole category — every lead CSV, current and
 # future — and re-admit only the tracked fixture. Naming individual files here

@@ -17,6 +17,7 @@
     "copy": "node packages/copy/dist/cli.js",
     "copy:report": "node packages/copy/dist/cli.js report",
     "copy:emit": "node packages/copy/dist/cli.js emit --all",
+    "demo": "node packages/prospect/dist/cli.js",
     "mockup": "node scripts/mockup/index.mjs",
     "mockup:all": "node scripts/mockup/index.mjs --all",
     "deploy:mockups": "node scripts/deploy/deploy-mockups.mjs",

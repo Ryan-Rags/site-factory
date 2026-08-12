@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import type { SiteConfig } from '../src/types/site';
 
 import khMachineWorks from './kh-machine-works.config';
@@ -61,9 +63,39 @@ export function isClientSlug(value: string): value is ClientSlug {
  * client's name.
  */
 export function resolveClient(slug: string | undefined = process.env.SITE_CLIENT): {
-  slug: ClientSlug;
+  slug: string;
   site: SiteConfig;
 } {
+  /**
+   * Generated-config escape hatch, used by the demo pipeline
+   * (`packages/prospect`): `SITE_CONFIG_FILE` points at a JSON `SiteConfig`
+   * on disk and `SITE_CLIENT` names the output directory.
+   *
+   * It exists so a generated prospect site never has to be written into
+   * `clients/` — the five configs there are hand-authored and carry the
+   * provenance of every value they hold, and a generator that overwrote one
+   * would destroy that record. Ingested third-party data stays outside the
+   * repo (`prospects/` is gitignored) and only ever reaches the build as this
+   * file path.
+   *
+   * JSON rather than a module on purpose: the file is read at config-load
+   * time, and a runtime `import()` of an arbitrary absolute path is not
+   * something Vite's static graph can resolve.
+   */
+  const generated = process.env.SITE_CONFIG_FILE;
+  if (generated !== undefined && generated !== '') {
+    if (slug === undefined || slug === '') {
+      throw new Error('SITE_CONFIG_FILE is set but SITE_CLIENT is not. Set both: SITE_CLIENT names the dist/<slug> output directory.');
+    }
+    let site: SiteConfig;
+    try {
+      site = JSON.parse(readFileSync(generated, 'utf8')) as SiteConfig;
+    } catch (err) {
+      throw new Error(`SITE_CONFIG_FILE "${generated}" could not be read as JSON: ${(err as Error).message}`);
+    }
+    return { slug, site };
+  }
+
   if (slug === undefined || slug === '') {
     return { slug: DEFAULT_CLIENT, site: clients[DEFAULT_CLIENT] };
   }
