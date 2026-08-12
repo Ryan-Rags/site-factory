@@ -90,6 +90,31 @@ importers:
         specifier: ^1.5.5
         version: 1.5.6
 
+  packages/shortlist:
+    dependencies:
+      '@site-factory/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@site-factory/copy':
+        specifier: workspace:*
+        version: link:../copy
+      '@site-factory/discover':
+        specifier: workspace:*
+        version: link:../discover
+      '@site-factory/prospect':
+        specifier: workspace:*
+        version: link:../prospect
+      playwright:
+        specifier: ^1.49.1
+        version: 1.62.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/template:
     dependencies:
       '@astrojs/check':

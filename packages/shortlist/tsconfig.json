@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    // signals.ts evaluates a callback inside the page, so this package needs
+    // the DOM typings on top of the Node-only base config — the same reason
+    // packages/prospect and packages/audit widen `lib`.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts"]
+}

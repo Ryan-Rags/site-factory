@@ -1,9 +1,9 @@
 {
-  "name": "@site-factory/discover",
+  "name": "@site-factory/shortlist",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Lead discovery via the official Google Places API.",
+  "description": "County-wide discovery and scoring: turns a Places sweep into a ranked call list.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,6 +20,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"test/*.test.mjs\"",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@site-factory/audit": "workspace:*",
+    "@site-factory/copy": "workspace:*",
+    "@site-factory/discover": "workspace:*",
+    "@site-factory/prospect": "workspace:*",
+    "playwright": "^1.49.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
