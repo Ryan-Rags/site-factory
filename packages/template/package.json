@@ -17,6 +17,7 @@
     "check:fabrication": "node scripts/check-fabrication.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:overflow": "node scripts/check-overflow.mjs",
+    "check:textfit": "node scripts/check-textfit.mjs",
     "check:switching": "node scripts/check-switching.mjs",
     "check:parity": "node scripts/check-delivered-parity.mjs",
     "check:contact-links": "node scripts/check-contact-links.mjs",
