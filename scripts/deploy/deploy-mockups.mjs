@@ -9,11 +9,17 @@
 //
 //   node scripts/deploy/deploy-mockups.mjs [--dist <dir>] [--dry-run]
 //
+// Requires DEMO_FORM_ENDPOINT, from the environment or from .env.deploy at the
+// repo root. Refuses to publish sites whose built contact pages do not carry it
+// -- see the "demo form endpoint gate" below for why that is a deploy-time
+// check and not a build-time one. --dry-run still runs both gates, so it is a
+// cheap preflight.
+//
 // Only DIRECTORIES under dist are treated as sites; loose files there are stale
 // tsc stubs (index.js / index.d.ts*) and are ignored.
 
 import { spawnSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 const PROJECT_SUFFIX = '-preview';
@@ -50,6 +56,90 @@ function listSites(distDir) {
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .sort();
+}
+
+// --- demo form endpoint gate -------------------------------------------------
+//
+// A demo build without DEMO_FORM_ENDPOINT does not fail: site.config.ts falls
+// back to each client's own `forms` block, which for a mockup is `mailto` or
+// `disabled`. That is correct for a real client build and silently wrong for a
+// demo -- the site deploys, looks finished, and the contact form a prospect is
+// being shown does nothing a Worker ever sees. Nothing downstream notices.
+//
+// So the deploy is the gate. It refuses to publish unless it knows the endpoint
+// AND every built page it is about to publish actually carries it, which also
+// catches a stale dist/ built before the variable existed.
+
+const ENV_DEPLOY = path.join(process.cwd(), '.env.deploy');
+
+// Deliberately tiny: KEY=VALUE, `#` comments, optional surrounding quotes. Real
+// values here are URLs, not shell fragments, and an unset variable is a hard
+// error two lines below rather than something a parser gap can hide.
+function loadEnvDeploy(file) {
+  if (!existsSync(file)) return;
+  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const m = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/.exec(line);
+    if (!m || line.trimStart().startsWith('#')) continue;
+    const key = m[1];
+    const value = m[2].trim().replace(/^(['"])(.*)\1$/, '$2');
+    // A real environment variable always wins, so a one-off
+    // `DEMO_FORM_ENDPOINT=... pnpm deploy:mockups` still overrides the file.
+    if (process.env[key] === undefined || process.env[key] === '') {
+      process.env[key] = value;
+    }
+  }
+}
+
+function requireEndpoint() {
+  loadEnvDeploy(ENV_DEPLOY);
+  const endpoint = (process.env.DEMO_FORM_ENDPOINT ?? '').trim();
+  if (endpoint === '') {
+    console.error(
+      'DEMO_FORM_ENDPOINT is not set, so these sites would deploy with dead\n' +
+        'contact forms (mailto/disabled per client config). Set it in .env.deploy\n' +
+        `at the repo root (${ENV_DEPLOY}, gitignored):\n\n` +
+        '  DEMO_FORM_ENDPOINT=https://site-factory-demo-form.<subdomain>.workers.dev\n\n' +
+        'then rebuild and redeploy:\n\n' +
+        '  pnpm --filter @site-factory/template build:all\n' +
+        '  pnpm deploy:mockups\n',
+    );
+    process.exit(1);
+  }
+  if (!/^https:\/\/[^\s/]+/.test(endpoint)) {
+    console.error(`DEMO_FORM_ENDPOINT is not an https URL: ${endpoint}`);
+    process.exit(1);
+  }
+  return endpoint;
+}
+
+// The endpoint reaches the browser as a prop on the contact page's form island,
+// so the built HTML is the honest record of what was compiled in -- checking the
+// artifact rather than the variable is what makes a stale dist/ impossible to
+// ship. Escaping: Astro serialises island props with `&quot;` around values, and
+// an https URL has no characters of its own that get escaped, so a plain
+// substring test is sound.
+function verifyBuiltEndpoint(distDir, slugs, endpoint) {
+  const bad = [];
+  for (const slug of slugs) {
+    const page = path.join(distDir, slug, 'contact', 'index.html');
+    if (!existsSync(page)) {
+      bad.push(`${slug}: no contact/index.html`);
+      continue;
+    }
+    if (!readFileSync(page, 'utf8').includes(endpoint)) {
+      bad.push(`${slug}: contact page does not post to the demo endpoint`);
+    }
+  }
+  if (bad.length > 0) {
+    console.error(
+      `built sites do not carry DEMO_FORM_ENDPOINT (${endpoint}):\n` +
+        bad.map((b) => `  ${b}`).join('\n') +
+        '\n\nRebuild with the variable set, then deploy:\n\n' +
+        `  DEMO_FORM_ENDPOINT=${endpoint} pnpm --filter @site-factory/template build:all\n` +
+        '  pnpm deploy:mockups\n',
+    );
+    process.exit(1);
+  }
 }
 
 // Returns the project name that now exists, or throws.
@@ -111,7 +201,13 @@ if (slugs.length === 0) {
   console.error(`no site directories found under ${dist} -- run the template build first`);
   process.exit(1);
 }
-console.log(`deploying ${slugs.length} site(s) from ${dist}\n`);
+
+// Both gates run before the first Pages call, so a bad batch costs nothing.
+const endpoint = requireEndpoint();
+verifyBuiltEndpoint(dist, slugs, endpoint);
+
+console.log(`deploying ${slugs.length} site(s) from ${dist}`);
+console.log(`demo form endpoint: ${endpoint}\n`);
 
 const rows = [];
 let failed = 0;

@@ -28,10 +28,11 @@
     // src/lib/http.ts.
     "ALLOWED_ORIGIN_SUFFIXES": "pages.dev",
 
-    // Which prospects may post here. Keep in step with
-    // packages/template/clients/index.ts — anything not listed is refused, so
-    // this list is what stops a shared endpoint from being an open relay.
-    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding",
+    // Which prospects may post here. Must match the clients/index.ts registry;
+    // update when clients change. Anything not listed is refused, so this list
+    // is what stops a shared endpoint from being an open relay — and a slug
+    // missing here means that demo's form 422s in front of a prospect.
+    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage",
 
     // Where demo enquiries land — my own inbox, not a client's.
     "MAIL_TO": "PLACEHOLDER@example.com",
