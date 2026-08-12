@@ -73,6 +73,8 @@ const PAGE_DELAY_MS = 1000;
 export interface PlacesPlace {
   id?: string;
   displayName?: { text?: string };
+  /** Places category strings, e.g. `car_repair`. Pro tier. */
+  types?: string[];
   websiteUri?: string;
   nationalPhoneNumber?: string;
   rating?: number;

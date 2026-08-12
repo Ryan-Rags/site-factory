@@ -1,0 +1,35 @@
+{
+  "name": "@site-factory/shortlist",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "County-wide discovery and scoring: turns a Places sweep into a ranked call list.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"test/*.test.mjs\"",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@site-factory/audit": "workspace:*",
+    "@site-factory/copy": "workspace:*",
+    "@site-factory/discover": "workspace:*",
+    "@site-factory/prospect": "workspace:*",
+    "playwright": "^1.49.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

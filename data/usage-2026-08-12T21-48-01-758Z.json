@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "total": 2,
+    "runId": "2026-08-12T21:48:01.758Z",
+    "limits": {
+      "total": 250,
+      "enterprise": 250
+    },
+    "byEndpointAndTier": [
+      {
+        "endpoint": "searchText",
+        "tier": "enterprise",
+        "label": "Enterprise",
+        "calls": 2,
+        "masks": [
+          "places.id,places.displayName,places.formattedAddress,places.types,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,nextPageToken"
+        ]
+      }
+    ],
+    "byTier": [
+      {
+        "tier": "enterprise",
+        "label": "Enterprise",
+        "calls": 2,
+        "masks": [
+          "places.id,places.displayName,places.formattedAddress,places.types,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,nextPageToken"
+        ]
+      }
+    ]
+  },
+  "records": [
+    {
+      "endpoint": "searchText",
+      "mask": "places.id,places.displayName,places.formattedAddress,places.types,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,nextPageToken",
+      "tier": "enterprise",
+      "at": "2026-08-12T21:48:01.760Z",
+      "niche": "machine shop in Lodi, NJ",
+      "town": "Lodi",
+      "resultCount": 10
+    },
+    {
+      "endpoint": "searchText",
+      "mask": "places.id,places.displayName,places.formattedAddress,places.types,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,nextPageToken",
+      "tier": "enterprise",
+      "at": "2026-08-12T21:48:01.761Z",
+      "niche": "machine shop in Mahwah, NJ",
+      "town": "Mahwah",
+      "resultCount": 16
+    }
+  ]
+}
