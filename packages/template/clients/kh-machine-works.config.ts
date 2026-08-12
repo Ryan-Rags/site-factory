@@ -1,4 +1,6 @@
 import type { SiteConfig } from '../src/types/site';
+import { VERIFY_MARKER as V } from '../src/types/site';
+import { copyFor } from './from-copy';
 import { designFor } from './design';
 
 /**
@@ -7,12 +9,27 @@ import { designFor } from './design';
  * This is a PITCH MOCKUP. Nothing here is published or indexed
  * (`seo.noindex: true`).
  *
- * Anything reading `PLACEHOLDER` is a value we have not confirmed with the
- * client. Every one of them is listed in README step 2 and must be filled in
- * before this is shown to anybody outside the shop. They are deliberately
- * loud rather than plausible-looking, so a stale one cannot slip through.
+ * Every string of copy on this site is now generated from
+ * `packages/copy/src/prospects/kh-machine-works.ts`, where each fact sits
+ * next to the source that supports it. What remains below is the half that is
+ * not copy: identity, theme, brand assets, testimonials, and the form's
+ * deploy-time configuration.
  *
- * What is left unconfirmed, and why each one is still a marker:
+ * TWO THINGS CHANGED IN CHARACTER WITH THE REGENERATION.
+ *
+ * 1. The legacy `PLACEHOLDER` marker is gone. K-H was the last config using
+ *    it, kept only because its build output was byte-locked as the
+ *    multi-client refactor's equivalence proof. Regenerating the copy ends
+ *    that lock deliberately — see `clients/EQUIVALENCE.md` — so the marker
+ *    goes with it and the repo now has exactly one spelling.
+ *
+ * 2. Nothing on this site says the shop is family-run. The previous copy said
+ *    "the same family keeping things running since 1918", which conflated the
+ *    *company's* age with a *family's* tenure. 1918 is verified; continuous
+ *    family ownership is not, and it is now an explicit question on the
+ *    prospect record rather than an assumption in a headline.
+ *
+ * What is still unconfirmed, and why each is a marker rather than a guess:
  *   - `testimonials[].attribution` — the quotes are our paraphrase of what
  *     the client described. No customer said these words. Needs sign-off from
  *     the client, and no public source could ever substitute for it.
@@ -21,45 +38,33 @@ import { designFor } from './design';
  *     the business at all. The infrastructure does not exist yet; these fill
  *     in at deploy time (README steps 7–8), not from research.
  *
- * Everything else — founding year, phone, email, address, domain — is now
- * sourced from K-H's own public statements. Each carries its provenance
- * inline, so a later reader can check the claim instead of trusting it.
+ * Founding year, phone, email, address and domain are sourced from K-H's own
+ * public statements; the provenance for each lives on the prospect record.
  */
+const copy = copyFor('kh-machine-works');
+
 /**
- * The single source of truth for K-H's age. `business.foundedYear` reads from
- * it, and so does every string below that names the year — so the hero
- * subhead, the trust badge, the about headline, the eyebrow and the two SEO
- * descriptions cannot drift apart from each other or from the schema.
- *
- * The founding year is the *company's*, not the owner's. The two are far
- * apart here, and conflating them is what produced the earlier
- * "four decades on the same shop floor" line — see clients/EQUIVALENCE.md.
- *
  * PROVENANCE — 1918 is externally verified, not inferred (retrieved Aug 2026):
  *   - K-H's own live site hero: "Keeping Things Running Since 1918"
  *     (khmachineworks.com)
  *   - D&B and Manta listings: est. 1918 / ~108 years in business
- * Unlike the `PLACEHOLDER` fields, this value does NOT need confirming with
- * the client before the mockup is shown. Do not change it without a source
- * of at least this strength.
+ *
+ * Restated here because `business.foundedYear` is the schema's single source
+ * of truth for the shop's age and a reader of this file should not have to
+ * open another package to find out whether it was checked. It is checked. Do
+ * not change it without a source of at least this strength.
  */
 const FOUNDED_YEAR = 1918;
 
 // Annotated rather than `satisfies` on purpose: the annotation keeps the
 // optional fields (mapUrl, fonts.faces) present in the type even when this
-// seed config leaves them out, so consumers can read them without casts.
+// config leaves them out, so consumers can read them without casts.
 const base: SiteConfig = {
   business: {
     name: 'K-H Machine Works',
     legalName: 'K-H Machine Works Inc',
     tagline: 'Precision machining and repair for the people who keep things running.',
     foundedYear: FOUNDED_YEAR,
-    // PROVENANCE for phone, email and address — all four values are published
-    // by K-H themselves on khmachineworks.com and corroborated by directory
-    // listings (retrieved Aug 2026). Same standard as FOUNDED_YEAR above:
-    // sourced from the client's own public statements, not inferred, and so
-    // no longer PLACEHOLDER. They are still worth reading back to the client
-    // at first contact — a live site can be stale — but they are not fakes.
     phone: '(201) 867-2338',
     phoneHref: '+12018672338',
     email: 'KHCanDo@optonline.net',
@@ -70,6 +75,10 @@ const base: SiteConfig = {
       postalCode: '07047',
       country: 'US',
     },
+    // North Bergen is Hudson County, not Bergen — which is why this client
+    // gets no Bergen County town sections and its service-area block is a
+    // wider-area line instead. The copy engine partitions on the real county
+    // list rather than on the word "Bergen" in the town name.
     serviceArea: [
       'North Bergen',
       'Union City',
@@ -80,11 +89,6 @@ const base: SiteConfig = {
       'Northern New Jersey',
       'New York City metro',
     ],
-    // Required by the "open now" badge and used by nothing else. Every shop
-    // in this directory is in New Jersey, so this is a fact about the
-    // confirmed address rather than an inference; without it the badge does
-    // not render at all.
-    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '07:00', closes: '16:30' },
       { day: 'Tuesday', opens: '07:00', closes: '16:30' },
@@ -94,8 +98,8 @@ const base: SiteConfig = {
       { day: 'Saturday', closed: true },
       { day: 'Sunday', closed: true },
     ],
-    // Left unset on purpose. A map link is optional and the template never
-    // embeds a map or calls a map API. Paste a plain listing URL to show one.
+    // `geo` unset. Coordinates come from the pipeline's Places ingestion path
+    // or not at all — the copy engine never fetches them.
   },
 
   theme: {
@@ -107,10 +111,6 @@ const base: SiteConfig = {
       accent: '#b45309', // 5.02:1 on white
     },
     fonts: {
-      // System stacks by default: zero font requests, instant first paint,
-      // and no call to any third-party font host. To use real brand fonts,
-      // drop .woff2 files in public/fonts/ and add `faces` entries below —
-      // the base layout emits the @font-face rules from this config.
       heading:
         'ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       body: 'ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
@@ -121,87 +121,34 @@ const base: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
-    // PNG rather than SVG because several platforms refuse SVG for og:image,
-    // and an unfurled demo link is the first thing a prospect sees.
-    ogImage: '/og/kh-machine-works.png',
+    ogImage: '/images/og.svg',
   },
 
   hero: {
-    headline: 'Precision machining, done right the first time.',
-    subhead:
-      `A Hudson County machine shop since ${FOUNDED_YEAR}. Custom parts, repairs and short runs for contractors, building engineers and manufacturers who need the job done properly.`,
+    ...copy.hero,
     ctaPrimary: { text: 'Send us your part', href: '/contact' },
     ctaSecondary: { text: 'See what we do', href: '/services' },
     image: '/images/hero.svg',
-    imageAlt: 'Machinist setting up a part on a lathe in the K-H Machine Works shop floor',
   },
 
-  trustStrip: [
-    { icon: 'badge', label: `Family-run since ${FOUNDED_YEAR}` },
-    { icon: 'precision', label: 'Tolerances to ±0.001"' },
-    { icon: 'clock', label: 'Same-week turnaround on most repairs' },
-    { icon: 'wrench', label: 'One-off parts welcome — no minimum order' },
-  ],
-
-  services: [
-    {
-      slug: 'precision-machining',
-      title: 'Precision Machining',
-      oneLiner: 'Turning, milling and grinding to print, from one piece to a short run.',
-      icon: 'precision',
-      image: '/images/service-precision-machining.svg',
-      imageAlt: 'Finished machined steel components on a workbench',
-    },
-    {
-      slug: 'repairs-rebuilds',
-      title: 'Repairs & Rebuilds',
-      oneLiner: 'Bring us the broken part. We measure it, make it, and get you running.',
-      icon: 'wrench',
-      image: '/images/service-repairs-rebuilds.svg',
-      imageAlt: 'Worn industrial shaft being measured with a micrometer',
-    },
-    {
-      slug: 'custom-fabrication',
-      title: 'Custom Fabrication',
-      oneLiner: 'Brackets, shafts, bushings and fixtures built from a sketch or a sample.',
-      icon: 'gear',
-      image: '/images/service-custom-fabrication.svg',
-      imageAlt: 'Custom fabricated steel bracket next to the sketch it was made from',
-    },
-    {
-      slug: 'welding-fitting',
-      title: 'Welding & Fitting',
-      oneLiner: 'Steel, stainless and aluminium welding, plus on-bench fitting and assembly.',
-      icon: 'shield',
-      image: '/images/service-welding-fitting.svg',
-      imageAlt: 'Welder joining a steel assembly in the fabrication bay',
-    },
-  ],
+  trustStrip: copy.trustStrip,
+  services: copy.services,
 
   about: {
-    // Evergreen on purpose: a founding year is a fact that never goes stale,
-    // where "four decades" silently becomes wrong. Never hard-code an age —
-    // see `business.foundedYear` and `yearsInBusiness()`.
-    //
-    // The claim is family continuity, not one person's time on the floor.
-    // Nobody has stood at a machine since 1918; the family has kept the shop
-    // running that long, and that is what the line says.
-    headline: `The same family keeping things running since ${FOUNDED_YEAR}.`,
+    ...copy.about,
     entry: 'about',
     image: '/images/story.svg',
-    imageAlt: 'The K-H Machine Works shop floor with lathes and milling machines',
   },
 
-  // Both entries are `status: "placeholder"` — see README step 3. The
-  // sentiment comes from what the client told us about their reviews; the
-  // wording is ours, not a customer's, and no review text was copied from
-  // anywhere. Replace with client-supplied wording before this is sent.
+  // Both entries are `status: "placeholder"`. The sentiment comes from what
+  // the client told us about their reviews; the wording is ours, not a
+  // customer's, and no review text was copied from anywhere. Replace with
+  // client-supplied wording before this is sent.
   testimonials: [
     {
       quote:
         'We had a part fail on a Friday and no way to get a replacement before the following week. They turned a new one the same day and saved us an expensive return trip.',
-      attribution: 'PLACEHOLDER — customer name',
+      attribution: `${V} — customer name`,
       role: 'Commercial maintenance contractor',
       rating: 5,
       sourceNote:
@@ -211,7 +158,7 @@ const base: SiteConfig = {
     {
       quote:
         'They will take on the one-off jobs the big shops turn away, and the part comes back right. That is the whole reason we keep calling them.',
-      attribution: 'PLACEHOLDER — customer name',
+      attribution: `${V} — customer name`,
       role: 'Building engineer',
       rating: 5,
       sourceNote:
@@ -220,60 +167,15 @@ const base: SiteConfig = {
     },
   ],
 
-  certifications: [
-    {
-      label: 'PLACEHOLDER — certification or affiliation',
-      detail: 'Confirm with the client which of these they actually hold before publishing.',
-    },
-    {
-      label: 'Fully insured',
-      detail: 'General liability cover in place for on-site and in-shop work.',
-    },
-    {
-      label: 'Materials traceability on request',
-      detail: 'Mill certs supplied where the job calls for them.',
-    },
-  ],
-
-  cta: {
-    headline: 'Got a part that needs making or fixing?',
-    body: 'Send a photo and the dimensions. We will tell you what it takes and what it costs — no charge for the conversation.',
-    buttonText: 'Send us your part',
-    buttonHref: '/contact',
-  },
-
-  // These strings were literals inside the .astro pages before the
-  // multi-client refactor. They are reproduced here verbatim, which is what
-  // keeps this client's build byte-identical to the pre-refactor output.
-  pages: {
-    home: {
-      servicesHeading: 'Machining, repair and fabrication under one roof',
-      servicesIntro: 'Whatever the job, you deal with the same shop from quote to collection.',
-    },
-    services: {
-      title: 'What we do',
-      intro:
-        'Four things, done properly, by the same people who quoted the job. Everything below is available as a one-off — there is no minimum order.',
-      metaDescription:
-        'Precision machining, repairs, custom fabrication and welding from K-H Machine Works in North Bergen, NJ.',
-    },
-    about: {
-      eyebrow: `K-H Machine Works Inc · North Bergen, NJ · Est. ${FOUNDED_YEAR}`,
-      metaDescription: `K-H Machine Works Inc has been machining and repairing parts in North Bergen, NJ since ${FOUNDED_YEAR}.`,
-    },
-    contact: {
-      title: 'Tell us about the job',
-      intro:
-        'Send a photo and the dimensions and we will tell you what it takes and what it costs. No charge for the conversation.',
-      metaDescription:
-        'Call, email or send a photo of your part to K-H Machine Works in North Bergen, NJ.',
-    },
-  },
+  certifications: copy.certifications,
+  cta: copy.cta,
+  pages: copy.pages,
+  faq: copy.faq,
+  serviceAreas: copy.serviceAreas,
 
   seo: {
     titleTemplate: '%s | K-H Machine Works',
-    defaultDescription:
-      `K-H Machine Works is a family-run precision machine shop in North Bergen, NJ, serving Hudson County and the New York metro area since ${FOUNDED_YEAR}.`,
+    defaultDescription: copy.seoDescription,
     // K-H's real, verified-live domain (retrieved Aug 2026). Set now rather
     // than at go-live so canonicals and JSON-LD `@id` point at the business's
     // actual identity instead of a fake one.
@@ -305,25 +207,25 @@ const base: SiteConfig = {
   forms: {
     // `worker` with an empty endpoint is the pre-deploy state: the form
     // renders and validates client-side but reports that submission is not
-    // wired up. Kept deliberately rather than switching to `disabled`, which
-    // would remove the form from the page and change this mockup's output.
+    // wired up.
     mode: 'worker',
-    // PLACEHOLDER — deploy worker/ and paste its URL here. Until then the
-    // form validates client-side and reports that submission is not wired up.
+    // Deploy worker/ and paste its URL here. Not a fact about the business,
+    // so not a marker — it fills in at deploy time.
     workerEndpoint: '',
     maxUploadMB: 10,
     acceptedFileTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'],
-    // PLACEHOLDER — empty string hides the Turnstile widget entirely.
+    // Empty string hides the Turnstile widget entirely.
     turnstileSiteKey: '',
   },
 };
+
 /**
  * The design family.
  *
- * Composed from the confirmed content above and the theme, stats, FAQ and
- * service-area copy in `clients/design/kh-machine-works.brief.json`. Nothing is
- * restated: every headline, service one-liner and review below comes from the
- * literal above, so the two cannot drift apart.
+ * Composed from the copy generated above and the theme, stats, FAQ and
+ * service-area copy in `clients/design/kh-machine-works.brief.json`. Nothing is restated:
+ * every headline, service one-liner and review below comes from the
+ * copy-generated literal above, so the two cannot drift apart.
  */
 export const site: SiteConfig = { ...base, design: designFor('kh-machine-works', base) };
 

@@ -1,19 +1,32 @@
 import type { SiteConfig } from '../src/types/site';
-import { designFor } from './design';
 import { VERIFY_MARKER as V } from '../src/types/site';
+import { copyFor } from './from-copy';
+import { designFor } from './design';
 
 /**
- * AMERICAN MACHINE SPECIALTY LLC — Westwood, NJ.
+ * AMERICAN MACHINE SPECIALTY LLC — Westwood, NJ. Bergen County.
  *
  * PITCH MOCKUP. `seo.noindex: true`; nothing here is published or indexed.
  *
- * The most fully confirmed of the five: address, phone, inbox, founding year,
- * markets served, certification, ownership status and the machine list are all
- * verified. Only `updates` is unconfirmed, and every entry in it says so.
+ * All copy is generated from
+ * `packages/copy/src/prospects/american-machine-specialty.ts`.
  *
- * This config is the coverage case for `equipment[]`, `updates[]` and a
- * `worker` form that accepts engineering files.
+ * The best-sourced of the five, and the one that shows what the fabrication
+ * guard is protecting. AMS is the only client whose copy may say "ISO
+ * 9001:2015", "Perry Johnson" or "woman-owned" — not because the engine
+ * special-cases it, but because those strings are `Fact`s on its prospect
+ * record with sources attached, and the guard checks every claim against that
+ * record. The same sentence generated for any other client throws.
+ *
+ * Only `updates` is unconfirmed, and every entry in it says so. This config is
+ * also the coverage case for `equipment[]` and a `worker` form that accepts
+ * engineering files.
  */
+const copy = copyFor('american-machine-specialty');
+
+// Annotated rather than `satisfies` on purpose: the annotation keeps the
+// optional fields (mapUrl, fonts.faces) present in the type even when this
+// config leaves them out, so consumers can read them without casts.
 const base: SiteConfig = {
   business: {
     name: 'American Machine Specialty',
@@ -31,11 +44,6 @@ const base: SiteConfig = {
       country: 'US',
     },
     serviceArea: ['Westwood', 'Bergen County', 'Northern New Jersey', 'New York metro'],
-    // Required by the "open now" badge and used by nothing else. Every shop
-    // in this directory is in New Jersey, so this is a fact about the
-    // confirmed address rather than an inference; without it the badge does
-    // not render at all.
-    timezone: 'America/New_York',
     hours: [
       { day: 'Monday', opens: '08:00', closes: '17:00' },
       { day: 'Tuesday', opens: '08:00', closes: '17:00' },
@@ -63,61 +71,23 @@ const base: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    // Rendered from this client's own preset by scripts/gen-brand-assets.mjs.
-    // PNG rather than SVG because several platforms refuse SVG for og:image,
-    // and an unfurled demo link is the first thing a prospect sees.
-    ogImage: '/og/american-machine-specialty.png',
+    ogImage: '/images/og.svg',
   },
 
   hero: {
-    headline: 'Contract Manufacturing for Medical, Aerospace and Instrumentation.',
-    subhead:
-      'A woman-owned, ISO 9001:2015 certified machine shop in Westwood, NJ. Send your drawings and get a quote.',
+    ...copy.hero,
     ctaPrimary: { text: 'Send your drawings, get a quote', href: '/contact' },
     ctaSecondary: { text: 'See our capabilities', href: '/services' },
     image: '/images/hero.svg',
-    imageAlt: 'Five-axis machining centre cutting a precision component',
   },
 
-  trustStrip: [
-    { icon: 'badge', label: 'ISO 9001:2015 certified (Perry Johnson)' },
-    { icon: 'shield', label: 'WOSB — woman-owned small business' },
-    { icon: 'precision', label: 'CMM inspection in a temperature-controlled room' },
-    { icon: 'gear', label: '5-axis milling and CNC turning in-house' },
-  ],
-
-  services: [
-    {
-      slug: 'precision-machining',
-      title: 'Precision Machining',
-      oneLiner: '5-axis milling and CNC turning to print, from first article to production.',
-      icon: 'precision',
-      image: '/images/service-precision-machining.svg',
-      imageAlt: 'Precision machined components on an inspection bench',
-    },
-    {
-      slug: 'contract-manufacturing',
-      title: 'Contract Manufacturing',
-      oneLiner: 'Ongoing build-to-print production for medical, aerospace and instrumentation.',
-      icon: 'gear',
-      image: '/images/service-custom-fabrication.svg',
-      imageAlt: 'Production run of finished machined parts ready for inspection',
-    },
-    {
-      slug: 'inspection-quality',
-      title: 'Inspection & Quality',
-      oneLiner: 'CMM inspection in a temperature-controlled room, under an ISO 9001:2015 system.',
-      icon: 'shield',
-      image: '/images/service-repairs-rebuilds.svg',
-      imageAlt: 'Coordinate measuring machine inspecting a machined part',
-    },
-  ],
+  trustStrip: copy.trustStrip,
+  services: copy.services,
 
   about: {
-    headline: 'Build-to-print work where the tolerance is the whole job.',
+    ...copy.about,
     entry: 'about',
     image: '/images/story.svg',
-    imageAlt: 'The American Machine Specialty shop floor',
   },
 
   equipment: [
@@ -147,16 +117,7 @@ const base: SiteConfig = {
     },
   ],
 
-  certifications: [
-    {
-      label: 'ISO 9001:2015',
-      detail: 'Quality management system certified by Perry Johnson Registrars.',
-    },
-    {
-      label: 'WOSB — Woman-Owned Small Business',
-      detail: 'Woman-owned and family-run.',
-    },
-  ],
+  certifications: copy.certifications,
 
   // Paraphrases of sentiment relayed about this shop. The wording is ours, not
   // a customer's; no review text was copied from anywhere and no Google
@@ -184,44 +145,14 @@ const base: SiteConfig = {
     },
   ],
 
-  cta: {
-    headline: 'Have a drawing to quote?',
-    body: 'Send the drawing, STEP file or PDF and we will come back with a quote and a lead time.',
-    buttonText: 'Send your drawings, get a quote',
-    buttonHref: '/contact',
-  },
-
-  pages: {
-    home: {
-      servicesHeading: 'Machining, contract manufacturing and inspection under one roof',
-      servicesIntro:
-        'Build-to-print work for customers who have to prove every dimension.',
-    },
-    services: {
-      title: 'What we do',
-      intro:
-        'Build-to-print machining for regulated and precision markets, inspected under an ISO 9001:2015 system.',
-      metaDescription:
-        'Precision machining, contract manufacturing and CMM inspection from American Machine Specialty in Westwood, NJ.',
-    },
-    about: {
-      eyebrow: 'American Machine Specialty LLC · Westwood, NJ · Est. 1990',
-      metaDescription:
-        'American Machine Specialty LLC is a woman-owned, ISO 9001:2015 certified contract manufacturer in Westwood, NJ, serving medical, aerospace and instrumentation customers since 1990.',
-    },
-    contact: {
-      title: 'Send us your drawings',
-      intro:
-        'Attach a drawing, STEP file or PDF and tell us the quantity. We will come back with a quote and a lead time.',
-      metaDescription:
-        'Request a quote from American Machine Specialty in Westwood, NJ — send a drawing, STEP file or PDF.',
-    },
-  },
+  cta: copy.cta,
+  pages: copy.pages,
+  faq: copy.faq,
+  serviceAreas: copy.serviceAreas,
 
   seo: {
     titleTemplate: '%s | American Machine Specialty',
-    defaultDescription:
-      'American Machine Specialty LLC is a woman-owned, ISO 9001:2015 certified contract manufacturer in Westwood, NJ, machining for medical, aerospace and instrumentation customers.',
+    defaultDescription: copy.seoDescription,
     // AMS's real, verified-live domain (retrieved Aug 2026). Same caveat as
     // K-H's: this build is not deployed there, so absolute asset URLs resolve
     // against a host that does not serve them. Harmless while noindex.
@@ -230,7 +161,8 @@ const base: SiteConfig = {
     // from this one. Both were sourced independently and both look right, but
     // the mismatch is unexplained: AMS may run a legacy mail domain alongside
     // the marketing site. Confirm which is current before either is used in
-    // anger.
+    // anger. It is on the prospect record's evidence line too, so the
+    // question survives a rewrite of this file.
     siteUrl: 'https://americanmachinespecialty.com',
     noindex: true,
   },
@@ -262,13 +194,14 @@ const base: SiteConfig = {
     turnstileSiteKey: '',
   },
 };
+
 /**
  * The design family.
  *
- * Composed from the confirmed content above and the theme, stats, FAQ and
- * service-area copy in `clients/design/american-machine-specialty.brief.json`. Nothing is
- * restated: every headline, service one-liner and review below comes from the
- * literal above, so the two cannot drift apart.
+ * Composed from the copy generated above and the theme, stats, FAQ and
+ * service-area copy in `clients/design/american-machine-specialty.brief.json`. Nothing is restated:
+ * every headline, service one-liner and review below comes from the
+ * copy-generated literal above, so the two cannot drift apart.
  */
 export const site: SiteConfig = { ...base, design: designFor('american-machine-specialty', base) };
 

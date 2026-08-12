@@ -1,17 +1,13 @@
 ---
-title: Machining
-summary: Machining services. Processes, materials and tolerances [verify with client].
+title: 'Machining'
+summary: 'Machining work taken on at the shop in Elmwood Park.'
 highlights:
-  - Processes offered — [verify with client]
-  - Materials worked — [verify with client]
-  - Tolerances held — [verify with client]
-  - Minimum order and lead times — [verify with client]
+  - 'Work from a drawing, a sample or the part itself'
+  - 'A straight answer on whether the job is one we take on'
 ---
 
-Machining work at the Elmwood Park shop.
+Parts machined to what you need: from a drawing, from a sample, or from the worn part itself where no drawing exists.
 
-The detail on this page is a draft. What the shop actually runs, what it will
-take on and what it turns away are all [verify with client] — we would rather
-write this section with the shop than guess at it.
+The quickest way to find out whether a job is one we take on is to ask. Tell us what the part is, what it does and when you need it, and you will get a straight answer rather than a form response.
 
-Call the number above and we will tell you whether your job is one for us.
+Call (973) 345-1800 and tell us what the part is, what it does and when you need it.

@@ -1,19 +1,14 @@
 ---
-title: Metal Fabrication
-summary: Custom pieces made from your sketch, your sample, or your mock-up.
+title: 'Metal Fabrication'
+summary: 'Custom metalwork made to order in Bergenfield.'
 highlights:
-  - Built from a sketch, a sample or a mock-up
-  - One-off pieces welcome
-  - Restoration and custom project work
-  - Price agreed before the work starts
+  - 'Made from a sketch, a sample or a mock-up'
+  - 'One-off pieces, not catalogue parts'
+  - 'Fitted to the assembly, not just to a drawing'
 ---
 
-If it does not exist yet, we will make it. A sketch is enough to start from, and
-a mock-up is better — bring whatever you have.
+Pieces that do not exist yet: a bracket for something the manufacturer never made a bracket for, a frame to fit an awkward space, a part for a restoration where the original is long gone.
 
-This is where the awkward jobs end up: the piece nobody sells any more, the
-bracket that has to fit something unusual, the part for a restoration where the
-original is long gone.
+A sketch is enough to start. So is a cardboard mock-up, or the thing it has to bolt to. What matters is that the shop can see what it has to fit.
 
-Tell us what it has to do and what it has to fit, and we will work out the rest
-with you.
+Bring it in, or send a photo and we will tell you what it takes.

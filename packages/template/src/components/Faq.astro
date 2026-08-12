@@ -1,0 +1,58 @@
+---
+import { site } from '../../site.config';
+
+/**
+ * The FAQ section.
+ *
+ * Native `<details>`/`<summary>`, no JavaScript. Three reasons, in order of
+ * how much they matter: the content is in the HTML whether or not scripts run,
+ * so a crawler and a reader with a slow connection both get it; the browser's
+ * own disclosure behaviour is already keyboard-accessible and announced
+ * correctly, which a hand-rolled accordion usually is not; and it costs
+ * nothing to ship.
+ *
+ * Renders nothing at all when `site.faq` is absent or empty. That is the
+ * common case for a business we know little about, and an empty "Frequently
+ * Asked Questions" heading over nothing is worse than no section.
+ */
+const items = site.faq ?? [];
+---
+
+{
+  items.length > 0 && (
+    <section class="section bg-slate-50" aria-labelledby="faq-heading">
+      <div class="container-page">
+        <div class="mx-auto max-w-3xl">
+          <h2 id="faq-heading" class="text-3xl sm:text-4xl">
+            Questions people ask
+          </h2>
+          <p class="mt-3 text-lg text-slate-600">
+            If yours is not here, call {site.business.phone} and ask.
+          </p>
+
+          <div class="mt-8 divide-y divide-slate-200 border-y border-slate-200">
+            {items.map((item) => (
+              <details class="group py-4">
+                <summary class="flex cursor-pointer list-none items-start justify-between gap-4 text-left text-lg font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+                  <span>{item.question}</span>
+                  <svg
+                    class="mt-1 h-5 w-5 shrink-0 text-primary transition-transform group-open:rotate-45"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M10 4v12M4 10h12" />
+                  </svg>
+                </summary>
+                <p class="mt-3 pr-9 text-base leading-relaxed text-slate-600">{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}

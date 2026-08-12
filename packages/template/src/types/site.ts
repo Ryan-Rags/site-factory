@@ -4,6 +4,7 @@
  * Every client-specific string, colour, phone number and image path enters the
  * template through this shape. No `.astro` file may hard-code client content.
  */
+import type { DesignConfig } from './design';
 
 /**
  * The marker for any value we have not confirmed with the client.
@@ -17,18 +18,22 @@
  * no hours block at all, which is honest; a marked one renders a table full of
  * `[verify with client]`, which is noise. Mark only where the surrounding copy
  * needs the value to make sense.
+ *
+ * The constant itself now lives in `@site-factory/copy`, because that package
+ * is what *emits* markers and a constant belongs with the thing that produces
+ * it. This re-export keeps every existing import working, and keeps there
+ * being exactly one spelling: a second wording would be a marker
+ * `check-markers.mjs` does not recognise, which is a marker that ships.
  */
-import type { DesignConfig } from './design';
-
-export const VERIFY_MARKER = '[verify with client]';
+export { VERIFY_MARKER } from '@site-factory/copy';
 
 /**
- * The older marker, kept for one reason only: the K-H Machine Works config
- * predates `VERIFY_MARKER` and its build output is byte-locked as the
- * refactor's equivalence proof. Do not use it in any new config — the marker
- * check treats both as equally disqualifying for a live build.
+ * The older marker. No config uses it any more — the copy regeneration
+ * retired the last of it from K-H, whose build was the only reason it
+ * survived — but `check-markers.mjs` still refuses it, so an old config
+ * resurrected from history cannot quietly go live.
  *
- * @deprecated Use {@link VERIFY_MARKER}.
+ * @deprecated Use `VERIFY_MARKER`.
  */
 export const LEGACY_MARKER = 'PLACEHOLDER';
 
@@ -111,6 +116,25 @@ export interface Business {
    * from the address is a guess this repo does not make.
    */
   timezone?: string;
+  /**
+   * Optional coordinates for `LocalBusiness.geo`.
+   *
+   * Absent on every client today, and absent is the correct default: a
+   * coordinate pair in structured data is a factual claim a crawler believes
+   * without checking, so a guessed one is worse than none. Values arrive from
+   * the discovery pipeline's Places ingestion path; nothing in the template or
+   * the copy engine fetches them, and `source` exists so any pair that does
+   * appear can be traced back to the run that produced it.
+   */
+  geo?: Geo;
+}
+
+/** Coordinates plus their provenance. See `Business.geo`. */
+export interface Geo {
+  latitude: number;
+  longitude: number;
+  /** Where the pair came from, e.g. `Places API run 2026-08-11`. */
+  source: string;
 }
 
 export interface Theme {
@@ -200,6 +224,25 @@ export interface About {
   entry: string;
   image: string;
   imageAlt: string;
+  /**
+   * Optional. The phrases in the About prose that came from the business's
+   * own material, with their sources — and, crucially, whose words they
+   * actually are.
+   *
+   * Rendered nowhere. It exists so the person reviewing a rewrite can check
+   * line by line that the voice on the About page is the owner's and not
+   * ours. `attributed: 'ours-pending-confirmation'` marks prose we wrote from
+   * their public description of themselves: accurate, possibly good, and
+   * still not their voice until they say so.
+   */
+  voiceNotes?: VoiceNote[];
+}
+
+/** See `About.voiceNotes`. */
+export interface VoiceNote {
+  phrase: string;
+  source: string;
+  attributed: string;
 }
 
 /**
@@ -331,6 +374,19 @@ export interface PageCopy {
   home: {
     servicesHeading: string;
     servicesIntro: string;
+    /**
+     * Optional. The home page's own `<title>`, used bare — it is the brand
+     * result, so it carries the business name itself rather than letting
+     * `titleTemplate` append it.
+     *
+     * Optional because the pre-copy-engine behaviour, `name — tagline`, is a
+     * perfectly reasonable title and every config had it. Set this when the
+     * engine has written something better targeted, e.g.
+     * `KTS Machine Shop — General Machining in Elmwood Park`.
+     */
+    title?: string;
+    /** Optional. Home-page meta description; falls back to `seo.defaultDescription`. */
+    metaDescription?: string;
   };
   services: {
     title: string;
@@ -348,6 +404,44 @@ export interface PageCopy {
     intro: string;
     metaDescription: string;
   };
+}
+
+/**
+ * One question and its answer.
+ *
+ * The answer is plain text and is rendered inside a `<details>` element with
+ * no markup parsed — an FAQ that needs formatting is an FAQ whose answer is
+ * too long to be useful.
+ */
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+/** One town's block in the service-area section. */
+export interface TownSection {
+  town: string;
+  /**
+   * Two or three sentences. Never a distance, a drive time, a landmark or a
+   * neighbourhood: those are the invented details that mark a service-area
+   * page as automated, and we do not know them.
+   */
+  body: string;
+}
+
+/**
+ * The service-area section.
+ *
+ * Sections on one real page, never a thin page per town — the per-town page
+ * is the doorway-page pattern search engines have demoted for years, and it
+ * is worse for the reader too.
+ */
+export interface ServiceAreas {
+  heading: string;
+  intro: string;
+  towns: TownSection[];
+  /** One line for areas that do not get their own block. Omitted when null. */
+  widerLine?: string;
 }
 
 export interface SiteConfig {
@@ -384,4 +478,16 @@ export interface SiteConfig {
    * `clients/design/<slug>.design.json`.
    */
   design?: DesignConfig;
+  /**
+   * Optional FAQ. Absent or empty renders no section and emits no `FAQPage`
+   * structured data.
+   *
+   * Generated by `@site-factory/copy`, which drops any question the prospect
+   * record cannot answer truthfully rather than padding to a round number —
+   * so a short FAQ here means a short list of confirmed facts, not a
+   * shortcoming in the template.
+   */
+  faq?: FaqItem[];
+  /** Optional town-by-town service-area section. Absent renders nothing. */
+  serviceAreas?: ServiceAreas;
 }

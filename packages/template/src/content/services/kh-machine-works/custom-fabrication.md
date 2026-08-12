@@ -1,21 +1,13 @@
 ---
-title: Custom Fabrication
-summary: Brackets, shafts, bushings and fixtures built from a sketch or a sample.
+title: 'Custom Fabrication'
+summary: 'One-off metalwork made to order in North Bergen.'
 highlights:
-  - Works from a drawing, a photo, a sample, or a conversation
-  - Mounting brackets, machine guards, jigs and fixtures
-  - Prototype one, then repeat it when it proves out
-  - Fit-up and trial assembly before it leaves the shop
+  - 'Made from a sketch, a sample or an assembly'
+  - 'One-off pieces, not catalogue parts'
 ---
 
-Not everything starts as a drawing. Plenty of jobs start as somebody standing
-at the counter describing the problem with their hands.
+The pieces that do not come from a catalogue: mounting brackets, spacers, bushings, guards, jigs and fixtures. A sketch on the back of an envelope is enough to start from.
 
-We build the mounting bracket that the equipment should have come with, the
-fixture that makes an awkward job repeatable, the guard the inspector asked for,
-the adapter between two things that were never meant to bolt together. If you
-have a sample, that is usually all we need.
+If you have the thing it has to fit, bring that too. Fitting to a real assembly beats fitting to a dimension somebody wrote down.
 
-Prototype first, in the material that suits the job, then repeat it once you are
-happy. We keep the setup so the second batch does not cost what the first one
-did.
+Send a photo and the dimensions, or bring the part to the shop in North Bergen.

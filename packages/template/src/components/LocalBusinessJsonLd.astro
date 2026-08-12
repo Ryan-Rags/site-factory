@@ -4,12 +4,30 @@ import { site } from '../../site.config';
 /**
  * schema.org LocalBusiness, built entirely from site.config.ts.
  *
- * Deliberately omitted: `geo` (we do not hold verified coordinates),
- * `aggregateRating` and `review` (we will not emit review markup we cannot
- * attribute to a real, verifiable review), and `priceRange` (unknown).
- * Adding an unverified value here would be fabricating structured data that
- * search engines treat as a factual claim.
+ * Deliberately omitted: `aggregateRating` and `review` — we will not emit
+ * review markup we cannot attribute to a real, verifiable review, and we do
+ * hold review counts, so this is a standing decision rather than a missing
+ * feature — and `priceRange`, which is unknown. Adding an unverified value
+ * here would be fabricating structured data that search engines treat as a
+ * factual claim.
+ *
+ * `geo` was on that list for the same reason and is now emitted — but only
+ * when `business.geo` is present, and the only thing that populates that
+ * field is the discovery pipeline's Places ingestion path. The rule has not
+ * loosened. A `Geo` cannot be constructed without a `source`, so an unsourced
+ * coordinate pair has nowhere to come from.
+ *
+ * A second script follows for `FAQPage`, emitted only when there is an FAQ.
+ * Separate rather than nested: the FAQ describes this page, the LocalBusiness
+ * describes the business, and merging the two is how a rich result gets
+ * withdrawn.
  */
+interface Props {
+  /** True on the page that renders the FAQ. See `BaseLayout`'s `faqJsonLd`. */
+  faq?: boolean | undefined;
+}
+
+const { faq: withFaq = false } = Astro.props;
 const { business, brand, seo } = site;
 
 const openingHours = (business.hours ?? [])
@@ -20,6 +38,20 @@ const openingHours = (business.hours ?? [])
     opens: h.opens,
     closes: h.closes,
   }));
+
+/**
+ * `areaServed` prefers the towns the visible copy commits to.
+ *
+ * When a service-area section exists, the structured data and the page must
+ * name the same places — an inconsistency between the two is exactly what
+ * gets structured data distrusted, and it is free to avoid. `serviceArea`
+ * remains the fallback for clients with no section.
+ */
+const sectionTowns = (site.serviceAreas?.towns ?? []).map((t) => t.town);
+const areaNames = [
+  ...sectionTowns,
+  ...business.serviceArea.filter((a) => !sectionTowns.includes(a)),
+];
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -47,13 +79,41 @@ const jsonLd = {
     ...(business.address.postalCode ? { postalCode: business.address.postalCode } : {}),
     addressCountry: business.address.country,
   },
-  areaServed: business.serviceArea.map((name) => ({ '@type': 'Place', name })),
+  ...(business.geo === undefined
+    ? {}
+    : {
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: business.geo.latitude,
+          longitude: business.geo.longitude,
+        },
+      }),
+  areaServed: areaNames.map((name) => ({ '@type': 'Place', name })),
   openingHoursSpecification: openingHours,
   makesOffer: site.services.map((s) => ({
     '@type': 'Offer',
     itemOffered: { '@type': 'Service', name: s.title, description: s.oneLiner },
   })),
 };
+
+const faq = withFaq ? (site.faq ?? []) : [];
+const faqJsonLd =
+  faq.length === 0
+    ? null
+    : {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faq.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer },
+        })),
+      };
 ---
 
 <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+{
+  faqJsonLd !== null && (
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} is:inline />
+  )
+}
