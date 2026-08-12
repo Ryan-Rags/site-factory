@@ -1,0 +1,36 @@
+Lighthouse — main@e9654c5 vs feat/trust-seo
+
+Same machine, same harness (scripts/pitch/compare.mjs --local --no-live, which
+serves packages/template/dist/<slug> from 127.0.0.1 and runs the four Lighthouse
+12 categories from packages/audit/src/lighthouse.ts).
+
+kh-machine-works
+                     perf   a11y   best-practices   seo
+  main@e9654c5        100     96        100          69
+  feat/trust-seo       99     96        100          69   <- first run
+  feat/trust-seo      100     96        100          69   <- re-run
+  feat/trust-seo      100     96        100          69   <- re-run
+
+  Best Practices and SEO: UNCHANGED, which is the acceptance.
+
+  The 99 on the first candidate run did not reproduce across two further runs
+  and is Lighthouse run-to-run variance, not a regression. Checked rather than
+  waved away, because "it's probably noise" is how a real 1-point regression
+  gets shipped. The change under test adds four meta tags (~200 bytes to
+  <head>) and swaps an og:image URL, and og:image is not fetched during a
+  Lighthouse run at all.
+
+SEO 69 on both sides is the mockup lock working as intended: Lighthouse's
+"Page is blocked from indexing" audit fails whenever seo.noindex is true, which
+is every pitch build in the repo. It is not a defect and it is identical before
+and after.
+
+Proof that this is the whole of the gap — the same harness against the one
+config with seo.noindex: false:
+
+zz-fixture-go-live (noindex FALSE)
+                     perf   a11y   best-practices   seo
+  feat/trust-seo      100    100        100         100
+
+So the go-live path this stream adds produces a perfect SEO score, and the 69
+on the mockups is entirely the deliberate crawler block.

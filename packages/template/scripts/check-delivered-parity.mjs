@@ -94,6 +94,92 @@ function onlyColorSchemeAdded(before, after) {
   return after.replace(SCHEME_LINE, '') === before ? found[1] : null;
 }
 
+/**
+ * The two named `head` exemptions from the trust-seo stream.
+ *
+ * Same discipline as `onlyColorSchemeAdded` above, and for the same reason: a
+ * re-baselined comparison would absorb whatever else landed in the same build
+ * and would go on absorbing it. Each is written to the delta that was actually
+ * measured — nothing wider — and each is announced by name, because an
+ * allowance nobody can see is indistinguishable from a gate that stopped
+ * working.
+ *
+ * They compose in order: the four tags are added on every client, and on four
+ * named clients the card URL moves as well.
+ *
+ * Note that neither covers structured data: `regions()` elides every `<script>`
+ * from the head, `application/ld+json` included, so the JSON-LD corrections in
+ * this same stream are invisible here and need no exemption. Worth knowing in
+ * both directions — this gate would not have caught them either.
+ */
+
+/** The four tags `Seo.astro` gained. Completing the card, not changing it. */
+const ADDED_CARD_TAGS = [
+  /<meta property="og:image:width" content="\d+">/,
+  /<meta property="og:image:height" content="\d+">/,
+  /<meta property="og:image:alt" content="[^"]*">/,
+  /<meta name="twitter:image:alt" content="[^"]*">/,
+];
+
+/**
+ * Exemption 1 — `cardMetadataAdded`.
+ *
+ * The baseline must have carried none of the four; the candidate must add
+ * exactly one of each; and with those four removed the two heads must be
+ * identical. A fifth tag, a second copy, or any other head movement still fails.
+ */
+function onlyCardMetadataAdded(before, after) {
+  let rest = after;
+  for (const re of ADDED_CARD_TAGS) {
+    if (re.test(before)) return null; // Not the one-way migration.
+    if (!re.test(rest)) return null;
+    rest = rest.replace(re, '');
+    if (re.test(rest)) return null; // Exactly one.
+  }
+  return rest;
+}
+
+/**
+ * Exemption 2 — `brandCardSwapped`.
+ *
+ * These four clients pointed `og:image` at `/images/og.svg`, a file whose own
+ * aria-label reads "Social share image placeholder", while their generated
+ * 1200×630 card sat unused in `public/og/`. No major unfurler renders SVG, so
+ * those links unfurled blank. The value moves to the generated card, both tags
+ * move together, and nothing else may move with them.
+ *
+ * Scoped to these four slugs by name: a fifth client taking this exemption
+ * would mean a card swap nobody reviewed.
+ */
+const CARD_SWAP_CLIENTS = new Set([
+  'american-machine-specialty',
+  'industrial-machine-corp',
+  'kh-machine-works',
+  'kts-machine-shop',
+]);
+
+function onlyBrandCardSwapped(before, after, slug) {
+  if (!CARD_SWAP_CLIENTS.has(slug)) return null;
+  const placeholder = '/images/og.svg';
+  const card = `/og/${slug}.png`;
+
+  const tags = [
+    '<meta property="og:image" content="',
+    '<meta name="twitter:image" content="',
+  ];
+  let rest = after;
+  for (const open of tags) {
+    const pattern = new RegExp(`${open.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^"]*)">`);
+    const b = pattern.exec(before);
+    const a = pattern.exec(rest);
+    if (!b || !a) return null;
+    if (!b[1].endsWith(placeholder)) return null;
+    if (!a[1].endsWith(card)) return null;
+    rest = rest.replace(a[0], b[0]);
+  }
+  return rest;
+}
+
 function regions(html) {
   const clean = deIsland(html);
   const headStart = clean.indexOf('<head');
@@ -160,6 +246,16 @@ let pitchMoved = 0;
 let identical = 0;
 /** Pages that took the named `color-scheme` exemption, reported at the end. */
 const schemeAdded = [];
+/** Pages that took each named `head` exemption, by exemption name. */
+const headExempt = new Map();
+
+/**
+ * The client being compared, taken from the candidate directory's name.
+ *
+ * `brandCardSwapped` is scoped to four named slugs, so it needs to know which
+ * client this is. `dist/<slug>/` is the layout every build produces.
+ */
+const SLUG = CAND.replace(/[\\/]+$/, '').split(/[\\/]/).pop();
 
 for (const page of pages) {
   let a, b;
@@ -224,6 +320,34 @@ for (const page of pages) {
     }
   }
 
+  // The two named `head` exemptions, applied in order and each recorded by
+  // name. A head that still differs once both have been applied is a real
+  // regression and falls through to the failure below.
+  if (moved.includes('head')) {
+    const applied = [];
+    let rest = rb.head;
+
+    const added = onlyCardMetadataAdded(ra.head, rest);
+    if (added !== null) {
+      rest = added;
+      applied.push('cardMetadataAdded');
+    }
+
+    const swapped = onlyBrandCardSwapped(ra.head, rest, SLUG);
+    if (swapped !== null) {
+      rest = swapped;
+      applied.push('brandCardSwapped');
+    }
+
+    if (applied.length > 0 && rest === ra.head) {
+      moved = moved.filter((k) => k !== 'head');
+      for (const name of applied) {
+        if (!headExempt.has(name)) headExempt.set(name, []);
+        headExempt.get(name).push(page);
+      }
+    }
+  }
+
   if (moved.length > 0) {
     regressions++;
     console.error(
@@ -250,6 +374,16 @@ if (schemeAdded.length > 0) {
       `  change rather than drift:`,
   );
   for (const entry of schemeAdded) console.log(`    + color-scheme  ${entry}`);
+}
+
+if (headExempt.size > 0) {
+  console.log(
+    `\nNamed head exemptions taken (trust-seo). Each is a deliberate metadata\n` +
+      `  change, scoped to the delta that was measured and to nothing else:`,
+  );
+  for (const [name, pages_] of headExempt) {
+    console.log(`    + ${name}  ${pages_.length} page(s): ${pages_.join(', ')}`);
+  }
 }
 
 if (regressions > 0) {

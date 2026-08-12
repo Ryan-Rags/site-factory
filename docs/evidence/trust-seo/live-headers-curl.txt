@@ -1,0 +1,50 @@
+Live header verification — Cloudflare Pages
+Project: sf-headers-probe (throwaway, deleted at the end of this run)
+Content: zz-fixture-go-live — invented business, .test domain, nothing pitchable
+Date: 2026-08-12
+
+$ curl -sI https://sf-headers-probe.pages.dev/
+HTTP/1.1 200 OK
+Date: Wed, 12 Aug 2026 22:09:33 GMT
+Content-Type: text/html; charset=utf-8
+Connection: keep-alive
+Access-Control-Allow-Origin: *
+Cache-Control: public, max-age=0, must-revalidate
+ETag: "3d30d22145b9c63dfc1b7e63f767456e"
+content-security-policy: default-src 'self'; script-src 'self' 'sha256-Jv1VkN+0LW+wxNfX5J3yEdEWqcJmp1f3ktmS7ZRF7Rg=' 'sha256-Q2BPg90ZMplYY+FSdApNErhpWafg2hcRRbndmvxuL/Q=' 'sha256-U7a72oKuFFz8D7GUHLA1NZ0ciymHmDOc9T9aVDg2rWU='; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'; worker-src 'self'; manifest-src 'self'
+permissions-policy: accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), screen-wake-lock=(), usb=(), xr-spatial-tracking=()
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=r0V%2FOuIy3vYe8kZBASVoUnMg5uoi6Sax87WeWoxbVMtw8zXgoSTMZ1fO43SwHfEjoJZEWICUduPekc4Cc3cybReTwNawlC69GYFRZbPyaW0ZSFuGAEI1IlR6tg9FcTxcEMm0YnzFh9GUkD%2Fv1A%3D%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a2a2ce153d0993b9-EWR
+alt-svc: h3=":443"; ma=86400
+
+
+$ curl -sIL https://sf-headers-probe.pages.dev/services/   # /* must cover subpaths
+HTTP/1.1 200 OK
+content-security-policy: default-src 'self'; script-src 'self' 'sha256-Jv1VkN+0LW+wxNfX5J3yEdEWqcJmp1f3ktmS7ZRF7Rg=' '
+permissions-policy: accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(), g
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+
+$ curl -s https://sf-headers-probe.pages.dev/robots.txt   # go-live mode: Allow + Sitemap
+User-agent: *
+Allow: /
+
+Sitemap: https://www.fixture-go-live.test/sitemap-index.xml
+
+$ curl -s https://sf-headers-probe.pages.dev/sitemap-index.xml
+<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://www.fixture-go-live.test/sitemap-0.xml</loc></sitemap></sitemapindex>
+
+$ curl -s https://sf-headers-probe.pages.dev/ | grep -c 'name="robots"'   # 0 on a live build
+0
+
+  (a bare grep for the string "noindex" returns 1 here and is a bad probe:
+   it matches the fixture's own prose, which explains that seo.noindex is
+   false. The meta tag itself is absent, which is the thing that matters.)
+
+Note: two requests during this run returned a transient Cloudflare 522 and were re-run.

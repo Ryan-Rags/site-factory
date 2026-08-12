@@ -107,6 +107,21 @@ export interface Business {
    */
   mapUrl?: string;
   /**
+   * Optional "leave us a review" link, for the printable counter card.
+   *
+   * Renders nothing on the site — it exists so `pnpm review-card <slug>` can
+   * produce the leave-behind that asks a customer to review the shop while they
+   * are standing at the counter. See `packages/prospect/src/review-card.ts`.
+   *
+   * Google's form is `https://search.google.com/local/writereview?placeid=<ID>`,
+   * and the discovery pipeline legitimately holds Place IDs — but this field is
+   * written explicitly rather than derived, and the card refuses to render
+   * without it. A guessed or stale Place ID does not fail loudly; it points the
+   * shop's own customers at a review form for a different business, which is a
+   * worse outcome than having no card at all.
+   */
+  reviewUrl?: string;
+  /**
    * IANA timezone for the shop, e.g. `America/New_York`.
    *
    * Required by the "open now" badge and by nothing else. It is optional, and

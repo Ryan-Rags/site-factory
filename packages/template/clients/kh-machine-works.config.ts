@@ -121,7 +121,7 @@ const base: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    ogImage: '/og/kh-machine-works.png',
   },
 
   hero: {

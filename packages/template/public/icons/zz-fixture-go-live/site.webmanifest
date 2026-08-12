@@ -1,0 +1,20 @@
+{
+  "name": "Go-Live Fixture Works (test data)",
+  "short_name": "Go-Live Fixt",
+  "icons": [
+    {
+      "src": "/icons/zz-fixture-go-live/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/zz-fixture-go-live/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#10202f",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}

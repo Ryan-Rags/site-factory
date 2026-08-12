@@ -1,0 +1,9 @@
+{
+  "_note": "Theme block only, and deliberately not registered in clients/design/index.ts. The go-live fixture renders through BaseLayout and has no design family; this file exists solely so scripts/gen-brand-assets.mjs can resolve a palette and render the fixture its own 1200x630 social card. A live build must not ship the shared /images/og.svg placeholder, because no major unfurler renders SVG.",
+  "theme": {
+    "preset": "precision",
+    "accent": "blueprint",
+    "scheme": "light",
+    "fontPairing": "engineered"
+  }
+}
