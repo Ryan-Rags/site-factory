@@ -92,3 +92,9 @@ The eight real clients are the acceptance, and all eight report
 
 The four K&S builds and ks-welding correctly do NOT take brandCardSwapped —
 they already pointed at their generated cards.
+
+Reproduce the baseline side:
+  git worktree add --detach /d/sf-parity-baseline <main-sha>
+  cd /d/sf-parity-baseline && pnpm install
+  pnpm --filter @site-factory/copy build
+  cd packages/template && pnpm build:all
