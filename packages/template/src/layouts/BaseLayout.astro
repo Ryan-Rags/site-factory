@@ -4,6 +4,7 @@ import Seo from '../components/Seo.astro';
 import LocalBusinessJsonLd from '../components/LocalBusinessJsonLd.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import ServiceWorker from '../components/ServiceWorker.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -89,39 +90,6 @@ ${faces
 
     <Footer />
 
-    {
-      /*
-        Service worker registration — see `features.offline` and
-        `src/pages/sw.js.ts`. Registered after `load` so it never competes with
-        the page's own rendering for bandwidth on the first visit, which is the
-        visit most likely to be on a bad connection.
-
-        The `else` branch is not defensive noise: a phone that visited an
-        earlier build with the flag on would otherwise keep that worker
-        forever, and turning the flag off would have no effect on the one
-        device it mattered for.
-      */
-      site.features.offline ? (
-        <script is:inline>
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function () {
-              navigator.serviceWorker.register('/sw.js').catch(function () {
-                /* No offline support is a degraded site, not a broken one. */
-              });
-            });
-          }
-        </script>
-      ) : (
-        <script is:inline>
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (regs) {
-              regs.forEach(function (reg) {
-                reg.unregister();
-              });
-            });
-          }
-        </script>
-      )
-    }
+    <ServiceWorker />
   </body>
 </html>

@@ -1,0 +1,46 @@
+---
+import { site } from '../../site.config';
+
+/**
+ * Service worker registration — see `features.offline` and `src/pages/sw.js.ts`.
+ *
+ * This lives in its own component because there are two page shells:
+ * `BaseLayout` for the original clients and `design/DesignLayout` for the
+ * design families. A registration that sat in only one of them would make
+ * `features.offline` silently do nothing for half the fleet, which is the sort
+ * of failure that only shows up standing in a workshop with no reception.
+ */
+---
+
+{
+  /*
+    Registered after `load` so it never competes with the page's own rendering
+    for bandwidth on the first visit, which is the visit most likely to be on a
+    bad connection.
+
+    The `else` branch is not defensive noise: a phone that visited an earlier
+    build with the flag on would otherwise keep that worker forever, and
+    turning the flag off would have no effect on the one device it mattered for.
+  */
+  site.features.offline ? (
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {
+            /* No offline support is a degraded site, not a broken one. */
+          });
+        });
+      }
+    </script>
+  ) : (
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (reg) {
+            reg.unregister();
+          });
+        });
+      }
+    </script>
+  )
+}
