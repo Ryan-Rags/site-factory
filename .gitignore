@@ -160,3 +160,11 @@ vite.config.ts.timestamp-*
 # add it; this inverts that default.
 /data/*.csv
 !/data/businesses.sample.csv
+
+# Per-run Places usage logs, written beside the CSV by `pnpm sweep`. Same
+# reasoning as the block above: ignore the category, not the file, so next
+# month's run is not tracked by default because nobody remembered. These carry
+# no business data and no secrets — endpoint, field mask, billing tier and call
+# counts — but they belong to a run rather than to the repo. The one that
+# matters is reconciled against the console and quoted in a PR, not committed.
+/data/usage-*.json
