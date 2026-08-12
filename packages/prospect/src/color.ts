@@ -214,6 +214,27 @@ export function darkenUntilAA(
  * together, and a divergence shows up as a demo that passes here and fails the
  * real gate. Editing the gate script is outside this stream's grant; this is
  * the seam that leaves.
+ *
+ * ## Status after the light/dark schemes landed
+ *
+ * The canonical rule now lives in `packages/template/src/design/contrast.mjs`
+ * (`pairsFor`/`clearsGate`), which the gate, the renderer and the customizer
+ * panel all import — so the template's own copies collapsed into one.
+ * `designPairings` below was compared against it pair by pair and is
+ * **equivalent**: the same 17 pairs, the same `color-mix` derivations, the same
+ * 4.5/3.0 thresholds, the same 1e-9 slack. Nothing here needed retuning.
+ *
+ * What changed is the *input*. A palette is no longer a property of a preset
+ * but of a preset's **tone**, so a caller must resolve light or dark before
+ * asking this file anything — `designPairings(preset.palette, …)` now reads
+ * `undefined`. That resolution lives in `design.ts` (`schemeOf`). This file
+ * stays tone-agnostic on purpose: it answers "is this pairing legible?", and
+ * which palette is in play is not its question.
+ *
+ * So the seam is two implementations now rather than three, and it stays
+ * flagged rather than closed — unifying this with `contrast.mjs` is a
+ * follow-up, not this change. It remains a real seam: a divergence still shows
+ * up as a demo that passes here and fails the real gate.
  */
 export interface DesignPalette {
   base: string;

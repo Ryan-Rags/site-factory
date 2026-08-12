@@ -43,11 +43,36 @@ import { valueOf } from "./types.js";
 
 /* ------------------------------------------------------------- presets.json */
 
+/**
+ * Light or dark, mirroring `SchemeName` in the template's `design/presets.ts`.
+ */
+export type SchemeName = "light" | "dark";
+
+interface AccentSwatch {
+  id: string;
+  label: string;
+  accent: string;
+  onAccent: string;
+}
+
+/**
+ * One tone of one preset: the colours, and the accents measured against them.
+ *
+ * The tone is the unit a palette and its accents belong to, not the preset.
+ * The same accent *id* names a different colour in each tone — Forge's ember
+ * reaches 4.5:1 on carbon and 3.49:1 on a light base — so reading a palette
+ * without first choosing a tone is reading something that does not exist.
+ */
+interface PresetScheme {
+  palette: DesignPalette;
+  accents: AccentSwatch[];
+}
+
 interface PresetFile {
   presets: {
     id: ThemePreset;
-    palette: DesignPalette;
-    accents: { id: string; label: string; accent: string; onAccent: string }[];
+    defaultScheme: SchemeName;
+    schemes: Record<SchemeName, PresetScheme>;
     fonts: { id: string; label: string }[];
   }[];
 }
@@ -62,6 +87,14 @@ let cache: PresetFile | undefined;
  * would be a second source of truth that drifts the first time a swatch is
  * retuned. `resolveTheme()` rejects an accent or font id the preset does not
  * offer, so a stale copy would fail the build — loudly, but a release late.
+ *
+ * That "loudly" was optimistic, and this file is where it was paid for. The
+ * shape above is a hand-written mirror applied with `as`, so TypeScript
+ * validates nothing about it: when the template gained light/dark tones and
+ * moved `palette` and `accents` underneath `schemes`, this package went on
+ * compiling and reading `preset.palette` — which was now `undefined`. Nothing
+ * failed until a demo ran. Keep the mirror honest, and prefer a shape that
+ * breaks at the read rather than one that yields `undefined`.
  */
 export function loadPresets(file: string = join(templateDir, "src", "design", "presets.json")): PresetFile {
   if (cache === undefined) cache = JSON.parse(readFileSync(file, "utf8")) as PresetFile;
@@ -77,6 +110,28 @@ function presetById(preset: ThemePreset): PresetFile["presets"][number] {
     );
   }
   return found;
+}
+
+/**
+ * One tone of one preset, by name — and a hard failure if it is absent.
+ *
+ * Explicit rather than `?.`: an absent tone means `presets.json` has changed
+ * shape underneath this package again, and the whole point of the note above
+ * is that the previous version of that mistake was silent.
+ */
+function schemeOf(
+  preset: PresetFile["presets"][number],
+  scheme: SchemeName,
+): PresetScheme {
+  const tone = preset.schemes?.[scheme];
+  if (!tone?.palette || !tone.accents) {
+    throw new Error(
+      `presets.json: preset "${preset.id}" has no usable "${scheme}" scheme ` +
+        `(expected schemes.${scheme}.palette and .accents). The template's ` +
+        `design/presets.json owns this shape; packages/prospect/src/design.ts mirrors it.`,
+    );
+  }
+  return tone;
 }
 
 /* ------------------------------------------------------------------ output */
@@ -95,6 +150,17 @@ function presetById(preset: ThemePreset): PresetFile["presets"][number] {
 export interface DesignBlock {
   theme: {
     preset: ThemePreset;
+    /**
+     * The tone, stated rather than left to default.
+     *
+     * `parseDesign()` treats it as optional and falls back to the preset's
+     * `defaultScheme`, so omitting it would render the same page today. It is
+     * emitted anyway: the accent id below was chosen from *this* tone's
+     * swatches, and a config that names the accent without naming the tone it
+     * was picked in is one `defaultScheme` change away from meaning something
+     * else.
+     */
+    scheme: SchemeName;
     accent: string;
     fontPairing: string;
     brandAccent?: { id: string; label: string; accent: string; onAccent: string; sourceNote: string };
@@ -143,6 +209,11 @@ export function buildDesign(opts: DesignOptions): DesignResult {
   const { prospect, site, copy, preset } = opts;
   const notes: string[] = [];
   const presetData = presetById(preset);
+  // The family's own tone. A generated demo does not pick one — the preset
+  // ships in the tone its family reads best in, and overriding that from a
+  // pipeline that has never seen the business is a guess, not a decision.
+  const scheme = presetData.defaultScheme;
+  const tone = schemeOf(presetData, scheme);
 
   const place = [site.business.address.locality, site.business.address.region]
     .filter(Boolean)
@@ -152,7 +223,8 @@ export function buildDesign(opts: DesignOptions): DesignResult {
 
   const theme: DesignBlock["theme"] = {
     preset,
-    accent: presetData.accents[0]?.id ?? "",
+    scheme,
+    accent: tone.accents[0]?.id ?? "",
     fontPairing: presetData.fonts[0]?.id ?? "",
   };
 
@@ -166,7 +238,11 @@ export function buildDesign(opts: DesignOptions): DesignResult {
   } else if (brand.status === "known") {
     const accent = brand.value.accent;
     const onAccent = onColorFor(accent);
-    if (designAccentPasses(presetData.palette, accent, onAccent)) {
+    // Checked against the tone actually in play. The same colour can be
+    // legible on a cream Heritage and illegible on a carbon Forge, so the
+    // question "is this brand colour safe?" has no answer until the tone is
+    // fixed — which is the bug this port carried before schemes existed.
+    if (designAccentPasses(tone.palette, accent, onAccent)) {
       theme.brandAccent = {
         id: "brand",
         label: "Your brand colour",
@@ -175,12 +251,14 @@ export function buildDesign(opts: DesignOptions): DesignResult {
         sourceNote: `Extracted from ${brand.note ?? "the prospect's own brand assets"} (${brand.source}, ${brand.retrievedAt}). Confirm with the owner before go-live.`,
       };
       theme.accent = "brand";
-      notes.push(`design: their own ${accent} is the accent — it clears the ${preset} contrast pairs`);
+      notes.push(
+        `design: their own ${accent} is the accent — it clears the ${preset} ${scheme} contrast pairs`,
+      );
     } else {
       // Dropped, not nudged. A shifted colour is not their colour.
       notes.push(
         `design: their ${accent} was DROPPED as an accent — it fails the ${preset} family's ` +
-          `contrast pairs, and a colour darkened until it passes is no longer theirs. ` +
+          `${scheme} contrast pairs, and a colour darkened until it passes is no longer theirs. ` +
           `The demo uses the preset's "${theme.accent}" swatch instead.`,
       );
     }
