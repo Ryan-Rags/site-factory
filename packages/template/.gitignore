@@ -7,4 +7,12 @@
 worker/.wrangler/
 worker-demo/.wrangler/
 
+# Deployment configs carrying real ids and addresses. The committed
+# `wrangler.jsonc` next to each of these keeps its PLACEHOLDER values and stays
+# the readable template; the real KV namespace id, MAIL_TO and origin list live
+# here and are deployed with `wrangler deploy -c wrangler.local.jsonc`.
+# Secrets are still never in any file — those are `wrangler secret put`.
+worker/wrangler.local.jsonc
+worker-demo/wrangler.local.jsonc
+
 # `dist/` is already covered by the root .gitignore.
