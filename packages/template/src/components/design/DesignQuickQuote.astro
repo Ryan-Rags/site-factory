@@ -1,0 +1,46 @@
+---
+/**
+ * The compact quote block, on a design-family site.
+ *
+ * Same island, same rules, same endpoint as `../QuickQuote.astro` — a different
+ * shell, because a design-family page does not load Tailwind at all. Its
+ * stylesheet is `design.css`, so the block is wrapped in `.d-quick` and the
+ * form controls inside it are styled from the family's own tokens. Dropping the
+ * base-layout card in here would render an unstyled form in the middle of a
+ * pitch demo.
+ *
+ * The sticky call bar is untouched by this. That bar is the "call now" path and
+ * this is the "I'd rather type it" path; they are not alternatives to each
+ * other and the bar keeps its place at the foot of the page.
+ */
+import ContactForm from '../ContactForm';
+import { quickFormProps, quickQuoteFor } from '../../lib/quote-form';
+
+interface Props {
+  placement: 'home' | 'cta';
+  /** Tints the section band, so two blocks on one page do not read as one. */
+  alt?: boolean | undefined;
+}
+
+const { placement, alt = false } = Astro.props;
+const quote = quickQuoteFor(placement);
+const props = quote ? quickFormProps() : null;
+---
+
+{
+  quote && props && (
+    <section class={`d-section${alt ? ' d-section--alt' : ''}`} aria-labelledby={`quick-${placement}`}>
+      <div class="d-wrap">
+        <div class="d-quick">
+          <div class="d-quick__head">
+            <h2 class="d-h2" id={`quick-${placement}`}>
+              {quote.heading}
+            </h2>
+            {quote.blurb && <p class="d-lede">{quote.blurb}</p>}
+          </div>
+          <ContactForm client:visible {...props} layout="compact" submitLabel={quote.buttonText} />
+        </div>
+      </div>
+    </section>
+  )
+}

@@ -367,6 +367,40 @@ export interface EquipmentItem {
  */
 export type FormsMode = 'worker' | 'mailto' | 'disabled';
 
+/** Every field the contact form knows how to render. */
+export type FormFieldName = 'name' | 'phone' | 'email' | 'service' | 'message' | 'file';
+
+/**
+ * What one field is worth to this client.
+ *
+ * - `required` — rendered, marked, and refused empty by the form and by the
+ *   Worker.
+ * - `optional` — rendered, validated only when filled in.
+ * - `hidden`   — not rendered at all. A value posted into it anyway — a phone
+ *   in a workshop holding a service-worker copy of an older build — is neither
+ *   validated nor thrown away: see `worker-demo/src/lib/validate.ts`.
+ */
+export type FormFieldRule = 'required' | 'optional' | 'hidden';
+
+/**
+ * The compact quote block, for the home page and the CTA band.
+ *
+ * Not a second form component. It is the same `ContactForm` with a reduced
+ * field set and a one-row layout, because a "quick" form that validates
+ * differently from the real one is a bug waiting to be found by a customer
+ * rather than by a build.
+ */
+export interface QuickQuote {
+  /** Absent or false renders nothing, anywhere. */
+  enabled: boolean;
+  heading: string;
+  /** One short line under the heading. Omitted renders no paragraph. */
+  blurb?: string;
+  buttonText: string;
+  /** Where it appears. An empty list renders it nowhere, same as disabled. */
+  placements: ('home' | 'cta')[];
+}
+
 export interface Forms {
   mode: FormsMode;
   /** Cloudflare Worker URL that receives the contact form POST.
@@ -376,6 +410,25 @@ export interface Forms {
   acceptedFileTypes: string[];
   /** Cloudflare Turnstile site key. Empty string disables the widget. */
   turnstileSiteKey: string;
+  /**
+   * Which fields this client's form asks for. Absent — as it is in every config
+   * written before this existed — resolves to the historical set: name and
+   * message required, phone and email offered as an either/or pair, service
+   * and file optional.
+   *
+   * One rule is not negotiable, and is enforced at build time, by the build
+   * gate, and again in the Worker: **no configuration may produce a lead
+   * nobody can answer.** A valid submission must be impossible without at
+   * least one of phone or email. See `src/lib/form-fields.ts`.
+   *
+   * The Worker keeps its own copy of these rules (`PROSPECT_FIELDS` in
+   * `worker-demo/wrangler.jsonc`), because a form's own validation is a
+   * courtesy and the server's is the one that counts.
+   * `scripts/check-form-fields.mjs` fails the build when the two disagree.
+   */
+  fields?: Partial<Record<FormFieldName, FormFieldRule>>;
+  /** Optional compact quote block. Absent renders nothing. */
+  quickQuote?: QuickQuote;
 }
 
 /**

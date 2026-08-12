@@ -34,7 +34,43 @@ if (unregistered.length > 0) {
   process.exit(1);
 }
 
-const CLIENT_SLUGS = fromFiles;
+/*
+ * Test fixtures are registered, buildable and deliberately excluded from the
+ * batch.
+ *
+ * `scripts/deploy/deploy-mockups.mjs` publishes every directory it finds under
+ * `dist/`, which is the right behaviour for a batch of prospect demos and the
+ * wrong one for a fixture with an invented business name. Keeping the fixture
+ * out of `dist/` during `build:all` is what makes "never deployed" a property
+ * of the pipeline rather than a note in a README.
+ *
+ * Build one on purpose with `SITE_CLIENT=<slug> pnpm build`, and delete its
+ * `dist/<slug>/` before running a deploy.
+ */
+const FIXTURE_PREFIX = 'zz-fixture-';
+const fixtures = fromFiles.filter((slug) => slug.startsWith(FIXTURE_PREFIX));
+const CLIENT_SLUGS = fromFiles.filter((slug) => !slug.startsWith(FIXTURE_PREFIX));
+
+if (fixtures.length > 0) {
+  console.log(`skipping ${fixtures.length} test fixture(s): ${fixtures.join(', ')}`);
+}
+
+/*
+ * The form-field gate runs once, before anything is built, and it covers every
+ * config including the fixtures this batch skips. It is a check on config
+ * rather than on output — an unanswerable form or a Worker that disagrees with
+ * a config is wrong before a single page is rendered — so failing here saves
+ * eight builds and reports the real problem instead of a symptom.
+ */
+const fields = spawnSync(
+  process.execPath,
+  [join(pkgRoot, 'scripts', 'check-form-fields.mjs')],
+  { cwd: pkgRoot, stdio: 'inherit' },
+);
+if (fields.status !== 0) {
+  console.error('✗ form field rules failed — nothing was built');
+  process.exit(1);
+}
 
 let failed = 0;
 for (const slug of CLIENT_SLUGS) {

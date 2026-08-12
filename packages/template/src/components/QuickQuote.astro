@@ -1,0 +1,59 @@
+---
+/**
+ * The compact quote block, on a base-layout site.
+ *
+ * The contact page asks a visitor for the job, the part, the photo and the
+ * deadline, which is the right set of questions for somebody who has decided to
+ * get in touch. This is for the one who has not decided yet: a name, a number
+ * and a line, on the page they are already looking at.
+ *
+ * It is the same `ContactForm` island in `compact` layout — not a second form —
+ * so what it validates and where it posts cannot drift from the real one. The
+ * field set comes from the client's own rules, narrowed; see
+ * `src/lib/form-fields.ts`.
+ *
+ * Renders nothing at all unless the client's config asks for it at this
+ * placement, which is why every existing client's pages are unmoved.
+ */
+import ContactForm from './ContactForm';
+import { quickFormProps, quickQuoteFor } from '../lib/quote-form';
+
+interface Props {
+  placement: 'home' | 'cta';
+}
+
+const { placement } = Astro.props;
+const quote = quickQuoteFor(placement);
+const props = quote ? quickFormProps() : null;
+
+/**
+ * The home placement brings its own section and container; the CTA placement is
+ * dropped inside a band that already has both. Either way nothing is emitted
+ * when the block is off — an empty `<section>` on every other client's home
+ * page would be padding nobody asked for.
+ */
+const Wrapper = placement === 'home' ? 'section' : 'div';
+---
+
+{
+  quote && props && (
+    <Wrapper class={placement === 'home' ? 'section' : ''}>
+      <div class={placement === 'home' ? 'container-page' : ''}>
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <h2 class="text-xl text-slate-900 sm:text-2xl">{quote.heading}</h2>
+          {quote.blurb && (
+            <p class="mt-2 text-base leading-relaxed text-slate-700">{quote.blurb}</p>
+          )}
+          <div class="mt-5">
+            <ContactForm
+              client:visible
+              {...props}
+              layout="compact"
+              submitLabel={quote.buttonText}
+            />
+          </div>
+        </div>
+      </div>
+    </Wrapper>
+  )
+}

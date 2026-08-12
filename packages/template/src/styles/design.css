@@ -1392,3 +1392,170 @@ body[data-family] :focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ========================================================================== *
+ * 5. Quick quote block
+ *
+ * The compact `ContactForm` island, dressed in the family's own tokens.
+ *
+ * It needs its own rules for a blunt reason: the island's markup carries
+ * Tailwind utility classes, and a design-family page never loads Tailwind —
+ * `BaseLayout` imports `global.css`, `DesignLayout` imports this file. Without
+ * these rules the block renders as unstyled browser defaults in the middle of a
+ * pitch demo. Everything below is scoped under `.d-quick`, so nothing here can
+ * reach the base template's forms.
+ * ========================================================================== */
+
+.d-quick {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+  padding: 1.5rem;
+  max-width: 46rem;
+}
+
+@media (min-width: 640px) {
+  .d-quick {
+    padding: 2rem;
+  }
+}
+
+.d-quick__head {
+  margin-bottom: 1.5rem;
+}
+
+.d-quick__head .d-lede {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+}
+
+.d-quick form > * + * {
+  margin-top: 1rem;
+}
+
+.d-quick label {
+  display: block;
+  font-family: var(--d-font-display);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--d-ink);
+  margin-bottom: 0.375rem;
+}
+
+.d-quick input,
+.d-quick textarea,
+.d-quick select {
+  width: 100%;
+  background: var(--d-base);
+  color: var(--d-ink);
+  border: 1px solid var(--d-line-strong);
+  border-radius: var(--d-radius-btn, 0.375rem);
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.d-quick textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+/* The two-up row on the base layout is a Tailwind grid, which is inert here. */
+@media (min-width: 640px) {
+  .d-quick form > div.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  /* A single rendered field must not sit in half the width. */
+  .d-quick form > div.grid > div:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.d-quick button[type='submit'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--d-radius-btn, 0.375rem);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-family: var(--d-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: var(--d-btn-tracking, 0.01em);
+  text-transform: var(--d-btn-transform, none);
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .d-quick button[type='submit'] {
+    width: auto;
+  }
+}
+
+.d-quick button[type='submit']:hover {
+  background: var(--d-accent-strong);
+}
+
+.d-quick button[type='submit']:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.d-quick .form-error {
+  margin-top: 0.5rem;
+  padding-left: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  /*
+   * The text stays `--d-ink`, whose contrast against the surface every palette
+   * already guarantees, and the red is a rule beside it rather than the words
+   * themselves. A hard-coded error red would have to clear 4.5:1 on light and
+   * dark palettes alike, and nothing in check-contrast.mjs proves that it does
+   * — so the meaning is carried by the wording and the marker, not by a colour
+   * this file cannot vouch for.
+   */
+  color: var(--d-ink);
+  border-left: 3px solid #dc2626;
+}
+
+.d-quick .form-status {
+  border: 2px solid var(--d-accent);
+  border-radius: var(--d-radius-card, 0.5rem);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--d-ink);
+}
+
+.d-quick .form-status svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--d-accent);
+}
+
+.d-quick .form-status a,
+.d-quick .form-status button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.75rem 0.375rem 0;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--d-radius-btn, 0.375rem);
+  border: 2px solid var(--d-line-strong);
+  background: transparent;
+  color: var(--d-ink);
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.d-quick .form-status a {
+  background: var(--d-accent);
+  border-color: var(--d-accent);
+  color: var(--d-on-accent);
+}

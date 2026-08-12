@@ -10,6 +10,7 @@ import ksWelding from './ks-welding.config';
 import ksWeldingForge from './ks-welding-forge.config';
 import ksWeldingPrecision from './ks-welding-precision.config';
 import ksWeldingHeritage from './ks-welding-heritage.config';
+import zzFixturePhoneOptional from './zz-fixture-phone-optional.config';
 
 /**
  * Every buildable client, keyed by slug.
@@ -37,6 +38,12 @@ export const clients = {
   'ks-welding-forge': ksWeldingForge,
   'ks-welding-precision': ksWeldingPrecision,
   'ks-welding-heritage': ksWeldingHeritage,
+
+  // A TEST FIXTURE, not a prospect: the one config with asymmetric form rules
+  // (email required, phone optional), so that behaviour is proved somewhere
+  // other than a shop we are pitching. `build-all.mjs` skips it and it is never
+  // deployed. See its config header.
+  'zz-fixture-phone-optional': zzFixturePhoneOptional,
 } satisfies Record<string, SiteConfig>;
 
 export type ClientSlug = keyof typeof clients;

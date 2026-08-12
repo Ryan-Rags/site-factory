@@ -17,6 +17,7 @@ import ServiceArea from './ServiceArea.astro';
 import Faq from './Faq.astro';
 import BeforeAfter from './BeforeAfter.astro';
 import DesignFooter from './DesignFooter.astro';
+import DesignQuickQuote from './DesignQuickQuote.astro';
 import StickyCallBar from './StickyCallBar.astro';
 import { sectionOrder } from '../../lib/design';
 import type { DesignConfig } from '../../types/design';
@@ -35,6 +36,13 @@ const order = sectionOrder(design);
 <main id="main" style="flex: 1;">
   <DesignHero hero={sections.hero} openNow={sections.openNow} />
 
+  {/* Straight after the hero, ahead of the configurable run of sections: a
+      quote block that a visitor has to scroll past the whole page to find is a
+      quote block for people who were going to get in touch anyway. It renders
+      nothing unless the client's config asks for it here, so the design
+      families that do not opt in are unchanged. */}
+  <DesignQuickQuote placement="home" />
+
   {
     order.map((key) => (
       <Fragment>
@@ -48,6 +56,12 @@ const order = sectionOrder(design);
       </Fragment>
     ))
   }
+
+  {/* The `cta` placement. A design-family page has no CTA band component — the
+      sticky call bar is its standing call to action, and that bar is untouched
+      here — so the equivalent slot is the last thing above the footer, tinted
+      so two quote blocks on one page do not read as one repeated mistake. */}
+  <DesignQuickQuote placement="cta" alt />
 </main>
 
 <DesignFooter footer={sections.footer} />

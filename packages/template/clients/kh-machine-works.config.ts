@@ -216,6 +216,20 @@ const base: SiteConfig = {
     acceptedFileTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'],
     // Empty string hides the Turnstile widget entirely.
     turnstileSiteKey: '',
+    // `fields` is deliberately absent: K-H asks for exactly what it always
+    // asked for — name and a description required, phone or email either way
+    // round, photo and service optional.
+    //
+    // The compact quote block, on the home page and above the footer. Its
+    // fields are derived from the rules above, not configured here: a name, a
+    // number, and a line about the job. See src/lib/form-fields.ts.
+    quickQuote: {
+      enabled: true,
+      heading: 'Tell us about the part',
+      blurb: 'A name, a number and a line about the job. We will call you back.',
+      buttonText: 'Send it over',
+      placements: ['home', 'cta'],
+    },
   },
 };
 

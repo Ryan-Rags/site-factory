@@ -15,4 +15,10 @@ worker-demo/.wrangler/
 worker/wrangler.local.jsonc
 worker-demo/wrangler.local.jsonc
 
+# `wrangler dev` reads secrets from `.dev.vars`. Ignored here so that a local
+# Resend key used while exercising the form cannot be committed by accident.
+# Deployed secrets are still `wrangler secret put` and live only in Cloudflare.
+worker/.dev.vars
+worker-demo/.dev.vars
+
 # `dist/` is already covered by the root .gitignore.
