@@ -26,7 +26,7 @@
  * prospect one drag away from an inaccessible site with our name on it.
  */
 import { site, clientSlug } from '../../../site.config';
-import { PRESETS, accentsFor } from '../../design/presets';
+import { offeredPresets } from '../../design/presets';
 import type { DesignConfig } from '../../types/design';
 
 interface Props {
@@ -36,7 +36,17 @@ interface Props {
 const { design } = Astro.props;
 const { forms, business } = site;
 
-const swatches = accentsFor(design.theme);
+/**
+ * Every preset's swatches and pairings, not just the shipped preset's.
+ *
+ * The accent group used to render `accentsFor(design.theme)` — the swatches of
+ * whichever preset the client happens to ship. Accent ids are disjoint between
+ * presets, so one switch later the panel was still offering another family's
+ * colours under another family's names, and selecting one landed on a cell the
+ * matrix had never emitted. The lettering group always did this correctly;
+ * accents now have the same shape, filtered by `data-preset` on every change.
+ */
+const offered = offeredPresets(design.theme);
 
 /**
  * Where "send it to us" posts. Same two-mode story as the contact form, so
@@ -50,12 +60,16 @@ const config = {
   slug: clientSlug,
   endpoint,
   mailto,
-  presets: PRESETS.map((p) => ({
-    id: p.id,
-    accents: (design.theme.brandAccent ? [...p.accents, design.theme.brandAccent] : p.accents).map(
-      (a) => a.id,
-    ),
-    fonts: p.fonts.map((f) => f.id),
+  /** The client's own selection: where an unresolvable request lands. */
+  fallback: {
+    theme: design.theme.preset,
+    accent: design.theme.accent,
+    font: design.theme.fontPairing,
+  },
+  presets: offered.map((o) => ({
+    id: o.preset.id,
+    accents: o.accents.map((a) => a.id),
+    fonts: o.fonts.map((f) => f.id),
   })),
 };
 ---
@@ -97,7 +111,7 @@ const config = {
     <legend>Style</legend>
     <div class="d-cust__opts" role="none">
       {
-        PRESETS.map((preset) => (
+        offered.map(({ preset }) => (
           <Fragment>
             <input
               type="radio"
@@ -117,23 +131,35 @@ const config = {
     <legend>Accent</legend>
     <div class="d-cust__opts">
       {
-        swatches.map((swatch) => (
-          <Fragment>
-            <input
-              type="radio"
-              name="d-accent"
-              id={`d-accent-${swatch.id}`}
-              value={swatch.id}
-              checked={swatch.id === design.theme.accent}
-            />
-            <label for={`d-accent-${swatch.id}`}>
-              {/* Colour is never the only cue: the swatch is decorative and
-                  the name is the label. */}
-              <span class="d-cust__swatch" style={`background:${swatch.accent}`} aria-hidden="true" />
-              {swatch.label}
-            </label>
-          </Fragment>
-        ))
+        offered.flatMap(({ preset, accents }) =>
+          accents.map((swatch) => (
+            <Fragment>
+              <input
+                type="radio"
+                name="d-accent"
+                id={`d-accent-${preset.id}-${swatch.id}`}
+                value={swatch.id}
+                data-preset={preset.id}
+                checked={preset.id === design.theme.preset && swatch.id === design.theme.accent}
+                disabled={preset.id !== design.theme.preset}
+              />
+              <label
+                for={`d-accent-${preset.id}-${swatch.id}`}
+                data-preset={preset.id}
+                style={preset.id === design.theme.preset ? undefined : 'display:none'}
+              >
+                {/* Colour is never the only cue: the swatch is decorative and
+                    the name is the label. */}
+                <span
+                  class="d-cust__swatch"
+                  style={`background:${swatch.accent}`}
+                  aria-hidden="true"
+                />
+                {swatch.label}
+              </label>
+            </Fragment>
+          )),
+        )
       }
     </div>
   </fieldset>
@@ -142,8 +168,8 @@ const config = {
     <legend>Lettering</legend>
     <div class="d-cust__opts">
       {
-        PRESETS.flatMap((preset) =>
-          preset.fonts.map((font) => (
+        offered.flatMap(({ preset, fonts }) =>
+          fonts.map((font) => (
             <Fragment>
               <input
                 type="radio"
@@ -152,8 +178,13 @@ const config = {
                 value={font.id}
                 data-preset={preset.id}
                 checked={preset.id === design.theme.preset && font.id === design.theme.fontPairing}
+                disabled={preset.id !== design.theme.preset}
               />
-              <label for={`d-font-${preset.id}-${font.id}`} data-preset={preset.id}>
+              <label
+                for={`d-font-${preset.id}-${font.id}`}
+                data-preset={preset.id}
+                style={preset.id === design.theme.preset ? undefined : 'display:none'}
+              >
                 {font.label}
               </label>
             </Fragment>
@@ -327,44 +358,55 @@ const config = {
       };
     }
 
-    /*
-     * Font pairings belong to a preset, so the list is filtered as the preset
-     * changes. Showing Heritage's serif options on a Forge page would offer a
-     * combination that has no CSS block and would silently do nothing.
+    /**
+     * The one place a selection becomes legal.
+     *
+     * Accents and font pairings both belong to a preset, and preset accent ids
+     * are disjoint — so a request carried over from another preset, or typed
+     * into the address bar, may name a cell the matrix never emitted. Every
+     * such request is resolved to the nearest cell that *does* exist before
+     * anything is written to the document.
+     *
+     * This function is the only thing allowed to decide that. Both change
+     * handlers, the initial sync and the restore path all come through here,
+     * because the bug this replaces was two code paths disagreeing about which
+     * accent was in play — the page took one answer and the panel drew the
+     * other.
      */
-    function syncFontOptions(theme) {
-      var allowed = (byId[theme] || { fonts: [] }).fonts;
-      var chosen = null;
-      document.querySelectorAll('[name="d-font"]').forEach(function (input) {
-        var mine = input.getAttribute('data-preset') === theme;
-        var label = document.querySelector('label[for="' + input.id + '"]');
-        input.disabled = !mine;
-        if (label) label.style.display = mine ? '' : 'none';
-        if (mine && input.checked) chosen = input.value;
-      });
-      if (!chosen && allowed.length) {
-        var first = document.querySelector(
-          '[name="d-font"][data-preset="' + theme + '"][value="' + allowed[0] + '"]',
-        );
-        if (first) {
-          first.checked = true;
-          chosen = first.value;
-        }
-      }
-      return chosen;
+    function resolve(want) {
+      var theme = byId[want.theme] ? want.theme : config.fallback.theme;
+      var offer = byId[theme] || { accents: [], fonts: [] };
+      var accent = want.accent;
+      if (offer.accents.indexOf(accent) === -1) accent = offer.accents[0];
+      var font = want.font;
+      if (offer.fonts.indexOf(font) === -1) font = offer.fonts[0];
+      return { theme: theme, accent: accent, font: font };
     }
 
-    /* Accents are per preset too — but every preset offers the same ids only
-       by coincidence, so fall back to the first legal one rather than leaving
-       an attribute pointing at a block that does not exist. */
-    function syncAccent(theme) {
-      var allowed = (byId[theme] || { accents: [] }).accents;
-      var chosen = docEl.getAttribute('data-accent');
-      if (allowed.indexOf(chosen) !== -1) return chosen;
-      var next = allowed[0] || chosen;
-      var input = document.querySelector('[name="d-accent"][value="' + next + '"]');
-      if (input) input.checked = true;
-      return next;
+    /**
+     * Redraw the controls so the panel shows the state the page is in.
+     *
+     * Options belonging to other presets are disabled *and* hidden: disabled
+     * takes them out of the radio group's arrow-key order, hidden takes them
+     * out of the visual list. Leaving them clickable is what let a prospect
+     * select Forge's amber on a Heritage page.
+     */
+    function syncControls(state) {
+      document.querySelectorAll('[name="d-theme"]').forEach(function (input) {
+        input.checked = input.value === state.theme;
+      });
+      [
+        ['d-accent', 'accent'],
+        ['d-font', 'font'],
+      ].forEach(function (pair) {
+        document.querySelectorAll('[name="' + pair[0] + '"]').forEach(function (input) {
+          var mine = input.getAttribute('data-preset') === state.theme;
+          var label = document.querySelector('label[for="' + input.id + '"]');
+          input.disabled = !mine;
+          input.checked = mine && input.value === state[pair[1]];
+          if (label) label.style.display = mine ? '' : 'none';
+        });
+      });
     }
 
     function persist(state) {
@@ -382,49 +424,67 @@ const config = {
       history.replaceState(null, '', location.pathname + '?' + params.toString() + location.hash);
     }
 
-    function apply(next) {
-      if (next.theme) docEl.setAttribute('data-theme', next.theme);
-      var theme = docEl.getAttribute('data-theme');
-      var accent = next.accent || syncAccent(theme);
-      if (next.theme && !next.accent) accent = syncAccent(theme);
-      docEl.setAttribute('data-accent', accent);
-      var font = next.font || syncFontOptions(theme) || docEl.getAttribute('data-font');
-      if (next.theme) font = syncFontOptions(theme) || font;
-      docEl.setAttribute('data-font', font);
+    /** Put a resolved state onto the document and into the controls. */
+    function write(next) {
+      docEl.setAttribute('data-theme', next.theme);
+      docEl.setAttribute('data-accent', next.accent);
+      docEl.setAttribute('data-font', next.font);
       // The body carries the family for the decorative rules that key off it.
-      if (document.body) document.body.setAttribute('data-family', theme);
-      persist({ theme: theme, accent: accent, font: font });
+      if (document.body) document.body.setAttribute('data-family', next.theme);
+      syncControls(next);
     }
 
-    document.querySelectorAll('[name="d-theme"]').forEach(function (input) {
-      input.addEventListener('change', function () {
-        if (input.checked) apply({ theme: input.value });
+    /**
+     * Apply a change. `change` carries only what the visitor just asked for;
+     * everything else is whatever is currently in force.
+     */
+    function apply(change) {
+      var state = current();
+      var next = resolve({
+        theme: change.theme || state.theme,
+        accent: change.accent || state.accent,
+        font: change.font || state.font,
       });
-    });
-    document.querySelectorAll('[name="d-accent"]').forEach(function (input) {
-      input.addEventListener('change', function () {
-        if (input.checked) apply({ accent: input.value });
-      });
-    });
-    document.querySelectorAll('[name="d-font"]').forEach(function (input) {
-      input.addEventListener('change', function () {
-        if (input.checked) apply({ font: input.value });
+      write(next);
+      // The address bar always describes what is on screen — it is the only
+      // artefact a prospect can send us when there is no endpoint configured.
+      persist(next);
+      return next;
+    }
+
+    [
+      ['d-theme', 'theme'],
+      ['d-accent', 'accent'],
+      ['d-font', 'font'],
+    ].forEach(function (pair) {
+      document.querySelectorAll('[name="' + pair[0] + '"]').forEach(function (input) {
+        input.addEventListener('change', function () {
+          if (!input.checked) return;
+          var change = {};
+          change[pair[1]] = input.value;
+          apply(change);
+        });
       });
     });
 
-    // Reflect whatever the no-flash script settled on, including a shared URL.
+    /*
+     * Reflect whatever the pre-paint script settled on, including a shared URL.
+     *
+     * It goes through `resolve` rather than setting the controls from the
+     * attributes directly, so a combination that arrived from outside — an old
+     * link, a hand-edited parameter, a stale localStorage entry — is corrected
+     * here too. The page and the panel therefore start in agreement, always.
+     *
+     * The address bar is rewritten only when it already carried a selection:
+     * a shared link must end up naming the combination actually on screen,
+     * including when it asked for one that no longer exists. A visitor who
+     * simply opened the site and touched nothing keeps a clean URL.
+     */
     (function initial() {
-      var state = current();
-      var themeInput = document.querySelector('[name="d-theme"][value="' + state.theme + '"]');
-      if (themeInput) themeInput.checked = true;
-      var accentInput = document.querySelector('[name="d-accent"][value="' + state.accent + '"]');
-      if (accentInput) accentInput.checked = true;
-      syncFontOptions(state.theme);
-      var fontInput = document.querySelector(
-        '[name="d-font"][data-preset="' + state.theme + '"][value="' + state.font + '"]',
-      );
-      if (fontInput) fontInput.checked = true;
-      if (document.body) document.body.setAttribute('data-family', state.theme);
+      var state = resolve(current());
+      write(state);
+      var params = new URLSearchParams(location.search);
+      if (params.has('theme') || params.has('accent') || params.has('font')) persist(state);
     })();
 
     function open(next) {

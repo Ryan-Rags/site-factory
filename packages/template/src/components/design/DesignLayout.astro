@@ -24,7 +24,7 @@ import Seo from '../Seo.astro';
 import LocalBusinessJsonLd from '../LocalBusinessJsonLd.astro';
 import Reveal from './Reveal.astro';
 import Customizer from './Customizer.astro';
-import { designTokens, themeMatrixCss } from '../../lib/design';
+import { designTokens, offeredIds, themeMatrixCss } from '../../lib/design';
 import { resolveTheme } from '../../design/presets';
 import type { DesignConfig } from '../../types/design';
 import '../../styles/design.css';
@@ -87,12 +87,31 @@ const tokens = customizer
  *     <meta> tag. It cost a Lighthouse run reporting NO_LCP and a mojibake
  *     em dash in every <title> to find that.
  */
+/*
+ * It resolves rather than obeys. A URL parameter or a localStorage entry can
+ * name a combination that does not exist — a link shared before a swatch was
+ * renamed, a hand-edited address, or an accent carried over from another
+ * preset, whose ids are disjoint. Stamping it anyway is what produced the
+ * stale-accent bug: the attribute pointed at a cell the matrix never emitted,
+ * so the accent silently fell back to this client's shipped `:root` colour and
+ * the page showed one family's orange over another family's cream.
+ *
+ * `offeredIds()` is the id skeleton of the very CSS emitted above, so what
+ * this accepts and what has styles cannot drift apart.
+ */
 const noFlash = `(function(){try{
 var d=document.documentElement,q=new URLSearchParams(location.search),s={};
 try{s=JSON.parse(localStorage.getItem('sf-theme')||'{}')||{}}catch(e){}
-d.setAttribute('data-theme',q.get('theme')||s.theme||${JSON.stringify(theme.preset.id)});
-d.setAttribute('data-accent',q.get('accent')||s.accent||${JSON.stringify(design.theme.accent)});
-d.setAttribute('data-font',q.get('font')||s.font||${JSON.stringify(design.theme.fontPairing)});
+var M=${JSON.stringify(offeredIds(design))},F=${JSON.stringify({
+  theme: theme.preset.id,
+  accent: design.theme.accent,
+  font: design.theme.fontPairing,
+})};
+var t=q.get('theme')||s.theme||F.theme;if(!M[t])t=F.theme;
+var o=M[t];
+var a=q.get('accent')||s.accent||F.accent;if(o.a.indexOf(a)<0)a=o.a[0];
+var f=q.get('font')||s.font||F.font;if(o.f.indexOf(f)<0)f=o.f[0];
+d.setAttribute('data-theme',t);d.setAttribute('data-accent',a);d.setAttribute('data-font',f);
 }catch(e){}})();`;
 ---
 

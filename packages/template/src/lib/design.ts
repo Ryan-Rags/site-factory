@@ -28,10 +28,10 @@ import {
 import type { TestimonialStatus } from '../types/site';
 import {
   DENSITY_SCALE,
-  PRESETS,
   RADIUS_SCALE,
   getPreset,
   isDarkPalette,
+  offeredPresets,
   type PresetId,
   type ResolvedTheme,
   type ThemeSelection,
@@ -726,9 +726,11 @@ ${metricTokens(theme)}
  */
 export function themeMatrixCss(design: DesignConfig): string {
   const blocks: string[] = [];
-  const brand = design.theme.brandAccent;
 
-  for (const preset of PRESETS) {
+  // `offeredPresets()` is what the panel builds its controls from. Emitting
+  // from the same call is the guarantee that every cell a prospect can select
+  // has a block here — see the note on that function.
+  for (const { preset, accents, fonts } of offeredPresets(design.theme)) {
     const radius = RADIUS_SCALE[preset.radius];
     const density = DENSITY_SCALE[preset.density];
     blocks.push(`:root[data-theme="${preset.id}"] {
@@ -743,14 +745,13 @@ ${paletteTokens(preset.palette)}
     // The prospect's own extracted brand colour is offered inside every
     // preset it was cleared for. It is in the matrix rather than bolted on,
     // so switching preset keeps the selection valid or drops it visibly.
-    const swatches = brand ? [...preset.accents, brand] : preset.accents;
-    for (const swatch of swatches) {
+    for (const swatch of accents) {
       blocks.push(`:root[data-theme="${preset.id}"][data-accent="${swatch.id}"] {
 ${accentTokens(swatch.accent, swatch.onAccent, preset.palette)}
 }`);
     }
 
-    for (const pairing of preset.fonts) {
+    for (const pairing of fonts) {
       // Font blocks are scoped by preset too: two presets may legitimately
       // offer pairings under the same id with different stacks.
       blocks.push(`:root[data-theme="${preset.id}"][data-font="${pairing.id}"] {
@@ -760,6 +761,23 @@ ${fontTokens(pairing)}
   }
 
   return blocks.join('\n');
+}
+
+/**
+ * The offered cells as plain ids, for the scripts that must resolve a
+ * selection before any CSS can help them.
+ *
+ * Both the pre-paint script in `DesignLayout` and the panel's own resolver
+ * need to know which ids are legal together. They get this — the id skeleton
+ * of the matrix above, ~200 bytes inlined — rather than a second hand-written
+ * list that can drift from the CSS.
+ */
+export function offeredIds(design: DesignConfig): Record<string, { a: string[]; f: string[] }> {
+  const out: Record<string, { a: string[]; f: string[] }> = {};
+  for (const { preset, accents, fonts } of offeredPresets(design.theme)) {
+    out[preset.id] = { a: accents.map((s) => s.id), f: fonts.map((p) => p.id) };
+  }
+  return out;
 }
 
 /**

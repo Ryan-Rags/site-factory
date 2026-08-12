@@ -157,6 +157,38 @@ export function accentsFor(theme: ThemeSelection): AccentSwatch[] {
   return theme.brandAccent ? [...preset.accents, theme.brandAccent] : preset.accents;
 }
 
+/** One preset, with the exact swatches and pairings it offers this client. */
+export interface OfferedPreset {
+  preset: ThemePreset;
+  accents: AccentSwatch[];
+  fonts: FontPairing[];
+}
+
+/**
+ * Every cell the customizer may offer, for one client.
+ *
+ * This is the single source the panel's controls, the panel's resolver, the
+ * pre-paint script and `themeMatrixCss()` all read. They used to work it out
+ * separately, and the bug that cost the most was exactly that disagreement:
+ * the panel went on offering Forge's swatches after a switch to Heritage,
+ * while the matrix had only ever emitted a block for Forge+Molten — so a
+ * prospect picking amber on cream got the other family's orange, served from
+ * the shipped `:root` block as a fallback.
+ *
+ * Deriving all four from one function does not merely fix that instance, it
+ * removes the shape of the bug: an offered cell with no CSS block, or a CSS
+ * block nothing can reach, now requires a change here.
+ */
+export function offeredPresets(theme: ThemeSelection): OfferedPreset[] {
+  return PRESETS.map((preset) => ({
+    preset,
+    // The prospect's own extracted brand colour rides along inside every
+    // preset, exactly as the matrix emits it.
+    accents: theme.brandAccent ? [...preset.accents, theme.brandAccent] : preset.accents,
+    fonts: preset.fonts,
+  }));
+}
+
 /**
  * Turn three ids into concrete colours, fonts and metrics.
  *

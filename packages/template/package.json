@@ -16,6 +16,7 @@
     "check:markers": "node scripts/check-markers.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:overflow": "node scripts/check-overflow.mjs",
+    "check:switching": "node scripts/check-switching.mjs",
     "check:contact-links": "node scripts/check-contact-links.mjs",
     "gen:placeholders": "node scripts/gen-placeholders.mjs",
     "clean": "node -e \"const{rmSync}=require('node:fs');for(const d of ['dist','.astro'])rmSync(d,{recursive:true,force:true})\"",
