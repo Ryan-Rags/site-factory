@@ -153,8 +153,12 @@ export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): P
     certifications: seed?.certifications ?? [],
     cta: seed?.cta ?? {
       headline: `Need ${leadService ? leadService.toLowerCase() : "a quote"}?`,
+      // Two things this line must not do, both caught by build gates:
+      // claim a price (nobody has asked this shop what a conversation costs),
+      // and print the number as prose (the page already carries it as a
+      // `tel:` link, and a second untappable copy is where an enquiry dies).
       body: phone
-        ? `Call ${phone} and tell us about the job. No charge for the conversation.`
+        ? "Call the shop and tell us about the job."
         : "Send us the details of the job and we will come back to you.",
       buttonText: "Get in touch",
       buttonHref: "/contact",

@@ -35,6 +35,9 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const pkgRoot = join(here, '..');
 const distRoot = join(pkgRoot, 'dist');
 const clientsDir = join(pkgRoot, 'clients');
+// Generated prospects live outside the package and outside git. See
+// clients/index.ts on why they never land in `clients/`.
+const prospectsDir = join(pkgRoot, '..', '..', 'prospects');
 
 function htmlFiles(dir) {
   const out = [];
@@ -44,6 +47,41 @@ function htmlFiles(dir) {
     else if (entry.endsWith('.html')) out.push(full);
   }
   return out;
+}
+
+/**
+ * The generated config for a prospect the demo pipeline built, or null.
+ *
+ * A discovered prospect has no file in `clients/` on purpose — see the note in
+ * `clients/index.ts`. Its config is JSON on disk, named by `SITE_CONFIG_FILE`
+ * at build time and living under `prospects/<slug>/`. Reading it is how a
+ * generated demo gets checked at all; without this the whole demo pipeline is
+ * ungated, which is the opposite of what a build gate is for.
+ */
+function generatedContactFor(slug) {
+  const fromEnv = process.env.SITE_CONFIG_FILE;
+  const candidates = [
+    ...(fromEnv ? [fromEnv] : []),
+    join(prospectsDir, slug, 'site.config.json'),
+  ];
+  const file = candidates.find((c) => existsSync(c));
+  if (file === undefined) return null;
+
+  let config;
+  try {
+    config = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (err) {
+    throw new Error(`${file} could not be read as JSON: ${err.message}`);
+  }
+  const business = config.business;
+  if (!business?.phone || !business?.phoneHref) {
+    throw new Error(`${file}: business.phone / business.phoneHref not found`);
+  }
+  return {
+    phone: business.phone,
+    phoneHref: business.phoneHref,
+    smsHref: business.smsHref ?? null,
+  };
 }
 
 /**
@@ -59,7 +97,11 @@ function htmlFiles(dir) {
  */
 function contactFor(slug) {
   const file = join(clientsDir, `${resolveBaseSlug(clientsDir, slug)}.config.ts`);
-  if (!existsSync(file)) throw new Error(`No config for "${slug}" at ${relative(pkgRoot, file)}`);
+  if (!existsSync(file)) {
+    const generated = generatedContactFor(slug);
+    if (generated) return generated;
+    throw new Error(`No config for "${slug}" at ${relative(pkgRoot, file)}`);
+  }
   const source = readFileSync(file, 'utf8');
   const business = /\bbusiness:\s*\{([\s\S]*?)\n  \},/.exec(source);
   if (!business) throw new Error(`Could not find the business block in ${slug}.config.ts`);

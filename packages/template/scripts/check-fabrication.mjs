@@ -40,10 +40,15 @@ import { fileURLToPath } from 'node:url';
 import { allowancesFor, prospectFor, VERIFY_MARKER } from '@site-factory/copy';
 
 import { resolveBaseSlug } from './lib/base-slug.mjs';
+import { ingestedAllowances } from './lib/ingested-allowances.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const distRoot = join(here, '..', 'dist');
 const clientsDir = join(here, '..', 'clients');
+// Ingested prospects live at the repo root, outside the template package and
+// outside git — see clients/index.ts on why generated data never lands in
+// `clients/`.
+const prospectsDir = join(here, '..', '..', '..', 'prospects');
 
 /**
  * The same patterns the engine's guard uses, restated here rather than
@@ -130,10 +135,20 @@ function checkClient(slug) {
   // checked against the base client's record. See scripts/lib/base-slug.mjs.
   const factsFrom = resolveBaseSlug(clientsDir, slug);
 
+  // Two kinds of record, checked identically.
+  //
+  // The five hand-authored clients have a TypeScript record in
+  // `@site-factory/copy`. A prospect the demo pipeline discovered has an
+  // ingested JSON one under `prospects/<id>/`, written by `packages/prospect`
+  // with the same known/unavailable discipline. Only the reader differs — a
+  // generated site is checked against its own sources exactly like a
+  // hand-authored one, which matters more there, not less: nobody has read
+  // that copy before it deploys.
   let allowed;
   try {
+    const ingested = ingestedAllowances(prospectsDir, factsFrom);
     allowed = [
-      ...allowancesFor(prospectFor(factsFrom)),
+      ...(ingested ?? allowancesFor(prospectFor(factsFrom))),
       // The footer's copyright year. It comes off the build clock, it is a
       // fact about this build rather than a claim about the business, and it
       // is the one four-digit number on every page that means nothing about
@@ -143,7 +158,9 @@ function checkClient(slug) {
   } catch (error) {
     console.error(
       `✗ ${slug}: no prospect record, so nothing here can be checked against a source.\n` +
-        `  ${error instanceof Error ? error.message : String(error)}`,
+        `  ${error instanceof Error ? error.message : String(error)}\n` +
+        `  A generated prospect should have prospects/${slug}/prospect.json; a\n` +
+        `  hand-authored client should have a record in @site-factory/copy.`,
     );
     return false;
   }
