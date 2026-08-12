@@ -14,11 +14,6 @@
   after worktrees exist, work stays on your assigned branch.
 # Worktree + merge protocol (solo-repo mode)
 - Streams create their own worktrees; never work in the main checkout.
-- Self-merge feat/<stream> -> main ONLY when: (1) merge touches only your
-  owned dirs + your plan file (plus explicitly granted shared files);
-  (2) fetch first, rebase if main moved, conflict-free or STOP — never
-  resolve a conflict yourself; (3) pnpm install && pnpm -r build &&
-  pnpm -r typecheck green on the merged result BEFORE pushing; report SHA.
 - Shared files (root configs, lockfile, .gitignore, claude.md, data/*.csv
   schema, root README) merge only with explicit grant in the task prompt.
 - Plan files are per-stream: PLAN-pipeline.md / PLAN-template.md. Root
@@ -30,13 +25,21 @@
 - feat/pipeline: packages/discover, packages/audit, packages/outreach, PLAN-pipeline.md
 - feat/template: packages/template, PLAN-template.md
 
-# PR-based self-merge (supersedes direct-merge clause)
-- Streams ship via PR: push feat/<stream>, open a PR with gh, and merge
-  your own PR — no human approval needed — when ALL hold:
-  (1) diff touches only owned paths + granted shared files;
-  (2) branch is rebased on latest main, conflict-free (any conflict → STOP);
-  (3) pnpm install && pnpm -r build && pnpm -r typecheck green on the
-      rebased branch before merging;
-  (4) PR body lists any shared files touched + the grant that covers them.
-- Squash-merge, delete the branch, report the merge SHA and PR number.
-- Conflicts, failed checks, or ungranted shared files are still hard stops.
+# Stream isolation & merge rules
+1. Every stream gets a fresh worktree and a unique branch. Worktree dir =
+   branch name. Branch-push is the claim; check `git branch -r` for an
+   existing claim before creating yours.
+2. One session per worktree, ever. At session start, verify the worktree is
+   clean or contains only your own prior work. If files change during your
+   session that you did not write, STOP immediately, commit a WIP snapshot
+   ("WIP: foreign writes detected"), and ask Ryan. Never stash (banned
+   repo-wide).
+3. Finish = push + open a PR. Never merge, never approve. PR description
+   must list: shared files touched (site.ts, package.json,
+   pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore, clients/*), gates run
+   with results, and anything deliberately not done.
+4. Ryan merges serially and re-runs gates between merges. A green check is
+   necessary, not sufficient.
+- Exception: an explicitly-assigned integration stream may merge feature
+  branches into an integration branch (never main). The integration PR to
+  main is merged only by Ryan.
