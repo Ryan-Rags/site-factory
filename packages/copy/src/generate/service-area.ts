@@ -103,8 +103,28 @@ export function serviceArea(
       ? 'Where we work'
       : `${pack.work.charAt(0).toUpperCase() + pack.work.slice(1)} across ${ctx.county}`;
 
+  /**
+   * The one-town case is not the five-town case with a shorter list.
+   *
+   * `Based in Lyndhurst, and working across Lyndhurst.` is what the general
+   * sentence produces when the only confirmed town is the shop's own, and it
+   * reads like a bug because it is one — the second clause exists to name the
+   * places *beyond* the home town. A prospect ingested from a lead row often
+   * has exactly one confirmed town, so this is the common case for a generated
+   * demo rather than an edge one.
+   *
+   * The fix is a different sentence, not a padded list: naming a town we were
+   * not told about would be the invented detail this whole generator is built
+   * to avoid.
+   *
+   * Deliberately scoped to the degenerate case alone. The multi-town sentence
+   * is left byte-for-byte as it was, home town included in its list — all five
+   * hand-authored clients take that branch, and rewording prose they have
+   * already been reviewed with is not this stream's to do.
+   */
+  const onlyHomeTown = towns.length === 1 && towns[0]?.town === ctx.town;
   const intro = assertPublishable(
-    towns.length === 0
+    towns.length === 0 || onlyHomeTown
       ? `Based in ${ctx.town}, ${ctx.record.region.value}.`
       : `Based in ${ctx.town}, and working across ${ctx.list(towns.map((t) => t.town))}.`,
     'serviceArea.intro',

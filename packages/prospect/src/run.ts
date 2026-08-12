@@ -173,6 +173,16 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
   }
   step(`build: dist/${opts.id}`);
 
+  // The template's `build` script is `astro build` followed by the marker,
+  // fabrication, contrast and contact-link gates, so a zero exit means all
+  // four passed on the *generated* config exactly as they do on a
+  // hand-authored one. Worth saying out loud: "the gates ran and passed" is
+  // the single most reassuring line in this output, and it was being swallowed
+  // because the build only printed on failure.
+  for (const line of built.output.split(/\r?\n/)) {
+    if (line.startsWith("✓") || line.includes("contrast checks passed")) step(`gate: ${line.trim()}`);
+  }
+
   const copied = copyAssets(opts.id, assets);
   if (copied.length > 0) step(`assets: copied ${copied.length} file(s) into the build`);
 

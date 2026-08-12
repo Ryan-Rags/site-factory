@@ -208,7 +208,9 @@ export function printSummary(manifest: DemoManifest): void {
     );
   }
 
-  for (const note of manifest.copyNotes) console.log(`  copy: ${note}`);
+  // The notes already say "copy:" where that is the useful prefix; adding a
+  // second one produced "copy: copy: 7 FAQ entries".
+  for (const note of manifest.copyNotes) console.log(`  ${note.startsWith("copy:") ? "" : "copy: "}${note}`);
 
   if (manifest.droppedQuestions.length > 0) {
     console.log(`  ${manifest.droppedQuestions.length} question(s) to ask the owner:`);
