@@ -8,9 +8,13 @@
  *   drive `BaseLayout`'s `color-mix()` shades on the pages that still render
  *   through it (`/about`, `/services`, `/contact` for every client).
  *
- * - **matrix** — every preset × every accent × every font pairing in
- *   `src/design/presets.json`, plus any per-client `paletteOverride` and any
- *   prospect's extracted `brandAccent`.
+ * - **matrix** — every preset × every scheme × every accent × every font
+ *   pairing in `src/design/presets.json`, plus any per-client
+ *   `paletteOverride` and any prospect's extracted `brandAccent`.
+ *
+ * The scheme axis roughly triples the palette count rather than doubling it:
+ * both tones of a family carry the same accent *ids* with different values,
+ * and each tone's swatch is only ever measured against its own tone.
  *
  * Matrix mode exists because of the customizer. A prospect can switch preset,
  * accent and lettering in the browser, which means the site we are answerable
@@ -75,19 +79,45 @@ const ratio = (fg, bg) => {
 /** The renderer's rule, duplicated. See the header note. */
 const isDarkPalette = (palette) => luminance(palette.base) < 0.2;
 
+/** Mirrors `SCHEMES` in `src/design/presets.ts`, for the same reason. */
+const SCHEMES = ['light', 'dark'];
+
 /* ------------------------------------------------------------------ report */
 
 let failures = 0;
 let checks = 0;
 
+/**
+ * When set, failures are collected instead of counted and printed.
+ *
+ * Used for the one class of colour whose failure is not a build failure: a
+ * prospect's own `brandAccent`, which is dropped from the cells it fails
+ * rather than fixed. Everything else — every colour we chose — reports.
+ */
+let collecting = null;
+
 function assertPair(label, fg, bg, min) {
-  checks++;
   const value = ratio(fg, bg);
+  const detail = `${fg} on ${bg} = ${value.toFixed(2)}:1, needs ${min.toFixed(1)}:1`;
+  if (collecting) {
+    if (value + 1e-9 < min) collecting.push(`${label}: ${detail}`);
+    return;
+  }
+  checks++;
   if (value + 1e-9 >= min) return;
   failures++;
-  console.error(
-    `  ✗ ${label}: ${fg} on ${bg} = ${value.toFixed(2)}:1, needs ${min.toFixed(1)}:1`,
-  );
+  console.error(`  ✗ ${label}: ${detail}`);
+}
+
+/** Run `checkPalette` without gating, and report what it would have failed. */
+function trialPalette(label, palette) {
+  collecting = [];
+  try {
+    checkPalette(label, palette);
+    return collecting;
+  } finally {
+    collecting = null;
+  }
 }
 
 /* ------------------------------------------------------------- matrix mode */
@@ -155,13 +185,14 @@ function runMatrix() {
   /*
    * Per-client extras: a `paletteOverride` and a prospect's own extracted
    * `brandAccent` are the two ways a colour can reach a page without being in
-   * presets.json, so both are pulled in and checked against every preset they
+   * presets.json, so both are pulled in and checked against every cell they
    * could be shown in.
    *
-   * A brand colour that fails is a build failure rather than a silent drop.
-   * The plan resolved this as Q1(a) — the colour is *omitted* from the offered
-   * set, never nudged until it passes — and omitting it is an edit to the
-   * config, made deliberately, not something this script does behind you.
+   * The two are treated differently, deliberately. An override is something we
+   * wrote and a failure is ours to fix, so it gates. A brand colour is the
+   * prospect's, and the standing rule (plan Q1(a)) is that it is *offered only
+   * where it is legal* and never nudged until it passes — so a failure drops
+   * that cell and is reported by name below.
    */
   const designDir = join(pkgRoot, 'clients', 'design');
   const overrides = [];
@@ -171,43 +202,83 @@ function runMatrix() {
     const theme = raw.theme;
     if (!theme) continue;
     if (theme.paletteOverride)
-      overrides.push({ file, preset: theme.preset, override: theme.paletteOverride });
+      overrides.push({
+        file,
+        preset: theme.preset,
+        scheme: theme.scheme,
+        override: theme.paletteOverride,
+      });
     if (theme.brandAccent) brandAccents.push({ file, swatch: theme.brandAccent });
   }
 
+  /*
+   * Every tone of every preset, because every one of them is reachable from
+   * the panel. A swatch is checked against the tone it was authored for and
+   * never against the other: the same accent id names a different colour in
+   * each, which is the whole reason accents live inside the scheme.
+   */
+  const dropped = [];
   for (const preset of presets.presets) {
-    const swatches = [
-      ...preset.accents,
-      ...brandAccents.map((b) => ({ ...b.swatch, id: `${b.swatch.id} (${b.file})` })),
-    ];
-    for (const swatch of swatches) {
-      checkPalette(`${preset.id}/${swatch.id}`, {
-        ...preset.palette,
-        accent: swatch.accent,
-        onAccent: swatch.onAccent,
-      });
+    for (const scheme of SCHEMES) {
+      const tone = preset.schemes[scheme];
+      for (const swatch of tone.accents) {
+        checkPalette(`${preset.id}/${scheme}/${swatch.id}`, {
+          ...tone.palette,
+          accent: swatch.accent,
+          onAccent: swatch.onAccent,
+        });
+      }
+
+      for (const { file, swatch } of brandAccents) {
+        const label = `${preset.id}/${scheme}/${swatch.id} (${file})`;
+        const fails = trialPalette(label, {
+          ...tone.palette,
+          accent: swatch.accent,
+          onAccent: swatch.onAccent,
+        });
+        if (fails.length > 0) dropped.push({ label, why: fails[0] });
+        else
+          checkPalette(label, {
+            ...tone.palette,
+            accent: swatch.accent,
+            onAccent: swatch.onAccent,
+          });
+      }
     }
   }
 
-  for (const { file, preset, override } of overrides) {
+  for (const { file, preset, scheme, override } of overrides) {
     const base = presets.presets.find((p) => p.id === preset);
     if (!base) continue;
-    const swatch = base.accents[0];
+    const tone = base.schemes[scheme ?? base.defaultScheme];
+    if (!tone) continue;
+    const swatch = tone.accents[0];
     checkPalette(`${file} · paletteOverride`, {
-      ...base.palette,
+      ...tone.palette,
       accent: swatch.accent,
       onAccent: swatch.onAccent,
       ...override,
     });
   }
 
+  const palettes = presets.presets.reduce(
+    (sum, p) => sum + SCHEMES.reduce((s, k) => s + p.schemes[k].accents.length, 0),
+    0,
+  );
   const combos = presets.presets.reduce(
-    (sum, p) => sum + p.accents.length * Math.max(1, p.fonts.length),
+    (sum, p) =>
+      sum +
+      SCHEMES.reduce((s, k) => s + p.schemes[k].accents.length * Math.max(1, p.fonts.length), 0),
     0,
   );
   console.log(
-    `matrix: ${presets.presets.length} presets, ${combos} preset×accent×font combinations reachable from the customizer.`,
+    `matrix: ${presets.presets.length} presets × ${SCHEMES.length} schemes, ${palettes} palettes, ` +
+      `${combos} preset×scheme×accent×font combinations reachable from the customizer.`,
   );
+  if (dropped.length > 0) {
+    console.log(`${dropped.length} brand-accent cell(s) dropped — not offered where they fail:`);
+    for (const d of dropped) console.log(`  · ${d.label} — ${d.why}`);
+  }
 }
 
 /* ------------------------------------------------------------- legacy mode */

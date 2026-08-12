@@ -201,6 +201,17 @@ export function parseDesign(slug: string, raw: unknown): DesignConfig {
       `expected one of ${DESIGN_FAMILIES.join(', ')}, got "${preset}"`,
     );
 
+  /*
+   * The tone is optional and defaults to the preset's own, so every config
+   * written before schemes existed still resolves to exactly what it rendered
+   * then. Naming one that does not exist is a build failure, not a fallback:
+   * a config asking for a dark Heritage and silently getting the cream one
+   * would ship the wrong site under the right client's name.
+   */
+  const scheme = t.optStr('scheme');
+  if (scheme !== undefined && scheme !== 'light' && scheme !== 'dark')
+    throw new DesignConfigError(slug, 'theme.scheme', 'expected "light" or "dark"');
+
   const radius = t.optStr('radius');
   if (radius !== undefined && radius !== 'sharp' && radius !== 'soft')
     throw new DesignConfigError(slug, 'theme.radius', 'expected "sharp" or "soft"');
@@ -249,6 +260,7 @@ export function parseDesign(slug: string, raw: unknown): DesignConfig {
 
   const theme: ThemeSelection = {
     preset: preset as PresetId,
+    ...(scheme !== undefined ? { scheme } : {}),
     accent: t.str('accent'),
     fontPairing: t.str('fontPairing'),
     ...(radius !== undefined ? { radius } : {}),
@@ -730,11 +742,18 @@ export function themeMatrixCss(design: DesignConfig): string {
   // `offeredPresets()` is what the panel builds its controls from. Emitting
   // from the same call is the guarantee that every cell a prospect can select
   // has a block here — see the note on that function.
-  for (const { preset, accents, fonts } of offeredPresets(design.theme)) {
+  for (const { preset, schemes, fonts } of offeredPresets(design.theme)) {
     const radius = RADIUS_SCALE[preset.radius];
     const density = DENSITY_SCALE[preset.density];
+
+    /*
+     * Metrics sit on the preset alone, deliberately at lower specificity than
+     * the palette blocks below. They are the only tokens that change geometry,
+     * they do not vary by tone, and declaring them once per preset rather than
+     * once per cell is what keeps a scheme flip free of layout shift — there
+     * is no combination in which they can go missing.
+     */
     blocks.push(`:root[data-theme="${preset.id}"] {
-${paletteTokens(preset.palette)}
   --d-radius-card: ${radius.card};
   --d-radius-btn: ${radius.btn};
   --d-section-y: ${density.section};
@@ -742,18 +761,39 @@ ${paletteTokens(preset.palette)}
   --d-grid-gap: ${density.gap};
 }`);
 
-    // The prospect's own extracted brand colour is offered inside every
-    // preset it was cleared for. It is in the matrix rather than bolted on,
-    // so switching preset keeps the selection valid or drops it visibly.
-    for (const swatch of accents) {
-      blocks.push(`:root[data-theme="${preset.id}"][data-accent="${swatch.id}"] {
-${accentTokens(swatch.accent, swatch.onAccent, preset.palette)}
+    for (const { scheme, palette, accents } of schemes) {
+      /*
+       * `color-scheme` is declared here and deliberately *not* in the single
+       * `:root` block a delivered site gets. It tells the browser which way to
+       * render the things CSS does not own — scrollbars, form controls, the
+       * canvas behind a rubber-band scroll — and a dark tone without it shows
+       * a light scrollbar down the edge of a carbon page.
+       *
+       * Adding it to the delivered block would change how the five existing
+       * customizer clients and the three delivered demos actually render, and
+       * byte-identical delivered output is a standing acceptance on this work.
+       * It belongs there too; that is a one-line change and a deliberate
+       * decision to make, not a side effect of this one.
+       */
+      blocks.push(`:root[data-theme="${preset.id}"][data-scheme="${scheme}"] {
+  color-scheme: ${scheme};
+${paletteTokens(palette)}
 }`);
+
+      // Accent tokens depend on the tone they sit in twice over: the swatch
+      // itself differs, and `-strong`/`-soft` are mixed against that tone's
+      // ink and surface. Hence a block per preset × scheme × accent.
+      for (const swatch of accents) {
+        blocks.push(`:root[data-theme="${preset.id}"][data-scheme="${scheme}"][data-accent="${swatch.id}"] {
+${accentTokens(swatch.accent, swatch.onAccent, palette)}
+}`);
+      }
     }
 
     for (const pairing of fonts) {
       // Font blocks are scoped by preset too: two presets may legitimately
-      // offer pairings under the same id with different stacks.
+      // offer pairings under the same id with different stacks. They do not
+      // vary by tone, so they are not scoped by scheme.
       blocks.push(`:root[data-theme="${preset.id}"][data-font="${pairing.id}"] {
 ${fontTokens(pairing)}
 }`);
@@ -763,19 +803,33 @@ ${fontTokens(pairing)}
   return blocks.join('\n');
 }
 
+/** The id skeleton of one preset's offer: its tones, their accents, its fonts. */
+export interface OfferedIdsEntry {
+  /** Scheme id → accent ids legal in that tone. */
+  s: Record<string, string[]>;
+  /** Font pairing ids, which do not vary by tone. */
+  f: string[];
+  /** The tone this preset falls back to when a request does not name one. */
+  d: string;
+}
+
 /**
  * The offered cells as plain ids, for the scripts that must resolve a
  * selection before any CSS can help them.
  *
  * Both the pre-paint script in `DesignLayout` and the panel's own resolver
  * need to know which ids are legal together. They get this — the id skeleton
- * of the matrix above, ~200 bytes inlined — rather than a second hand-written
- * list that can drift from the CSS.
+ * of the matrix above — rather than a second hand-written list that can drift
+ * from the CSS.
  */
-export function offeredIds(design: DesignConfig): Record<string, { a: string[]; f: string[] }> {
-  const out: Record<string, { a: string[]; f: string[] }> = {};
-  for (const { preset, accents, fonts } of offeredPresets(design.theme)) {
-    out[preset.id] = { a: accents.map((s) => s.id), f: fonts.map((p) => p.id) };
+export function offeredIds(design: DesignConfig): Record<string, OfferedIdsEntry> {
+  const out: Record<string, OfferedIdsEntry> = {};
+  for (const { preset, schemes, fonts } of offeredPresets(design.theme)) {
+    out[preset.id] = {
+      s: Object.fromEntries(schemes.map((s) => [s.scheme, s.accents.map((a) => a.id)])),
+      f: fonts.map((p) => p.id),
+      d: preset.defaultScheme,
+    };
   }
   return out;
 }

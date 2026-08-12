@@ -33,6 +33,25 @@ export type PresetId = 'forge' | 'precision' | 'heritage';
 export type RadiusName = 'sharp' | 'soft';
 export type DensityName = 'compact' | 'comfortable';
 
+/**
+ * Light or dark, as a token dimension in its own right.
+ *
+ * A scheme is a *tone*, not a second design system: it owns the palette and
+ * the accents and nothing else. Radius, density, lettering and the layout
+ * allow-list stay on the preset, so a dark Precision is still recognisably
+ * Precision — same geometry, same type, same arrangements.
+ *
+ * Accents belong to the scheme because they have to. `onAccent`, and the 4.5:1
+ * an accent must reach against `base` and `surface`, are different questions in
+ * each tone: Forge's shipped ember reaches 3.49:1 on a light base and could not
+ * honestly be offered there. The two tones therefore carry the same accent
+ * *ids* with different values, which is also what lets a prospect flip the
+ * scheme without losing the colour they picked.
+ */
+export type SchemeName = 'light' | 'dark';
+
+export const SCHEMES: SchemeName[] = ['light', 'dark'];
+
 /** The colours a preset owns. The accent is not among them — it is chosen. */
 export interface PresetPalette {
   base: string;
@@ -76,14 +95,21 @@ export interface FontPairing {
   faces?: FontFace[];
 }
 
+/** One tone of one preset: the colours, and the accents measured against them. */
+export interface PresetScheme {
+  palette: PresetPalette;
+  accents: AccentSwatch[];
+}
+
 export interface ThemePreset {
   id: PresetId;
   label: string;
   blurb: string;
-  palette: PresetPalette;
+  /** The tone this family is shown in when a config does not say. */
+  defaultScheme: SchemeName;
   radius: RadiusName;
   density: DensityName;
-  accents: AccentSwatch[];
+  schemes: Record<SchemeName, PresetScheme>;
   fonts: FontPairing[];
   variants: { hero: HeroVariant[]; services: string[]; reviews: string[] };
 }
@@ -120,6 +146,12 @@ export function getPreset(id: string): ThemePreset {
  */
 export interface ThemeSelection {
   preset: PresetId;
+  /**
+   * Light or dark. Optional, and defaults to the preset's `defaultScheme` —
+   * which is the tone that family shipped in before schemes existed, so an
+   * older config renders exactly as it did.
+   */
+  scheme?: SchemeName;
   /** An `AccentSwatch.id` from the preset, or `"brand"` for `brandAccent`. */
   accent: string;
   /** A `FontPairing.id` from the preset. */
@@ -145,22 +177,51 @@ export interface ThemeSelection {
 /** Everything the tokens need, with every choice already made. */
 export interface ResolvedTheme {
   preset: ThemePreset;
+  scheme: SchemeName;
   palette: PresetPalette & { accent: string; onAccent: string };
   fonts: FontPairing;
   radius: { card: string; btn: string };
   density: { section: string; sectionLg: string; gap: string };
 }
 
-/** The swatches a preset offers for a given client, brand colour included. */
-export function accentsFor(theme: ThemeSelection): AccentSwatch[] {
-  const preset = getPreset(theme.preset);
-  return theme.brandAccent ? [...preset.accents, theme.brandAccent] : preset.accents;
+/** The tone a selection is in: its own, or the family's default. */
+export function schemeFor(theme: ThemeSelection): SchemeName {
+  return theme.scheme ?? getPreset(theme.preset).defaultScheme;
 }
 
-/** One preset, with the exact swatches and pairings it offers this client. */
+/** One tone of one preset, by name. Fails loudly on an unknown tone. */
+export function getScheme(preset: ThemePreset, scheme: SchemeName): PresetScheme {
+  const found = preset.schemes[scheme];
+  if (!found)
+    throw new Error(
+      `Preset "${preset.id}" has no "${scheme}" scheme — expected one of ` +
+        `${Object.keys(preset.schemes).join(', ')}. Schemes live in src/design/presets.json.`,
+    );
+  return found;
+}
+
+/**
+ * The swatches a preset offers for a given client, brand colour included.
+ *
+ * Scheme-aware: the same accent id names a different colour in each tone, and
+ * this returns the one that was measured against the tone in play.
+ */
+export function accentsFor(theme: ThemeSelection): AccentSwatch[] {
+  const scheme = getScheme(getPreset(theme.preset), schemeFor(theme));
+  return theme.brandAccent ? [...scheme.accents, theme.brandAccent] : scheme.accents;
+}
+
+/** One tone of one preset, with the swatches it offers this client. */
+export interface OfferedScheme {
+  scheme: SchemeName;
+  palette: PresetPalette;
+  accents: AccentSwatch[];
+}
+
+/** One preset, with every tone it offers and the pairings they share. */
 export interface OfferedPreset {
   preset: ThemePreset;
-  accents: AccentSwatch[];
+  schemes: OfferedScheme[];
   fonts: FontPairing[];
 }
 
@@ -177,14 +238,23 @@ export interface OfferedPreset {
  *
  * Deriving all four from one function does not merely fix that instance, it
  * removes the shape of the bug: an offered cell with no CSS block, or a CSS
- * block nothing can reach, now requires a change here.
+ * block nothing can reach, now requires a change here. Adding the scheme axis
+ * was the test of that: it is one extra loop in this function, and the panel,
+ * the pre-paint script and the emitted CSS all gained the dimension together.
  */
 export function offeredPresets(theme: ThemeSelection): OfferedPreset[] {
   return PRESETS.map((preset) => ({
     preset,
-    // The prospect's own extracted brand colour rides along inside every
-    // preset, exactly as the matrix emits it.
-    accents: theme.brandAccent ? [...preset.accents, theme.brandAccent] : preset.accents,
+    schemes: SCHEMES.map((scheme) => {
+      const data = getScheme(preset, scheme);
+      return {
+        scheme,
+        palette: data.palette,
+        // The prospect's own extracted brand colour rides along inside every
+        // cell it was cleared for, exactly as the matrix emits it.
+        accents: theme.brandAccent ? [...data.accents, theme.brandAccent] : data.accents,
+      };
+    }),
     fonts: preset.fonts,
   }));
 }
@@ -199,12 +269,14 @@ export function offeredPresets(theme: ThemeSelection): OfferedPreset[] {
  */
 export function resolveTheme(theme: ThemeSelection): ResolvedTheme {
   const preset = getPreset(theme.preset);
+  const scheme = schemeFor(theme);
+  const tone = getScheme(preset, scheme);
 
   const swatch = accentsFor(theme).find((a) => a.id === theme.accent);
   if (!swatch)
     throw new Error(
-      `Unknown accent "${theme.accent}" for preset "${preset.id}" — expected one of ` +
-        `${accentsFor(theme).map((a) => a.id).join(', ')}.`,
+      `Unknown accent "${theme.accent}" for preset "${preset.id}" in its "${scheme}" scheme — ` +
+        `expected one of ${accentsFor(theme).map((a) => a.id).join(', ')}.`,
     );
 
   const fonts = preset.fonts.find((f) => f.id === theme.fontPairing);
@@ -216,8 +288,9 @@ export function resolveTheme(theme: ThemeSelection): ResolvedTheme {
 
   return {
     preset,
+    scheme,
     palette: {
-      ...preset.palette,
+      ...tone.palette,
       accent: swatch.accent,
       onAccent: swatch.onAccent,
       ...(theme.paletteOverride ?? {}),

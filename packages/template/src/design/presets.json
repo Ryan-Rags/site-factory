@@ -4,24 +4,87 @@
       "id": "forge",
       "label": "Forge",
       "blurb": "Dark industrial. Near-black carbon, brushed-steel bands, condensed caps and a hot accent. Built for machine shops, welders and fabricators.",
-      "palette": {
-        "base": "#0d0f12",
-        "surface": "#16191e",
-        "surfaceAlt": "#121519",
-        "ink": "#f2f4f7",
-        "inkMuted": "#aeb6c0",
-        "line": "#2a2f36",
-        "primary": "#16191e",
-        "onPrimary": "#f2f4f7"
-      },
+      "defaultScheme": "dark",
       "radius": "sharp",
       "density": "compact",
-      "accents": [
-        { "id": "ember", "label": "Ember orange", "accent": "#e2551f", "onAccent": "#14100c" },
-        { "id": "signal", "label": "Signal red", "accent": "#ef5346", "onAccent": "#150b0a" },
-        { "id": "molten", "label": "Molten amber", "accent": "#e8a020", "onAccent": "#160f02" },
-        { "id": "arc", "label": "Arc blue", "accent": "#3d9be0", "onAccent": "#04121c" }
-      ],
+      "schemes": {
+        "light": {
+          "palette": {
+            "base": "#f4f6f8",
+            "surface": "#ffffff",
+            "surfaceAlt": "#e8ecf1",
+            "ink": "#14181d",
+            "inkMuted": "#4a545f",
+            "line": "#cbd2db",
+            "primary": "#1b2027",
+            "onPrimary": "#f2f4f7"
+          },
+          "accents": [
+            {
+              "id": "ember",
+              "label": "Ember orange",
+              "accent": "#b3400f",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "signal",
+              "label": "Signal red",
+              "accent": "#c22a1e",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "molten",
+              "label": "Molten amber",
+              "accent": "#8a5900",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "arc",
+              "label": "Arc blue",
+              "accent": "#10639f",
+              "onAccent": "#ffffff"
+            }
+          ]
+        },
+        "dark": {
+          "palette": {
+            "base": "#0d0f12",
+            "surface": "#16191e",
+            "surfaceAlt": "#121519",
+            "ink": "#f2f4f7",
+            "inkMuted": "#aeb6c0",
+            "line": "#2a2f36",
+            "primary": "#16191e",
+            "onPrimary": "#f2f4f7"
+          },
+          "accents": [
+            {
+              "id": "ember",
+              "label": "Ember orange",
+              "accent": "#e2551f",
+              "onAccent": "#14100c"
+            },
+            {
+              "id": "signal",
+              "label": "Signal red",
+              "accent": "#ef5346",
+              "onAccent": "#150b0a"
+            },
+            {
+              "id": "molten",
+              "label": "Molten amber",
+              "accent": "#e8a020",
+              "onAccent": "#160f02"
+            },
+            {
+              "id": "arc",
+              "label": "Arc blue",
+              "accent": "#3d9be0",
+              "onAccent": "#04121c"
+            }
+          ]
+        }
+      },
       "fonts": [
         {
           "id": "condensed-caps",
@@ -52,33 +115,106 @@
         }
       ],
       "variants": {
-        "hero": ["full-bleed", "split", "stacked-panel"],
-        "services": ["cards", "list"],
-        "reviews": ["grid", "carousel"]
+        "hero": [
+          "full-bleed",
+          "split",
+          "stacked-panel"
+        ],
+        "services": [
+          "cards",
+          "list"
+        ],
+        "reviews": [
+          "grid",
+          "carousel"
+        ]
       }
     },
     {
       "id": "precision",
       "label": "Precision",
       "blurb": "Light engineering. White and graphite, a blueprint grid, drawing-office corner ticks and a measured blue. Built for contractors, HVAC and electrical.",
-      "palette": {
-        "base": "#ffffff",
-        "surface": "#ffffff",
-        "surfaceAlt": "#f3f6fa",
-        "ink": "#101720",
-        "inkMuted": "#4a5561",
-        "line": "#ccd7e3",
-        "primary": "#10202f",
-        "onPrimary": "#eef3f8"
-      },
+      "defaultScheme": "light",
       "radius": "soft",
       "density": "comfortable",
-      "accents": [
-        { "id": "blueprint", "label": "Blueprint blue", "accent": "#0b5fbe", "onAccent": "#ffffff" },
-        { "id": "teal", "label": "Instrument teal", "accent": "#0a6a6a", "onAccent": "#ffffff" },
-        { "id": "indigo", "label": "Drafting indigo", "accent": "#4038b8", "onAccent": "#ffffff" },
-        { "id": "copper", "label": "Copper line", "accent": "#9a4a12", "onAccent": "#ffffff" }
-      ],
+      "schemes": {
+        "light": {
+          "palette": {
+            "base": "#ffffff",
+            "surface": "#ffffff",
+            "surfaceAlt": "#f3f6fa",
+            "ink": "#101720",
+            "inkMuted": "#4a5561",
+            "line": "#ccd7e3",
+            "primary": "#10202f",
+            "onPrimary": "#eef3f8"
+          },
+          "accents": [
+            {
+              "id": "blueprint",
+              "label": "Blueprint blue",
+              "accent": "#0b5fbe",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "teal",
+              "label": "Instrument teal",
+              "accent": "#0a6a6a",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "indigo",
+              "label": "Drafting indigo",
+              "accent": "#4038b8",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "copper",
+              "label": "Copper line",
+              "accent": "#9a4a12",
+              "onAccent": "#ffffff"
+            }
+          ]
+        },
+        "dark": {
+          "palette": {
+            "base": "#0b1119",
+            "surface": "#121a24",
+            "surfaceAlt": "#0f1720",
+            "ink": "#e9eff6",
+            "inkMuted": "#a3b0be",
+            "line": "#222e3b",
+            "primary": "#121a24",
+            "onPrimary": "#e9eff6"
+          },
+          "accents": [
+            {
+              "id": "blueprint",
+              "label": "Blueprint blue",
+              "accent": "#62a8f2",
+              "onAccent": "#04121f"
+            },
+            {
+              "id": "teal",
+              "label": "Instrument teal",
+              "accent": "#35b5ab",
+              "onAccent": "#01130f"
+            },
+            {
+              "id": "indigo",
+              "label": "Drafting indigo",
+              "accent": "#9d93f2",
+              "onAccent": "#0b0820"
+            },
+            {
+              "id": "copper",
+              "label": "Copper line",
+              "accent": "#e08b4d",
+              "onAccent": "#180d03"
+            }
+          ]
+        }
+      },
       "fonts": [
         {
           "id": "engineered",
@@ -100,33 +236,106 @@
         }
       ],
       "variants": {
-        "hero": ["split", "full-bleed", "stacked-panel"],
-        "services": ["cards", "list"],
-        "reviews": ["grid", "carousel"]
+        "hero": [
+          "split",
+          "full-bleed",
+          "stacked-panel"
+        ],
+        "services": [
+          "cards",
+          "list"
+        ],
+        "reviews": [
+          "grid",
+          "carousel"
+        ]
       }
     },
     {
       "id": "heritage",
       "label": "Heritage",
       "blurb": "Warm family business. Cream and deep forest, serif display, double sign-painter's rules. Built for legacy shops and second-generation trades.",
-      "palette": {
-        "base": "#fbf7ef",
-        "surface": "#ffffff",
-        "surfaceAlt": "#f4ecdd",
-        "ink": "#221f1a",
-        "inkMuted": "#57503f",
-        "line": "#ddd0b9",
-        "primary": "#173428",
-        "onPrimary": "#f5ecdd"
-      },
+      "defaultScheme": "light",
       "radius": "soft",
       "density": "comfortable",
-      "accents": [
-        { "id": "brick", "label": "Old brick", "accent": "#8c3b1f", "onAccent": "#ffffff" },
-        { "id": "oxblood", "label": "Oxblood", "accent": "#7c2233", "onAccent": "#ffffff" },
-        { "id": "forest", "label": "Deep forest", "accent": "#1f5140", "onAccent": "#ffffff" },
-        { "id": "navy", "label": "Ink navy", "accent": "#1d3f6b", "onAccent": "#ffffff" }
-      ],
+      "schemes": {
+        "light": {
+          "palette": {
+            "base": "#fbf7ef",
+            "surface": "#ffffff",
+            "surfaceAlt": "#f4ecdd",
+            "ink": "#221f1a",
+            "inkMuted": "#57503f",
+            "line": "#ddd0b9",
+            "primary": "#173428",
+            "onPrimary": "#f5ecdd"
+          },
+          "accents": [
+            {
+              "id": "brick",
+              "label": "Old brick",
+              "accent": "#8c3b1f",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "oxblood",
+              "label": "Oxblood",
+              "accent": "#7c2233",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "forest",
+              "label": "Deep forest",
+              "accent": "#1f5140",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "navy",
+              "label": "Ink navy",
+              "accent": "#1d3f6b",
+              "onAccent": "#ffffff"
+            }
+          ]
+        },
+        "dark": {
+          "palette": {
+            "base": "#17130e",
+            "surface": "#201b14",
+            "surfaceAlt": "#1b1610",
+            "ink": "#f4ece0",
+            "inkMuted": "#beb2a0",
+            "line": "#322a20",
+            "primary": "#201b14",
+            "onPrimary": "#f4ece0"
+          },
+          "accents": [
+            {
+              "id": "brick",
+              "label": "Old brick",
+              "accent": "#e08a63",
+              "onAccent": "#1b0c04"
+            },
+            {
+              "id": "oxblood",
+              "label": "Oxblood",
+              "accent": "#e5808f",
+              "onAccent": "#1c0709"
+            },
+            {
+              "id": "forest",
+              "label": "Deep forest",
+              "accent": "#74c5a2",
+              "onAccent": "#03150d"
+            },
+            {
+              "id": "navy",
+              "label": "Ink navy",
+              "accent": "#85acdd",
+              "onAccent": "#050f1d"
+            }
+          ]
+        }
+      },
       "fonts": [
         {
           "id": "old-serif",
@@ -157,18 +366,42 @@
         }
       ],
       "variants": {
-        "hero": ["stacked-panel", "split", "full-bleed"],
-        "services": ["cards", "list"],
-        "reviews": ["grid", "carousel"]
+        "hero": [
+          "stacked-panel",
+          "split",
+          "full-bleed"
+        ],
+        "services": [
+          "cards",
+          "list"
+        ],
+        "reviews": [
+          "grid",
+          "carousel"
+        ]
       }
     }
   ],
   "radiusScale": {
-    "sharp": { "card": "0.125rem", "btn": "0.125rem" },
-    "soft": { "card": "0.625rem", "btn": "0.5rem" }
+    "sharp": {
+      "card": "0.125rem",
+      "btn": "0.125rem"
+    },
+    "soft": {
+      "card": "0.625rem",
+      "btn": "0.5rem"
+    }
   },
   "densityScale": {
-    "compact": { "section": "3.25rem", "sectionLg": "5rem", "gap": "1.25rem" },
-    "comfortable": { "section": "4rem", "sectionLg": "6.5rem", "gap": "1.75rem" }
+    "compact": {
+      "section": "3.25rem",
+      "sectionLg": "5rem",
+      "gap": "1.25rem"
+    },
+    "comfortable": {
+      "section": "4rem",
+      "sectionLg": "6.5rem",
+      "gap": "1.75rem"
+    }
   }
 }

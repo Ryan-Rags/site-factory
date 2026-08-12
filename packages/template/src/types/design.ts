@@ -29,12 +29,17 @@ import type { ThemeSelection } from '../design/presets';
  * sticky call bar lands in all three at once, and no family can quietly drift
  * into worse accessibility than its siblings.
  *
- * - `forge`     — near-black carbon base, steel gradients, condensed caps
- *                 headlines, hot accent. Machine shops, welding, fabrication.
+ * - `forge`     — carbon base, steel gradients, condensed caps headlines, hot
+ *                 accent. Machine shops, welding, fabrication.
  * - `precision` — white/graphite, blueprint grid motifs, blue accent, clean
  *                 sans. Contractors, HVAC, electrical.
  * - `heritage`  — cream with a deep navy or forest ink, serif display,
  *                 ruled dividers. Legacy shops, "family owned since" trades.
+ *
+ * Each family ships in both tones — see `SchemeName`. The tone changes the
+ * palette and the accents and nothing else, so a dark Precision keeps its
+ * blueprint grid and its geometry; the grid is drawn in the palette's own
+ * line colour and follows the tone without a rule of its own.
  */
 export type DesignFamily = 'forge' | 'precision' | 'heritage';
 
@@ -112,8 +117,10 @@ export type {
   FontPairing,
   PresetId,
   PresetPalette,
+  PresetScheme,
   RadiusName,
   ResolvedTheme,
+  SchemeName,
   ThemePreset,
   ThemeSelection,
 } from '../design/presets';

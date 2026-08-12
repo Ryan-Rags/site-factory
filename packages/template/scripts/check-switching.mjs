@@ -63,6 +63,9 @@ function clientTheme(slug) {
 const theme = clientTheme(SLUG);
 const brand = theme.brandAccent ?? null;
 
+/** Mirrors `SCHEMES` in `src/design/presets.ts`. */
+const SCHEMES = ['light', 'dark'];
+
 /**
  * Every cell the customizer offers, as data.
  *
@@ -73,10 +76,13 @@ const brand = theme.brandAccent ?? null;
 function cells() {
   const out = [];
   for (const preset of presetFile.presets) {
-    const swatches = brand ? [...preset.accents, brand] : preset.accents;
-    for (const swatch of swatches) {
-      for (const font of preset.fonts) {
-        out.push({ preset, swatch, font });
+    for (const scheme of SCHEMES) {
+      const tone = preset.schemes[scheme];
+      const swatches = brand ? [...tone.accents, brand] : tone.accents;
+      for (const swatch of swatches) {
+        for (const font of preset.fonts) {
+          out.push({ preset, scheme, palette: tone.palette, swatch, font });
+        }
       }
     }
   }
@@ -155,10 +161,12 @@ const readState = (page) =>
     return {
       attrs: {
         theme: doc.getAttribute('data-theme'),
+        scheme: doc.getAttribute('data-scheme'),
         accent: doc.getAttribute('data-accent'),
         font: doc.getAttribute('data-font'),
         family: document.body.getAttribute('data-family'),
       },
+      colorScheme: styles.colorScheme,
       tokens: {
         accent: prop('--d-accent'),
         onAccent: prop('--d-on-accent'),
@@ -173,6 +181,7 @@ const readState = (page) =>
       },
       checked: {
         theme: checked('d-theme'),
+        scheme: checked('d-scheme'),
         accent: checked('d-accent'),
         font: checked('d-font'),
       },
@@ -182,32 +191,37 @@ const readState = (page) =>
 
 /** Everything a cell must be true of, wherever it was arrived at from. */
 function assertCell(where, cell, state) {
-  const { preset, swatch, font } = cell;
-  const label = `${where} ${preset.id}/${swatch.id}/${font.id}`;
+  const { preset, scheme, palette, swatch, font } = cell;
+  const label = `${where} ${preset.id}/${scheme}/${swatch.id}/${font.id}`;
 
   assertEq(`${label} · data-theme`, state.attrs.theme, preset.id);
+  assertEq(`${label} · data-scheme`, state.attrs.scheme, scheme);
   assertEq(`${label} · data-accent`, state.attrs.accent, swatch.id);
   assertEq(`${label} · data-font`, state.attrs.font, font.id);
   // The decorative rules key off the body attribute; if it lags, a Forge page
   // keeps its carbon texture under a Heritage palette.
   assertEq(`${label} · body data-family`, state.attrs.family, preset.id);
+  // What the browser paints outside CSS's reach — scrollbars, form controls.
+  // A dark page that forgot to say so gets a white scrollbar down its edge.
+  assertEq(`${label} · color-scheme`, state.colorScheme, scheme);
 
   // The tokens. A missing matrix block shows up here first: the property
   // silently resolves to the shipped `:root` value instead of this cell's.
   assertEq(`${label} · --d-accent`, state.tokens.accent, swatch.accent);
   assertEq(`${label} · --d-on-accent`, state.tokens.onAccent, swatch.onAccent);
-  assertEq(`${label} · --d-base`, state.tokens.base, preset.palette.base);
-  assertEq(`${label} · --d-ink`, state.tokens.ink, preset.palette.ink);
+  assertEq(`${label} · --d-base`, state.tokens.base, palette.base);
+  assertEq(`${label} · --d-ink`, state.tokens.ink, palette.ink);
   assertEq(`${label} · --d-font-display`, state.tokens.display, font.display);
 
   // What is actually on screen. A token can be correct while nothing paints it.
   assertEq(`${label} · accent button background`, state.painted.buttonBg, swatch.accent);
   assertEq(`${label} · accent button text`, state.painted.buttonInk, swatch.onAccent);
-  assertEq(`${label} · page background`, state.painted.pageBg, preset.palette.base);
+  assertEq(`${label} · page background`, state.painted.pageBg, palette.base);
 
   // And the panel itself. A control that shows one colour while the page shows
   // another is the failure a prospect sees, whatever the tokens say.
   assertEq(`${label} · panel style checked`, state.checked.theme, preset.id);
+  assertEq(`${label} · panel tone checked`, state.checked.scheme, scheme);
   assertEq(`${label} · panel accent checked`, state.checked.accent, swatch.id);
   assertEq(`${label} · panel lettering checked`, state.checked.font, font.id);
 }
@@ -288,14 +302,16 @@ try {
   console.log(`switching: ${ALL.length} cells on ${SLUG} at ${BASE}\n`);
 
   for (const cell of ALL) {
-    const { preset, swatch, font } = cell;
-    const name = `${preset.id}/${swatch.id}/${font.id}`;
+    const { preset, scheme, swatch, font } = cell;
+    const name = `${preset.id}/${scheme}/${swatch.id}/${font.id}`;
 
     await openPanel(page);
-    // Preset first, deliberately: it is the switch that re-resolves the other
-    // two, and the order a prospect uses the panel in.
+    // Preset first, then tone, deliberately: those are the two switches that
+    // re-resolve the others, and the order a prospect uses the panel in.
     if (!(await choose(page, `d-theme-${preset.id}`, `${name} · style`))) continue;
-    if (!(await choose(page, `d-accent-${preset.id}-${swatch.id}`, `${name} · accent`))) continue;
+    if (!(await choose(page, `d-scheme-${scheme}`, `${name} · tone`))) continue;
+    if (!(await choose(page, `d-accent-${preset.id}-${scheme}-${swatch.id}`, `${name} · accent`)))
+      continue;
     if (!(await choose(page, `d-font-${preset.id}-${font.id}`, `${name} · lettering`))) continue;
 
     const applied = await readState(page);
@@ -328,31 +344,63 @@ try {
    * produced the stale-colour bug in the first place.
    */
   const heritage = presetFile.presets.find((p) => p.id === 'heritage');
-  const foreign = presetFile.presets.find((p) => p.id !== 'heritage').accents[0];
-  await page.evaluate(() => {
-    try {
-      localStorage.clear();
-    } catch (e) {
-      /* nothing to clear */
+  const foreign = presetFile.presets.find((p) => p.id !== 'heritage');
+  const foreignScheme = foreign.defaultScheme;
+
+  for (const [what, query] of [
+    // An accent from another family, which shares no ids with this one.
+    ['a foreign accent', `theme=heritage&scheme=light&accent=${foreign.schemes[foreignScheme].accents[0].id}`],
+    // A tone that does not exist. Every family has both today, so this is the
+    // shape a renamed or removed tone would arrive in.
+    ['an unknown tone', 'theme=heritage&scheme=sepia&accent=brick'],
+    // A swatch that never existed anywhere.
+    ['an invented accent', 'theme=heritage&scheme=dark&accent=chartreuse'],
+    // The whole family gone.
+    ['an unknown preset', 'theme=brutalist&accent=brick'],
+  ]) {
+    await page.evaluate(() => {
+      try {
+        localStorage.clear();
+      } catch (e) {
+        /* nothing to clear */
+      }
+    });
+    await page.goto(`${BASE}/?${query}`, { waitUntil: 'networkidle0' });
+    const clamped = await readState(page);
+
+    const preset = presetFile.presets.find((p) => p.id === clamped.attrs.theme);
+    checks++;
+    if (!preset) {
+      failures++;
+      console.error(`  ✗ illegal url (${what}): data-theme="${clamped.attrs.theme}" is not a preset`);
+      continue;
     }
-  });
-  await page.goto(`${BASE}/?theme=heritage&accent=${foreign.id}&font=old-serif`, {
-    waitUntil: 'networkidle0',
-  });
-  const clamped = await readState(page);
-  const legal = heritage.accents.map((a) => a.id).concat(brand ? [brand.id] : []);
-  checks++;
-  if (!legal.includes(clamped.attrs.accent)) {
-    failures++;
-    console.error(
-      `  ✗ illegal url: ?accent=${foreign.id} on heritage left data-accent=` +
-        `"${clamped.attrs.accent}" — expected one of ${legal.join(', ')}`,
+    const tone = preset.schemes[clamped.attrs.scheme];
+    checks++;
+    if (!tone) {
+      failures++;
+      console.error(`  ✗ illegal url (${what}): data-scheme="${clamped.attrs.scheme}" is not a scheme`);
+      continue;
+    }
+    const landed = (brand ? [...tone.accents, brand] : tone.accents).find(
+      (a) => a.id === clamped.attrs.accent,
     );
-  }
-  const landed = heritage.accents.concat(brand ? [brand] : []).find((a) => a.id === clamped.attrs.accent);
-  if (landed) {
-    assertEq('illegal url · --d-accent is the landed swatch', clamped.tokens.accent, landed.accent);
-    assertEq('illegal url · painted accent', clamped.painted.buttonBg, landed.accent);
+    checks++;
+    if (!landed) {
+      failures++;
+      console.error(
+        `  ✗ illegal url (${what}): ?${query} left data-accent="${clamped.attrs.accent}", ` +
+          `which ${preset.id}/${clamped.attrs.scheme} does not offer`,
+      );
+      continue;
+    }
+    // Landing legally is not enough — it has to be *painted*, which is what
+    // the original bug got wrong: a legal-looking attribute over a cell with
+    // no CSS block, falling back to the shipped accent.
+    assertEq(`illegal url (${what}) · --d-accent`, clamped.tokens.accent, landed.accent);
+    assertEq(`illegal url (${what}) · painted accent`, clamped.painted.buttonBg, landed.accent);
+    assertEq(`illegal url (${what}) · page background`, clamped.painted.pageBg, tone.palette.base);
+    assertEq(`illegal url (${what}) · panel agrees`, clamped.checked.accent, landed.id);
   }
 } finally {
   await browser.close();

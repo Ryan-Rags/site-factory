@@ -2,19 +2,20 @@
 /**
  * The design preview panel. Pitch builds only.
  *
- * A prospect can switch preset, accent and font pairing and see the whole page
- * change instantly, then send the combination back. That is the entire point:
- * the conversation stops being "do you like this?" and becomes "which of these
- * is yours?".
+ * A prospect can switch preset, tone, accent and font pairing and see the whole
+ * page change instantly, then send the combination back. That is the entire
+ * point: the conversation stops being "do you like this?" and becomes "which of
+ * these is yours?".
  *
  * How it switches without a reload and without layout shift:
  * `DesignLayout` has already emitted every combination as static CSS keyed on
- * `<html data-theme|data-accent|data-font>`. Switching is three attribute
- * writes. The browser re-resolves custom properties — which it does anyway on
- * any style change — and nothing else happens, because radius and density are
- * the only metric tokens and both are declared in every combination.
+ * `<html data-theme|data-scheme|data-accent|data-font>`. Switching is four
+ * attribute writes. The browser re-resolves custom properties — which it does
+ * anyway on any style change — and nothing else happens, because radius and
+ * density are the only metric tokens and both are declared on the preset
+ * block, which every combination of that preset carries.
  *
- * Accessibility is bought rather than built: the three controls are real
+ * Accessibility is bought rather than built: the four controls are real
  * `<fieldset>` + `<input type="radio">` groups, so arrow-key navigation, group
  * labelling and screen-reader announcement come from the platform. The panel
  * is non-modal (it changes the page behind it, so trapping focus would defeat
@@ -26,7 +27,7 @@
  * prospect one drag away from an inaccessible site with our name on it.
  */
 import { site, clientSlug } from '../../../site.config';
-import { offeredPresets } from '../../design/presets';
+import { SCHEMES, offeredPresets, schemeFor } from '../../design/presets';
 import type { DesignConfig } from '../../types/design';
 
 interface Props {
@@ -47,6 +48,11 @@ const { forms, business } = site;
  * accents now have the same shape, filtered by `data-preset` on every change.
  */
 const offered = offeredPresets(design.theme);
+const activeScheme = schemeFor(design.theme);
+
+/** Whether a preset/scheme pair is the one currently on screen. */
+const isActive = (presetId: string, scheme: string) =>
+  presetId === design.theme.preset && scheme === activeScheme;
 
 /**
  * Where "send it to us" posts. Same two-mode story as the contact form, so
@@ -63,12 +69,14 @@ const config = {
   /** The client's own selection: where an unresolvable request lands. */
   fallback: {
     theme: design.theme.preset,
+    scheme: activeScheme,
     accent: design.theme.accent,
     font: design.theme.fontPairing,
   },
   presets: offered.map((o) => ({
     id: o.preset.id,
-    accents: o.accents.map((a) => a.id),
+    defaultScheme: o.preset.defaultScheme,
+    schemes: Object.fromEntries(o.schemes.map((s) => [s.scheme, s.accents.map((a) => a.id)])),
     fonts: o.fonts.map((f) => f.id),
   })),
 };
@@ -104,7 +112,8 @@ const config = {
 <div class="d-cust d-cust__panel" id="d-cust-panel" hidden>
   <p class="d-cust__title">Try a different look</p>
   <p class="d-cust__blurb">
-    Three directions, your colours. Changes are instant — nothing here is saved to your site.
+    Three directions, light or dark, your colours. Changes are instant — nothing here is saved
+    to your site.
   </p>
 
   <fieldset>
@@ -127,38 +136,74 @@ const config = {
     </div>
   </fieldset>
 
+  {/*
+    Two radios rather than a switch or an icon button. The group announces
+    "Light, 1 of 2" and arrow-keys between the options because it is a real
+    radio group; a lone toggle button announces a state and leaves the reader
+    to work out what the other one would be.
+  */}
+  <fieldset>
+    <legend>Tone</legend>
+    <div class="d-cust__opts">
+      {
+        SCHEMES.map((scheme) => (
+          <Fragment>
+            <input
+              type="radio"
+              name="d-scheme"
+              id={`d-scheme-${scheme}`}
+              value={scheme}
+              checked={scheme === activeScheme}
+            />
+            <label for={`d-scheme-${scheme}`}>{scheme === 'dark' ? 'Dark' : 'Light'}</label>
+          </Fragment>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  {/*
+    Swatches are scoped by preset *and* scheme: the same accent id is a
+    different colour in each tone, so the chip beside the name has to be the
+    colour that tone will actually paint. Rendering both and filtering is what
+    keeps the chip honest without any script rewriting a background.
+  */}
   <fieldset>
     <legend>Accent</legend>
     <div class="d-cust__opts">
       {
-        offered.flatMap(({ preset, accents }) =>
-          accents.map((swatch) => (
-            <Fragment>
-              <input
-                type="radio"
-                name="d-accent"
-                id={`d-accent-${preset.id}-${swatch.id}`}
-                value={swatch.id}
-                data-preset={preset.id}
-                checked={preset.id === design.theme.preset && swatch.id === design.theme.accent}
-                disabled={preset.id !== design.theme.preset}
-              />
-              <label
-                for={`d-accent-${preset.id}-${swatch.id}`}
-                data-preset={preset.id}
-                style={preset.id === design.theme.preset ? undefined : 'display:none'}
-              >
-                {/* Colour is never the only cue: the swatch is decorative and
-                    the name is the label. */}
-                <span
-                  class="d-cust__swatch"
-                  style={`background:${swatch.accent}`}
-                  aria-hidden="true"
+        offered.flatMap(({ preset, schemes }) =>
+          schemes.flatMap(({ scheme, accents }) =>
+            accents.map((swatch) => (
+              <Fragment>
+                <input
+                  type="radio"
+                  name="d-accent"
+                  id={`d-accent-${preset.id}-${scheme}-${swatch.id}`}
+                  value={swatch.id}
+                  data-preset={preset.id}
+                  data-scheme={scheme}
+                  checked={isActive(preset.id, scheme) && swatch.id === design.theme.accent}
+                  disabled={!isActive(preset.id, scheme)}
                 />
-                {swatch.label}
-              </label>
-            </Fragment>
-          )),
+                <label
+                  for={`d-accent-${preset.id}-${scheme}-${swatch.id}`}
+                  data-preset={preset.id}
+                  data-scheme={scheme}
+                  style={isActive(preset.id, scheme) ? undefined : 'display:none'}
+                >
+                  {/* Colour is never the only cue: the swatch is decorative and
+                      the name is the label. */}
+                  <span
+                    class="d-cust__swatch"
+                    style={`background:${swatch.accent}`}
+                    aria-hidden="true"
+                  />
+                  {swatch.label}
+                </label>
+              </Fragment>
+            )),
+          ),
         )
       }
     </div>
@@ -180,6 +225,8 @@ const config = {
                 checked={preset.id === design.theme.preset && font.id === design.theme.fontPairing}
                 disabled={preset.id !== design.theme.preset}
               />
+              {/* Lettering does not vary by tone, so these are scoped by
+                  preset only — the axis a pairing actually belongs to. */}
               <label
                 for={`d-font-${preset.id}-${font.id}`}
                 data-preset={preset.id}
@@ -353,6 +400,7 @@ const config = {
     function current() {
       return {
         theme: docEl.getAttribute('data-theme'),
+        scheme: docEl.getAttribute('data-scheme'),
         accent: docEl.getAttribute('data-accent'),
         font: docEl.getAttribute('data-font'),
       };
@@ -375,12 +423,18 @@ const config = {
      */
     function resolve(want) {
       var theme = byId[want.theme] ? want.theme : config.fallback.theme;
-      var offer = byId[theme] || { accents: [], fonts: [] };
+      var offer = byId[theme];
+      // The tone survives a preset switch where the new family offers it —
+      // which is both of them today, and the reason both tones of a family
+      // carry the same accent ids: flipping one axis must not silently
+      // reassign another.
+      var scheme = offer.schemes[want.scheme] ? want.scheme : offer.defaultScheme;
+      var accents = offer.schemes[scheme];
       var accent = want.accent;
-      if (offer.accents.indexOf(accent) === -1) accent = offer.accents[0];
+      if (accents.indexOf(accent) === -1) accent = accents[0];
       var font = want.font;
       if (offer.fonts.indexOf(font) === -1) font = offer.fonts[0];
-      return { theme: theme, accent: accent, font: font };
+      return { theme: theme, scheme: scheme, accent: accent, font: font };
     }
 
     /**
@@ -392,15 +446,24 @@ const config = {
      * select Forge's amber on a Heritage page.
      */
     function syncControls(state) {
-      document.querySelectorAll('[name="d-theme"]').forEach(function (input) {
-        input.checked = input.value === state.theme;
+      ['d-theme', 'd-scheme'].forEach(function (group) {
+        var key = group === 'd-theme' ? 'theme' : 'scheme';
+        document.querySelectorAll('[name="' + group + '"]').forEach(function (input) {
+          input.checked = input.value === state[key];
+        });
       });
       [
         ['d-accent', 'accent'],
         ['d-font', 'font'],
       ].forEach(function (pair) {
         document.querySelectorAll('[name="' + pair[0] + '"]').forEach(function (input) {
-          var mine = input.getAttribute('data-preset') === state.theme;
+          // An option belongs to this cell if it matches on every axis it
+          // declares. Lettering declares a preset only, accents declare a
+          // preset and a tone, because that is what each actually varies by.
+          var scheme = input.getAttribute('data-scheme');
+          var mine =
+            input.getAttribute('data-preset') === state.theme &&
+            (scheme === null || scheme === state.scheme);
           var label = document.querySelector('label[for="' + input.id + '"]');
           input.disabled = !mine;
           input.checked = mine && input.value === state[pair[1]];
@@ -417,6 +480,7 @@ const config = {
       }
       var params = new URLSearchParams(location.search);
       params.set('theme', state.theme);
+      params.set('scheme', state.scheme);
       params.set('accent', state.accent);
       params.set('font', state.font);
       // replaceState, not pushState: switching themes is not navigation, and
@@ -427,6 +491,7 @@ const config = {
     /** Put a resolved state onto the document and into the controls. */
     function write(next) {
       docEl.setAttribute('data-theme', next.theme);
+      docEl.setAttribute('data-scheme', next.scheme);
       docEl.setAttribute('data-accent', next.accent);
       docEl.setAttribute('data-font', next.font);
       // The body carries the family for the decorative rules that key off it.
@@ -442,6 +507,7 @@ const config = {
       var state = current();
       var next = resolve({
         theme: change.theme || state.theme,
+        scheme: change.scheme || state.scheme,
         accent: change.accent || state.accent,
         font: change.font || state.font,
       });
@@ -454,6 +520,7 @@ const config = {
 
     [
       ['d-theme', 'theme'],
+      ['d-scheme', 'scheme'],
       ['d-accent', 'accent'],
       ['d-font', 'font'],
     ].forEach(function (pair) {
@@ -484,7 +551,8 @@ const config = {
       var state = resolve(current());
       write(state);
       var params = new URLSearchParams(location.search);
-      if (params.has('theme') || params.has('accent') || params.has('font')) persist(state);
+      if (['theme', 'scheme', 'accent', 'font'].some(function (k) { return params.has(k); }))
+        persist(state);
     })();
 
     function open(next) {
@@ -534,8 +602,8 @@ const config = {
             encodeURIComponent('Design choice for ' + config.slug) +
             '&body=' +
             encodeURIComponent(
-              'Style: ' + state.theme + '\nAccent: ' + state.accent + '\nLettering: ' + state.font +
-                '\n\n' + location.href,
+              'Style: ' + state.theme + '\nTone: ' + state.scheme + '\nAccent: ' + state.accent +
+                '\nLettering: ' + state.font + '\n\n' + location.href,
             );
           return;
         }

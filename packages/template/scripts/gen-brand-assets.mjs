@@ -90,6 +90,7 @@ function clientInfo(slug, depth = 0) {
   const inline = /preset:\s*'([^']+)',\s*accent:\s*'([^']+)'/.exec(src);
   let preset = inline?.[1];
   let accent = inline?.[2];
+  let scheme = /scheme:\s*'([^']+)'/.exec(src)?.[1];
 
   if (!preset) {
     for (const suffix of ['.design.json', '.brief.json']) {
@@ -98,6 +99,7 @@ function clientInfo(slug, depth = 0) {
       const theme = JSON.parse(readFileSync(p, 'utf8')).theme;
       preset = theme?.preset;
       accent = theme?.accent;
+      scheme = theme?.scheme;
       break;
     }
   }
@@ -105,13 +107,18 @@ function clientInfo(slug, depth = 0) {
 
   const themePreset = presets.presets.find((p) => p.id === preset);
   if (!themePreset) return null;
-  const swatch = themePreset.accents.find((a) => a.id === accent) ?? themePreset.accents[0];
+  // A favicon and an OG card are baked once, so they take the client's own
+  // tone — the one the delivered site ships in, not whatever a prospect last
+  // clicked in the panel.
+  const tone = themePreset.schemes[scheme ?? themePreset.defaultScheme];
+  if (!tone) return null;
+  const swatch = tone.accents.find((a) => a.id === accent) ?? tone.accents[0];
 
   const tagline = /tagline:\s*'([^']+)'/.exec(src)?.[1] ?? inherited?.tagline ?? '';
   const locality = /locality:\s*'([^']+)'/.exec(src)?.[1] ?? inherited?.locality ?? '';
   const region = /region:\s*'([^']+)'/.exec(src)?.[1] ?? inherited?.region ?? '';
 
-  return { slug, name, tagline, locality, region, palette: themePreset.palette, swatch, preset };
+  return { slug, name, tagline, locality, region, palette: tone.palette, swatch, preset };
 }
 
 const logoSvg = readFileSync(join(pkgRoot, 'public', 'images', 'logo.svg'), 'utf8');
