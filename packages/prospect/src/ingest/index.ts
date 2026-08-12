@@ -50,6 +50,14 @@ export interface IngestResult {
   prospect: ProspectConfig;
   /** Human-readable account of what each source did, for the run report. */
   log: string[];
+  /**
+   * Things that went wrong quietly and must not stay quiet.
+   *
+   * Kept apart from `log` because the log is twenty-odd lines of ordinary
+   * progress, and a degradation buried among them reads as ordinary progress.
+   * Anything here is printed under its own banner in the run summary.
+   */
+  warnings: string[];
 }
 
 /** The five hand-authored configs are the top-precedence `manual` source. */
@@ -91,6 +99,7 @@ export async function ingestProspect(
   const paths = prospectPaths(opts.id);
   const prospect = emptyProspect(opts.id);
   const log: string[] = [];
+  const warnings: string[] = [];
 
   // ---- lead row (niche, place id, current URL) --------------------------
   const lead = findLeadRow(opts.id);
@@ -109,6 +118,26 @@ export async function ingestProspect(
     applyContribution(prospect, contribution);
   } else {
     log.push("lead row: none found in data/*.csv");
+    /*
+     * A miss is not necessarily wrong — a prospect nobody discovered has no
+     * row — but it is indistinguishable from the known slug-collision hazard
+     * in PLAN-pipeline.md's backlog, where a lead whose `name` column carries
+     * a legal suffix ("… , Inc.") slugifies to a key that matches nothing. In
+     * that case the row exists, is not found, and the demo is quietly built
+     * without the niche, phone, current URL and place id it should have had.
+     *
+     * The two are not separable until matching is done on place id rather than
+     * on a slugified name, which lands with discovery's CSV. Until then the
+     * only honest thing is to say so loudly on every miss and let whoever is
+     * running it check, rather than degrade in silence.
+     */
+    warnings.push(
+      `no lead row matched "${opts.id}" in data/*.csv — the demo is being built without ` +
+        `the niche, phone, current URL and place id a lead row supplies. If this prospect ` +
+        `WAS discovered, this is the slug-collision hazard: a name column carrying a legal ` +
+        `suffix slugifies to a key that matches nothing. Check data/*.csv before pitching. ` +
+        `(placeId-first matching lands with discovery's CSV.)`,
+    );
   }
   if (niche) prospect.niche = known(niche, "manual", at, opts.niche ? "--niche" : "lead CSV");
 
@@ -248,7 +277,7 @@ export async function ingestProspect(
     log.push(`preset: ${choice.preset} — ${choice.rationale}`);
   }
 
-  return { prospect, log };
+  return { prospect, log, warnings };
 }
 
 /**

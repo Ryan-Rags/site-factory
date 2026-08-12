@@ -53,6 +53,15 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
     log.push(message);
     console.log(`  ${message}`);
   };
+  /**
+   * Degradations that must not be read as ordinary progress.
+   *
+   * Collected apart from `log` and reprinted under their own banner at the end
+   * of the summary, because the log is long and scrolls: a run that quietly
+   * built a worse demo looks exactly like a run that went fine if the only
+   * evidence is one line forty lines up.
+   */
+  const warnings: string[] = [];
 
   /*
    * Stage timing.
@@ -96,6 +105,12 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
     }
     const result = await ingestProspect(browser, opts);
     for (const entry of result.log) step(`ingest: ${entry}`);
+    for (const entry of result.warnings) {
+      warnings.push(entry);
+      // Said once here as it happens, and again in the summary. A warning that
+      // only appears in one of those is a warning somebody misses.
+      console.warn(`  WARNING: ${entry}`);
+    }
     writeProspect(paths.configFile, result.prospect);
     return result.prospect;
   });
@@ -161,6 +176,7 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
       before: { source: "none", reason: "the build failed, so no comparison was made" },
       after: {},
       log,
+      warnings,
       ...manifestExtras,
       timings: { ...timings, total: Date.now() - runStart },
     });
@@ -276,6 +292,7 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
     before,
     after,
     log,
+    warnings,
     ...manifestExtras,
   });
   writeManifest(paths.manifestFile, manifest);
