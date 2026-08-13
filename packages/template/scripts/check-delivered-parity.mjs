@@ -146,15 +146,39 @@ function redesignedRoute(page, ra, rb) {
  * script is replaced by a placeholder on both sides, and the rest of the body
  * must then be identical. One word of copy moving anywhere else on the page and
  * this returns null and the page fails.
+ *
+ * NARROWED 2026-08-13 (`feat/design-expansion`). As written above, this
+ * absorbed *any* delta confined to the reveal script, forever — which is not
+ * what the other named exemptions do and not what its own header claims. It was
+ * about to wave a motion axis through on the three delivered design clients
+ * without a word, so it is now pinned to the one migration it was written for.
+ *
+ * The signature of that migration is the `primed` guard. Before it, the script
+ * set `data-reveal-ready` on <html> up front; after it, the attribute is set
+ * inside the observer's first callback behind `primed`, which is what stopped
+ * 37 above-the-fold elements painting blank. `is:inline` means the guard
+ * survives verbatim into the built page, so the built HTML can be asked
+ * directly which side of the migration it is on.
+ *
+ * That makes this one-way, exactly like `onlyColorSchemeAdded`: a baseline
+ * taken after the migration already carries `primed`, so `before` matches, this
+ * returns null, and the three delivered design clients are fully gated again.
+ * Any later reveal-script change — the motion work included — needs its own
+ * named, announced allowance, or no delta at all.
  */
 const REVEAL_SCRIPT =
   /<script\b[^>]*>(?:(?!<\/script>)[^])*?data-reveal-ready(?:(?!<\/script>)[^])*?<\/script>/;
+
+/** The guard the migration introduced. Absent before it, present after it. */
+const PRIMED_GUARD = /\bprimed\b/;
 
 function onlyRevealScriptChanged(before, after) {
   const a = REVEAL_SCRIPT.exec(before);
   const b = REVEAL_SCRIPT.exec(after);
   // Both sides must have one, and it must actually be what differs.
   if (!a || !b || a[0] === b[0]) return null;
+  // ...and the difference must be *that* migration, in that direction.
+  if (PRIMED_GUARD.test(a[0]) || !PRIMED_GUARD.test(b[0])) return null;
   const strippedBefore = before.replace(REVEAL_SCRIPT, '<script reveal/>');
   const strippedAfter = after.replace(REVEAL_SCRIPT, '<script reveal/>');
   return strippedBefore === strippedAfter ? true : null;
