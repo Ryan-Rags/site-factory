@@ -127,9 +127,35 @@
       return;
     }
 
-    docEl.setAttribute('data-reveal-ready', '');
+    /* ---------------------------------------------------------------- 1 --
+     *
+     * NOTHING IS HIDDEN UNTIL THE OBSERVER HAS SAID WHAT IS IN VIEW.
+     *
+     * `data-reveal-ready` is what switches on the rule that hides every
+     * un-revealed `[data-reveal]`. Setting it up front — which is what this did
+     * until measurement said otherwise — hides elements that are already on the
+     * first screen, and they then paint blank until an observer callback
+     * reaches them. `check-reveal.mjs` found 37 of those across /services,
+     * /about and /gallery at the narrow viewports.
+     *
+     * The obvious fix was to measure each element with
+     * `getBoundingClientRect()` and reveal the ones in view immediately. That
+     * works and it is what the first version did, but it forces a synchronous
+     * layout of the whole page at load: Lighthouse mobile attributed 48.7ms of
+     * forced reflow to this script, and added `forced-reflow-insight` and
+     * `max-potential-fid` to a home page that had neither.
+     *
+     * So the geometry is left to the observer, which is what an
+     * IntersectionObserver is for and which costs no forced layout at all. The
+     * first callback carries an entry for every observed element; the ones
+     * intersecting are revealed, and only then is `data-reveal-ready` set. By
+     * the time anything can be hidden, everything visible is already revealed,
+     * so no element on the first screen ever paints blank — and if the callback
+     * never arrives, nothing is ever hidden, which is the same
+     * JavaScript-disabled guarantee this file already made.
+     */
+    var primed = false;
 
-    /* ---------------------------------------------------------------- 1 -- */
     var revealObserver = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
@@ -137,6 +163,10 @@
           entry.target.classList.add('is-revealed');
           revealObserver.unobserve(entry.target);
         });
+        if (!primed) {
+          primed = true;
+          docEl.setAttribute('data-reveal-ready', '');
+        }
       },
       // Fire slightly before the element reaches the fold, so the transition
       // has finished by the time the reader's eye gets there.
@@ -165,11 +195,6 @@
      * working.
      */
     document.querySelectorAll('[data-reveal]').forEach(function (el) {
-      var box = el.getBoundingClientRect();
-      if (box.top < window.innerHeight && box.bottom > 0) {
-        el.classList.add('is-revealed');
-        return;
-      }
       revealObserver.observe(el);
     });
 
