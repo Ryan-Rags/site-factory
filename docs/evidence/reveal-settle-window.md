@@ -91,3 +91,51 @@ Two things, and the second is the one that matters.
    gate is entitled to name the cause.
 
 Neither is visible from the source. Both required the run.
+
+---
+
+## Addendum — the "no contract" and orthogonality assertions, demonstrated
+
+Two of the three changes to `check-reveal.mjs` are assertions that must be
+shown failing before they are worth anything.
+
+**The orthogonality assertion.** One violating rule added to `design.css`:
+
+```css
+[data-theme='forge'][data-motion-preset='calm'] .d-hero { opacity: 0.99; }
+```
+
+Rebuilt, served, gate run:
+
+```
+✗ The motion axis is not orthogonal, so this gate cannot run as a SUM.
+  1 selector(s) combine data-motion-preset with another axis:
+    [data-theme=forge][data-motion-preset=calm] .d-hero   (also names data-theme)
+
+  Either keep the axes separate, or change this gate to a product over the
+  theme matrix and accept the cost. Do not delete the assertion.
+```
+
+Exit code 1, before any browser sweep runs. The probe was removed immediately;
+the working tree carries no trace of it.
+
+This is the assertion that licenses the motion sweep to be a SUM — three
+presets over one representative route set, 15 page loads on this client —
+rather than a product with the 272-cell theme matrix.
+
+**Final shape of the gate on `ks-welding`:**
+
+```
+reveal: ks-welding at http://localhost:4321
+  motion "lively", settle 800ms from the contract
+  5 route(s) × 5 viewports, plus a reduced-motion pass
+  ...
+  swept 5 route(s) under motion "still" (settle 0ms)
+  swept 5 route(s) under motion "calm" (settle 1200ms)
+  swept 5 route(s) under motion "lively" (settle 800ms)
+
+✓ 490 reveal checks passed — fires once, nothing pre-hidden, reduced motion whole.
+```
+
+382 checks in 1m14s before; 490 in 2m01s after. The motion axis costs ~46s and
+15 page loads, which is the SUM the assertion bought.
