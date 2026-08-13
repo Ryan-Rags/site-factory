@@ -169,6 +169,7 @@ const readState = (page) =>
         scheme: doc.getAttribute('data-scheme'),
         accent: doc.getAttribute('data-accent'),
         font: doc.getAttribute('data-font'),
+        motion: doc.getAttribute('data-motion-preset'),
         family: document.body.getAttribute('data-family'),
       },
       colorScheme: styles.colorScheme,
@@ -178,6 +179,9 @@ const readState = (page) =>
         base: prop('--d-base'),
         ink: prop('--d-ink'),
         display: prop('--d-font-display'),
+        motionDuration: prop('--d-motion-duration'),
+        motionStagger: prop('--d-motion-stagger'),
+        motionTravel: prop('--d-motion-travel'),
       },
       painted: {
         buttonBg: paint('.d-btn--accent', 'backgroundColor'),
@@ -200,6 +204,7 @@ const readState = (page) =>
         scheme: checked('d-scheme'),
         accent: checked('d-accent'),
         font: checked('d-font'),
+        motion: checked('d-motion'),
       },
       href: location.href,
     };
@@ -356,12 +361,87 @@ try {
   }
 
   /*
+   * The motion axis — a SUM over the cells above, never a product with them.
+   *
+   * Motion is orthogonal: no emitted selector combines `data-motion-preset`
+   * with a family, a tone, an accent or a pairing, and `check-reveal.mjs`
+   * asserts that statically in both directions. That is what licenses three
+   * extra passes here instead of 272 × 3. If the axes ever did interact, the
+   * static assertion fails first and this loop stops being a proof.
+   *
+   * What is checked is what the 272 cells check, one axis over: the attribute,
+   * the computed properties (which exist only if the matrix emitted a block),
+   * the panel's own radio, and the URL round-trip. Plus the thing specific to
+   * an orthogonal axis — that switching it moves NOTHING else. A motion switch
+   * that quietly re-resolved the accent would be the stale-cell bug in a hat.
+   */
+  await page.goto(BASE, { waitUntil: 'networkidle0' });
+  const beforeMotion = await readState(page);
+
+  for (const m of presetFile.motion) {
+    const label = `motion/${m.id}`;
+    await openPanel(page);
+    if (!(await choose(page, `d-motion-${m.id}`, `${label} · motion`))) continue;
+
+    const applied = await readState(page);
+    assertEq(`switch ${label} · data-motion-preset`, applied.attrs.motion, m.id);
+    assertEq(
+      `switch ${label} · --d-motion-duration`,
+      applied.tokens.motionDuration,
+      m.reveal.duration,
+    );
+    assertEq(
+      `switch ${label} · --d-motion-stagger`,
+      applied.tokens.motionStagger,
+      String(m.reveal.stagger),
+    );
+    assertEq(`switch ${label} · --d-motion-travel`, applied.tokens.motionTravel, m.reveal.travel);
+    assertEq(`switch ${label} · panel motion checked`, applied.checked.motion, m.id);
+
+    // Orthogonality as behaviour, rather than as a claim about selectors.
+    for (const axis of ['theme', 'scheme', 'accent', 'font']) {
+      assertEq(
+        `switch ${label} · leaves data-${axis} alone`,
+        applied.attrs[axis],
+        beforeMotion.attrs[axis],
+      );
+    }
+    assertEq(
+      `switch ${label} · leaves the page background alone`,
+      applied.painted.pageBg,
+      beforeMotion.painted.pageBg,
+    );
+
+    // And the URL carries it, with localStorage out of the way.
+    await page.evaluate(() => {
+      try {
+        localStorage.clear();
+      } catch (e) {
+        /* private browsing: nothing to clear */
+      }
+    });
+    await page.goto(applied.href, { waitUntil: 'networkidle0' });
+    const restored = await readState(page);
+    assertEq(`restore ${label} · data-motion-preset`, restored.attrs.motion, m.id);
+    assertEq(
+      `restore ${label} · --d-motion-duration`,
+      restored.tokens.motionDuration,
+      m.reveal.duration,
+    );
+    assertEq(`restore ${label} · panel motion checked`, restored.checked.motion, m.id);
+  }
+
+  /*
    * An illegal combination must land somewhere legal.
    *
    * A shared link can outlive the swatch it names, and a hand-edited one can
    * name a swatch that never existed in that family. Either way the page must
    * resolve to a cell that has styles — stamping the attribute anyway is what
    * produced the stale-colour bug in the first place.
+   *
+   * `motion=glacial` is the same test one axis over, and it is checked in the
+   * loop below rather than here because motion has no per-preset offer to
+   * resolve against — the flat list is the whole of its legality.
    */
   const heritage = presetFile.presets.find((p) => p.id === 'heritage');
   const foreign = presetFile.presets.find((p) => p.id !== 'heritage');
@@ -377,6 +457,9 @@ try {
     ['an invented accent', 'theme=heritage&scheme=dark&accent=chartreuse'],
     // The whole family gone.
     ['an unknown preset', 'theme=brutalist&accent=brick'],
+    // A motion preset that never existed. Carried on a legal theme so the
+    // other assertions in this loop still have something to check.
+    ['an invented motion', 'theme=heritage&scheme=light&accent=brick&motion=glacial'],
   ]) {
     await page.evaluate(() => {
       try {
@@ -421,6 +504,25 @@ try {
     assertEq(`illegal url (${what}) · painted accent`, clamped.painted.buttonBg, landed.accent);
     assertEq(`illegal url (${what}) · page background`, clamped.painted.pageBg, tone.palette.base);
     assertEq(`illegal url (${what}) · panel agrees`, clamped.checked.accent, landed.id);
+
+    // Every one of these URLs must also leave a legal motion behind — the
+    // invented-motion case above, and the four that never mention motion at
+    // all, which must land on the default rather than on nothing.
+    const landedMotion = presetFile.motion.find((m) => m.id === clamped.attrs.motion);
+    checks++;
+    if (!landedMotion) {
+      failures++;
+      console.error(
+        `  ✗ illegal url (${what}): ?${query} left ` +
+          `data-motion-preset="${clamped.attrs.motion}", which is not a motion preset`,
+      );
+      continue;
+    }
+    assertEq(
+      `illegal url (${what}) · --d-motion-duration`,
+      clamped.tokens.motionDuration,
+      landedMotion.reveal.duration,
+    );
   }
 
   /* ------------------------------------------------------------ dismissal */

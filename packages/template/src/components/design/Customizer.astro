@@ -2,20 +2,22 @@
 /**
  * The design preview panel. Pitch builds only.
  *
- * A prospect can switch preset, tone, accent and font pairing and see the whole
- * page change instantly, then send the combination back. That is the entire
- * point: the conversation stops being "do you like this?" and becomes "which of
- * these is yours?".
+ * A prospect can switch preset, tone, accent, font pairing and motion and see
+ * the whole page change instantly, then send the combination back. That is the
+ * entire point: the conversation stops being "do you like this?" and becomes
+ * "which of these is yours?".
  *
  * How it switches without a reload and without layout shift:
  * `DesignLayout` has already emitted every combination as static CSS keyed on
- * `<html data-theme|data-scheme|data-accent|data-font>`. Switching is four
- * attribute writes. The browser re-resolves custom properties — which it does
- * anyway on any style change — and nothing else happens, because radius and
- * density are the only metric tokens and both are declared on the preset
- * block, which every combination of that preset carries.
+ * `<html data-theme|data-scheme|data-accent|data-font|data-motion-preset>`.
+ * Switching is five attribute writes. The browser re-resolves custom
+ * properties — which it does anyway on any style change — and nothing else
+ * happens, because radius and density are the only metric tokens and both are
+ * declared on the preset block, which every combination of that preset
+ * carries. Motion adds no metric token at all: it is four properties consumed
+ * by the reveal rules, so switching it cannot move a single box.
  *
- * Accessibility is bought rather than built: the four controls are real
+ * Accessibility is bought rather than built: the five controls are real
  * `<fieldset>` + `<input type="radio">` groups, so arrow-key navigation, group
  * labelling and screen-reader announcement come from the platform. The panel
  * is non-modal (it changes the page behind it, so trapping focus would defeat
@@ -27,7 +29,14 @@
  * prospect one drag away from an inaccessible site with our name on it.
  */
 import { site, clientSlug } from '../../../site.config';
-import { SCHEMES, offeredPresets, schemeFor } from '../../design/presets';
+import {
+  DEFAULT_MOTION,
+  MOTIONS,
+  MOTION_IDS,
+  SCHEMES,
+  offeredPresets,
+  schemeFor,
+} from '../../design/presets';
 import type { AccentSwatch, OfferedScheme } from '../../design/presets';
 import { cssIdent } from '../../lib/design';
 import type { DesignConfig } from '../../types/design';
@@ -105,7 +114,14 @@ const config = {
     scheme: activeScheme,
     accent: design.theme.accent,
     font: design.theme.fontPairing,
+    motion: DEFAULT_MOTION,
   },
+  /*
+   * A FLAT list, not a per-preset one. Motion is orthogonal to the family, so
+   * resolving it against the preset's offer — the way accents and pairings are
+   * resolved — would invent a dependency the CSS does not have.
+   */
+  motions: MOTION_IDS,
   presets: offered.map((o) => ({
     id: o.preset.id,
     defaultScheme: o.preset.defaultScheme,
@@ -145,8 +161,8 @@ const config = {
 <div class="d-cust d-cust__panel" id="d-cust-panel" hidden>
   <p class="d-cust__title">Try a different look</p>
   <p class="d-cust__blurb">
-    Three directions, light or dark, your colours. Changes are instant — nothing here is saved
-    to your site.
+    Five directions, light or dark, your colours, your pace. Changes are instant — nothing
+    here is saved to your site.
   </p>
 
   <fieldset>
@@ -277,6 +293,43 @@ const config = {
         )
       }
     </div>
+  </fieldset>
+
+  {/*
+    Motion is the one group that is not scoped by preset.
+
+    Every other control belongs to a family — accent ids are disjoint between
+    presets, pairings are per-preset — so those options are filtered on every
+    change. These three are legal in every cell, which is what orthogonality
+    looks like in the markup: no `data-preset`, no `data-schemes`, nothing to
+    filter, and the same three ids whatever else the page is showing.
+
+    The controls stay ENABLED under reduced motion, deliberately. The note
+    below says what the visitor's own device is doing; the prospect's own
+    visitors still get whichever setting the prospect picks. Disabling the
+    group would hide a choice that is being made on somebody else's behalf.
+  */}
+  <fieldset>
+    <legend>Motion</legend>
+    <div class="d-cust__opts">
+      {
+        MOTIONS.map((m) => (
+          <Fragment>
+            <input
+              type="radio"
+              name="d-motion"
+              id={`d-motion-${m.id}`}
+              value={m.id}
+              checked={m.id === DEFAULT_MOTION}
+            />
+            <label for={`d-motion-${m.id}`}>{m.label}</label>
+          </Fragment>
+        ))
+      }
+    </div>
+    <p class="d-cust__note" id="d-cust-motion-note" hidden>
+      Your device is set to reduce motion, so this preview is showing <strong>Still</strong>.
+    </p>
   </fieldset>
 
   <button type="button" class="d-btn d-btn--accent d-cust__send" id="d-cust-send">
@@ -412,6 +465,15 @@ const config = {
     padding: 0.7rem 1rem;
   }
 
+  /* The reduced-motion note. Sits inside its fieldset, under the controls it
+     is about, so a screen reader meets it as part of that group. */
+  .d-cust__note {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--d-ink-muted);
+  }
+
   .d-cust__status {
     margin: 0.75rem 0 0;
     font-size: 0.8125rem;
@@ -441,6 +503,7 @@ const config = {
         scheme: docEl.getAttribute('data-scheme'),
         accent: docEl.getAttribute('data-accent'),
         font: docEl.getAttribute('data-font'),
+        motion: docEl.getAttribute('data-motion-preset'),
       };
     }
 
@@ -472,7 +535,17 @@ const config = {
       if (accents.indexOf(accent) === -1) accent = accents[0];
       var font = want.font;
       if (offer.fonts.indexOf(font) === -1) font = offer.fonts[0];
-      return { theme: theme, scheme: scheme, accent: accent, font: font };
+      // Motion resolves against the flat list, never against `offer` — it does
+      // not belong to a preset and must survive every switch of one.
+      var motion = want.motion;
+      if (config.motions.indexOf(motion) === -1) motion = config.fallback.motion;
+      return {
+        theme: theme,
+        scheme: scheme,
+        accent: accent,
+        font: font,
+        motion: motion,
+      };
     }
 
     /**
@@ -484,8 +557,12 @@ const config = {
      * select Forge's amber on a Heritage page.
      */
     function syncControls(state) {
-      ['d-theme', 'd-scheme'].forEach(function (group) {
-        var key = group === 'd-theme' ? 'theme' : 'scheme';
+      // The flat groups: every option is always legal, so they only need the
+      // checked state moved. Motion joins them rather than the preset-scoped
+      // pair below — the same orthogonality, one layer down.
+      [['d-theme', 'theme'], ['d-scheme', 'scheme'], ['d-motion', 'motion']].forEach(function (g) {
+        var group = g[0];
+        var key = g[1];
         document.querySelectorAll('[name="' + group + '"]').forEach(function (input) {
           input.checked = input.value === state[key];
         });
@@ -522,6 +599,7 @@ const config = {
       params.set('scheme', state.scheme);
       params.set('accent', state.accent);
       params.set('font', state.font);
+      params.set('motion', state.motion);
       // replaceState, not pushState: switching themes is not navigation, and
       // filling the back stack with palette changes would trap the visitor.
       history.replaceState(null, '', location.pathname + '?' + params.toString() + location.hash);
@@ -533,6 +611,7 @@ const config = {
       docEl.setAttribute('data-scheme', next.scheme);
       docEl.setAttribute('data-accent', next.accent);
       docEl.setAttribute('data-font', next.font);
+      docEl.setAttribute('data-motion-preset', next.motion);
       // The body carries the family for the decorative rules that key off it.
       if (document.body) document.body.setAttribute('data-family', next.theme);
       syncControls(next);
@@ -549,6 +628,7 @@ const config = {
         scheme: change.scheme || state.scheme,
         accent: change.accent || state.accent,
         font: change.font || state.font,
+        motion: change.motion || state.motion,
       });
       write(next);
       // The address bar always describes what is on screen — it is the only
@@ -562,6 +642,7 @@ const config = {
       ['d-scheme', 'scheme'],
       ['d-accent', 'accent'],
       ['d-font', 'font'],
+      ['d-motion', 'motion'],
     ].forEach(function (pair) {
       document.querySelectorAll('[name="' + pair[0] + '"]').forEach(function (input) {
         input.addEventListener('change', function () {
@@ -590,8 +671,32 @@ const config = {
       var state = resolve(current());
       write(state);
       var params = new URLSearchParams(location.search);
-      if (['theme', 'scheme', 'accent', 'font'].some(function (k) { return params.has(k); }))
+      if (['theme', 'scheme', 'accent', 'font', 'motion'].some(function (k) {
+        return params.has(k);
+      }))
         persist(state);
+    })();
+
+    /*
+     * Say what the visitor's own device is doing, rather than pretending the
+     * preview is showing what the controls say.
+     *
+     * `prefers-reduced-motion` collapses the page to `still` in CSS and in
+     * `Reveal.astro` alike, so a visitor with that setting sees no motion
+     * whichever radio is checked. Leaving the panel silent about that would
+     * make the Motion group look broken. The controls stay enabled — the
+     * prospect is choosing for THEIR visitors, not for themselves.
+     */
+    (function motionNote() {
+      var note = document.getElementById('d-cust-motion-note');
+      if (!note || !window.matchMedia) return;
+      var query = window.matchMedia('(prefers-reduced-motion: reduce)');
+      var show = function () {
+        note.hidden = !query.matches;
+      };
+      show();
+      // Somebody can change the OS setting with the page open.
+      if (query.addEventListener) query.addEventListener('change', show);
     })();
 
     /**
