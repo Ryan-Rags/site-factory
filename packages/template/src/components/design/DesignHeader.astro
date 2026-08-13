@@ -84,7 +84,7 @@ const ctaHref = header.cta ? resolveHref(header.cta.href, here) : '';
           </summary>
           <nav class="d-menu__panel" aria-label="Main">
             <ul>
-              {header.nav.map((item) => (
+              {nav.map((item) => (
                 <li>
                   <a href={item.href}>{item.label}</a>
                 </li>

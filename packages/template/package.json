@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/check-form-fields.mjs && node scripts/check-injection.mjs && astro build && node scripts/check-markers.mjs && node scripts/check-fabrication.mjs && node scripts/check-contrast.mjs && node scripts/check-contact-links.mjs && node scripts/gen-headers.mjs && node scripts/check-headers.mjs && node scripts/check-metadata.mjs && node scripts/check-schema.mjs && node scripts/check-go-live.mjs",
+    "build": "node scripts/check-form-fields.mjs && node scripts/check-injection.mjs && astro build && node scripts/check-markers.mjs && node scripts/check-fabrication.mjs && node scripts/check-contrast.mjs && node scripts/check-contact-links.mjs && node scripts/check-links.mjs && node scripts/gen-headers.mjs && node scripts/check-headers.mjs && node scripts/check-metadata.mjs && node scripts/check-schema.mjs && node scripts/check-go-live.mjs",
     "build:all": "node scripts/build-all.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
@@ -18,6 +18,8 @@
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:overflow": "node scripts/check-overflow.mjs",
     "check:textfit": "node scripts/check-textfit.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "check:reveal": "node scripts/check-reveal.mjs",
     "check:switching": "node scripts/check-switching.mjs",
     "check:parity": "node scripts/check-delivered-parity.mjs",
     "check:contact-links": "node scripts/check-contact-links.mjs",

@@ -143,7 +143,33 @@
       { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
     );
 
+    /*
+     * Anything already on the first screen is revealed NOW, not observed.
+     *
+     * The moment `data-reveal-ready` goes on <html>, the CSS above hides every
+     * un-revealed `[data-reveal]`. For an element below the fold that is the
+     * whole point. For one already in view it is a bug: the element paints
+     * blank and stays blank until an IntersectionObserver callback reaches it,
+     * which is a visible flash on a slow phone and a permanently empty first
+     * screen if the callback never arrives at all.
+     *
+     * Measured rather than assumed — `check-reveal.mjs` found 37 of them
+     * across /services, /about and /gallery at the narrow viewports, none on
+     * the home page, whose first screen is the hero and deliberately carries
+     * no `data-reveal`.
+     *
+     * Adding the class in this same synchronous block means the browser never
+     * resolves style with the element hidden, so it appears at once instead of
+     * fading from nothing. The elements that are still off-screen are observed
+     * exactly as before, so the decoration is unchanged everywhere it was
+     * working.
+     */
     document.querySelectorAll('[data-reveal]').forEach(function (el) {
+      var box = el.getBoundingClientRect();
+      if (box.top < window.innerHeight && box.bottom > 0) {
+        el.classList.add('is-revealed');
+        return;
+      }
       revealObserver.observe(el);
     });
 
