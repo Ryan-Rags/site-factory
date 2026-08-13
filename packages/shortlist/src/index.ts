@@ -102,8 +102,9 @@ export {
 
 export { assess, toScoredRow, type AssessOptions, type AssessOutcome } from "./run.js";
 
+// `freePort` is deliberately not re-exported: it is `@site-factory/audit`'s,
+// and importing it from two packages is the duplication this consolidated.
 export {
-  freePort,
   launchAuditBrowser,
   runAuditStage,
   type AssessFn,

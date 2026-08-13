@@ -15,6 +15,8 @@ import { launchAuditBrowser, runAuditStage } from '../dist/index.js';
  * probe checks alone — a plausible-looking number measured over two thirds of
  * the checks. That is what shipped in the sweep CLI until this branch: it
  * launched bare and let `assess` fall back to a 9222 nobody was listening on.
+ * That fallback is gone: `AssessOptions.debugPort` is required, so the wiring
+ * these tests lock is now also a compile error to get wrong.
  *
  * These tests lock the two halves that have to stay married: the port is opened
  * at launch, and the *same* port is the one handed to `assess`. They use an
