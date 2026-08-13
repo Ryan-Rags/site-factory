@@ -37,7 +37,7 @@
  * preview server.
  *
  * Usage:
- *   node scripts/check-links.mjs              # the client SITE_CLIENT selected
+ *   node scripts/check-links.mjs              # the client this build produced
  *   node scripts/check-links.mjs <slug>       # one named client
  *   node scripts/check-links.mjs --all        # every client present in dist/
  */
@@ -54,7 +54,12 @@ const distRoot = join(pkgRoot, 'dist');
 const args = process.argv.slice(2);
 const wantAll = args.includes('--all');
 const named = args.find((a) => !a.startsWith('--'));
-const slug = named ?? process.env['SITE_CLIENT'] ?? 'ks-welding';
+// Same default chain as every other gate in the `build` script: the client this
+// build just produced, falling back to DEFAULT_CLIENT in clients/index.ts —
+// which is what `astro build` with no SITE_CLIENT set produces. Defaulting to
+// anything else makes `pnpm build` red on any tree that has not run build:all,
+// and green elsewhere only because a stale dist/<other-slug> happens to exist.
+const slug = named ?? process.env['SITE_CLIENT'] ?? 'kh-machine-works';
 
 if (!existsSync(distRoot)) {
   console.error(`✗ no dist/ — nothing to check. Run a build first.`);
