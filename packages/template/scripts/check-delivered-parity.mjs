@@ -38,7 +38,7 @@
  *   node scripts/check-delivered-parity.mjs <baseline-dist> [<candidate-dist>]
  */
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -431,6 +431,22 @@ const deadAnchors = [];
  */
 const SLUG = CAND.replace(/[\\/]+$/, '').split(/[\\/]/).pop();
 
+/**
+ * Which client a given page belongs to.
+ *
+ * This gate is run both ways — against a single `dist/<slug>/` and against the
+ * whole `dist/` tree — and the slug-scoped exemptions have to work in both.
+ * A single-client run is recognised by its own `index.html`; in a tree run the
+ * slug is the first path segment, which is exactly what `walk()` produces.
+ *
+ * Without this, a whole-tree run resolved every slug to the literal string
+ * "dist", `previewCardOrigin` computed an origin no page could carry, and 40
+ * perfectly good pages reported as regressions. `brandCardSwapped` had the
+ * same latent hole and now closes with it.
+ */
+const SINGLE_CLIENT = existsSync(join(CAND, 'index.html'));
+const slugOf = (page) => (SINGLE_CLIENT ? SLUG : page.split('/')[0]);
+
 for (const page of pages) {
   let a, b;
   try {
@@ -523,13 +539,13 @@ for (const page of pages) {
       applied.push('cardMetadataAdded');
     }
 
-    const swapped = onlyBrandCardSwapped(ra.head, rest, SLUG);
+    const swapped = onlyBrandCardSwapped(ra.head, rest, slugOf(page));
     if (swapped !== null) {
       rest = swapped;
       applied.push('brandCardSwapped');
     }
 
-    const rehomed = onlyPreviewCardOriginMoved(ra.head, rest, SLUG);
+    const rehomed = onlyPreviewCardOriginMoved(ra.head, rest, slugOf(page));
     if (rehomed !== null) {
       rest = rehomed;
       applied.push('previewCardOrigin');
