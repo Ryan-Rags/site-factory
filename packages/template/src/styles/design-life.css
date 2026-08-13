@@ -306,10 +306,33 @@
   }
 }
 
+/*
+ * Two columns — icon, then copy — and not a row of every child the card
+ * happens to have.
+ *
+ * This was `flex-direction: row` on the card itself. `DesignServices.astro`
+ * renders the icon, the title, the body, the points and the "details" link as
+ * five SIBLINGS, so a row put all five side by side: at 320px the card ran to
+ * 510px and the home page scrolled sideways by 190px, on a demo whose whole
+ * job is to be opened on a phone. It was reported by `check:overflow` on `/`
+ * at both 320 and 390, and on no other route.
+ *
+ * Grid states the layout that was actually intended. The icon is pinned to
+ * column 1, everything else lands in column 2 and stacks down it however many
+ * blocks the card has, and `minmax(0, 1fr)` lets that column shrink below its
+ * content's intrinsic width instead of pushing the page wide — the same guard
+ * `.d-services__grid` itself already uses. No markup changed, so the seven
+ * clients that do not use this variant cannot be affected by it.
+ */
 .d-services__grid--list .d-service {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 1.25rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 1.25rem;
+}
+
+.d-services__grid--list .d-service > * {
+  grid-column: 2;
 }
 
 .d-services__grid--list .d-service__media {
@@ -317,6 +340,7 @@
 }
 
 .d-services__grid--list .d-service__icon {
+  grid-column: 1;
+  grid-row: 1;
   margin-bottom: 0;
-  flex-shrink: 0;
 }
