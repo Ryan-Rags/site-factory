@@ -892,3 +892,40 @@ export function canEmitReviewJsonLd(reviews: DesignConfig['sections']['reviews']
     reviews.items.every((r) => r.status === 'verified')
   );
 }
+
+/**
+ * Resolve a configured href against the page it is being rendered on.
+ *
+ * Every design client's nav is a list of in-page anchors — `#services`,
+ * `#reviews`, `#gallery`, `#service-area`, `#faq` — and so is the footer's link
+ * column. That is the right shape for a one-page site, and it was a correct
+ * description of the world while `/` was the only route rendering design
+ * markup. It stops being one the moment that header appears on `/contact`,
+ * where `#services` names a section three pages away and the link silently
+ * does nothing.
+ *
+ * So an anchor is rewritten to point at the home page's copy of that section,
+ * and everything else is returned untouched:
+ *
+ *   resolveHref('#services', '/contact')  ->  '/#services'
+ *   resolveHref('#services', '/')         ->  '#services'
+ *   resolveHref('/contact',  '/about/')   ->  '/contact'
+ *   resolveHref('tel:+1555…', '/about/')  ->  'tel:+1555…'
+ *
+ * On `/` it is the identity function. That is not an optimisation, it is the
+ * property that keeps eight shipped clients' home pages byte-identical through
+ * this change: `check:parity` compares home in full and is given no allowance
+ * there, so a rewrite that touched home would have to be defended page by page.
+ * It never fires there, so there is nothing to defend.
+ *
+ * The alternative — repointing the nav at `/services`, `/gallery` and the rest
+ * — is a different site structure rather than a link fix, and it would move
+ * home's markup for every shipped client. See the Decision Brief.
+ */
+export function resolveHref(href: string, pathname: string): string {
+  if (!href.startsWith('#')) return href;
+  // Astro serves the home page as `/` in dev and preview and as `/index.html`
+  // from the filesystem; both mean "already on the page these anchors name".
+  const onHome = pathname === '/' || pathname === '/index.html';
+  return onHome ? href : `/${href}`;
+}

@@ -3,6 +3,12 @@ import { site } from '../../../site.config';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHeader from '../../components/PageHeader.astro';
 import CtaBand from '../../components/CtaBand.astro';
+import DesignLayout from '../../components/design/DesignLayout.astro';
+import DesignPage from '../../components/design/DesignPage.astro';
+import DesignGalleryPage from '../../components/design/DesignGalleryPage.astro';
+
+/** See the note on the same fork in `index.astro`. */
+const design = site.design;
 
 /**
  * Optional page, gated on `features.gallery`.
@@ -27,7 +33,19 @@ const shots = [
 ];
 ---
 
-<BaseLayout title="Gallery" description={`Recent work from ${site.business.name}.`}>
+{
+  design ? (
+    <DesignLayout
+      design={design}
+      title="Gallery"
+      description={`Recent work from ${site.business.name}.`}
+    >
+      <DesignPage design={design}>
+        <DesignGalleryPage design={design} />
+      </DesignPage>
+    </DesignLayout>
+  ) : (
+    <BaseLayout title="Gallery" description={`Recent work from ${site.business.name}.`}>
   <PageHeader title="Recent work" intro="A few of the jobs that have come through the shop." />
 
   <section class="section">
@@ -52,5 +70,7 @@ const shots = [
     </div>
   </section>
 
-  <CtaBand />
-</BaseLayout>
+      <CtaBand />
+    </BaseLayout>
+  )
+}

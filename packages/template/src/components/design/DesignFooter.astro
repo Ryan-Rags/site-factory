@@ -14,6 +14,7 @@
  * "since ." for a client that has none.
  */
 import { site } from '../../../site.config';
+import { resolveHref } from '../../lib/design';
 import type { FooterSection } from '../../types/design';
 
 interface Props {
@@ -21,6 +22,12 @@ interface Props {
 }
 
 const { footer } = Astro.props;
+/** Same rule as the header's nav: an anchor points home from anywhere but home. */
+const here = Astro.url.pathname;
+const columns = (footer.columns ?? []).map((column) => ({
+  ...column,
+  links: column.links.map((link) => ({ ...link, href: resolveHref(link.href, here) })),
+}));
 const { business, brand } = site;
 const year = new Date().getFullYear();
 
@@ -109,7 +116,7 @@ const since = business.foundedYear === undefined ? '' : ` since ${business.found
       }
 
       {
-        (footer.columns ?? []).map((column) => (
+        columns.map((column) => (
           <div>
             <h2>{column.heading}</h2>
             <ul>

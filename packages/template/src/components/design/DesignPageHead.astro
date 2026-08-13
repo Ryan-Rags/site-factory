@@ -1,0 +1,34 @@
+---
+/**
+ * The band at the top of a design-family page that is not the home page: an
+ * optional eyebrow, the `h1`, and an optional standfirst.
+ *
+ * It is the design-system counterpart of `PageHeader.astro`, which is Tailwind
+ * and therefore unavailable here — a design page loads `design.css` and nothing
+ * else. The tokens are the same ones the hero and the section heads use, so a
+ * page head is recognisably the same typographic system as the page it sits on.
+ *
+ * NOTHING HERE CARRIES `data-reveal`, and that is deliberate rather than an
+ * omission. This band is the first thing inside the viewport on all five
+ * routes, and an element that starts at `opacity: 0` waiting for an
+ * IntersectionObserver is an element that is blank for a frame on a slow phone
+ * — and permanently blank if the script never runs. `check:reveal` asserts
+ * exactly this: no `[data-reveal]` element intersecting the initial viewport
+ * may be unrevealed at DOMContentLoaded.
+ */
+interface Props {
+  eyebrow?: string | undefined;
+  title: string;
+  intro?: string | undefined;
+}
+
+const { eyebrow, title, intro } = Astro.props;
+---
+
+<section class="d-section d-page-head">
+  <div class="d-wrap">
+    {eyebrow && <p class="d-eyebrow">{eyebrow}</p>}
+    <h1 class="d-page-head__title">{title}</h1>
+    {intro && <p class="d-lede d-page-head__intro">{intro}</p>}
+  </div>
+</section>

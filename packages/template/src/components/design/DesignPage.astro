@@ -1,0 +1,42 @@
+---
+/**
+ * The shell for a design-family page that is not the home page.
+ *
+ * `DesignHome` is the same three things — header, `<main>`, footer, plus the
+ * sticky call bar — wrapped around the home page's configurable run of
+ * sections. This is that composition with the sections replaced by a slot, and
+ * it exists so the five other routes cannot drift away from home's furniture:
+ * they do not restyle a header to match, they render the same component.
+ *
+ * That is the whole mechanism behind "the contact page belongs to the site the
+ * prospect was just looking at". Same lockup, same nav, same footer, same
+ * accent on the submit button, same family texture — by construction rather
+ * than by a stylesheet that has to be kept in step by hand.
+ *
+ * It also closes the `color-scheme` seam as a side effect. `designTokens()`
+ * emits `color-scheme` inside the `:root` token block and only `DesignLayout`
+ * emits that block, so before these routes existed a dark-scheme client drew a
+ * light scrollbar and light form controls on every page except home.
+ */
+import DesignHeader from './DesignHeader.astro';
+import DesignFooter from './DesignFooter.astro';
+import StickyCallBar from './StickyCallBar.astro';
+import type { DesignConfig } from '../../types/design';
+
+interface Props {
+  design: DesignConfig;
+}
+
+const { design } = Astro.props;
+const { sections } = design;
+---
+
+<DesignHeader header={design.header} />
+
+<main id="main" style="flex: 1;">
+  <slot />
+</main>
+
+<DesignFooter footer={sections.footer} />
+
+{sections.stickyCta.enabled && <StickyCallBar cta={sections.stickyCta} />}

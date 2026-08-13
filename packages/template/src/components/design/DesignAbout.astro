@@ -1,0 +1,84 @@
+---
+/**
+ * `/about`, in the client's design family.
+ *
+ * Three blocks, and every word in them is already in the repo: the story is
+ * `src/content/about/<slug>/<entry>.md`, the credentials are
+ * `site.certifications`, and the coverage list is `business.serviceArea`.
+ * These are the same three sources the legacy Tailwind page reads. Nothing new
+ * is asserted about any business.
+ *
+ * A missing about entry is a build error naming the path it looked for, which
+ * is how `index.astro` and the legacy `/about` both behave.
+ */
+import { getEntry, render } from 'astro:content';
+import { site, clientSlug } from '../../../site.config';
+import DesignPageHead from './DesignPageHead.astro';
+
+const { business, about, certifications } = site;
+
+const story = await getEntry('about', `${clientSlug}/${about.entry}`);
+if (!story) {
+  throw new Error(
+    `${clientSlug}: about.entry is "${about.entry}" but src/content/about/${clientSlug}/${about.entry}.md does not exist.`,
+  );
+}
+const { Content } = await render(story);
+---
+
+<DesignPageHead eyebrow={site.pages.about.eyebrow} title={about.headline} />
+
+<section class="d-section d-about" aria-labelledby="about-story">
+  <div class="d-wrap">
+    <h2 class="d-sr" id="about-story">About the shop</h2>
+    <div class="d-about__grid">
+      <div class="d-prose" data-reveal>
+        <Content />
+      </div>
+
+      <div class="d-about__media" data-reveal>
+        <img src={about.image} alt={about.imageAlt} width="1200" height="800" loading="lazy" decoding="async" />
+      </div>
+    </div>
+  </div>
+</section>
+
+{
+  certifications.length > 0 && (
+    <section class="d-section d-section--alt" aria-labelledby="creds-heading">
+      <div class="d-wrap">
+        <div class="d-head" data-reveal>
+          <p class="d-eyebrow">Credentials</p>
+          <h2 class="d-h2" id="creds-heading">
+            What we carry
+          </h2>
+        </div>
+
+        <dl class="d-creds">
+          {certifications.map((c, i) => (
+            <div class="d-card d-creds__item" data-reveal style={`--d-reveal-delay: ${(i % 3) * 80}ms`}>
+              <dt class="d-creds__label">{c.label}</dt>
+              <dd class="d-creds__detail">{c.detail}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}
+
+<section class="d-section" aria-labelledby="coverage-heading">
+  <div class="d-wrap">
+    <div class="d-head" data-reveal>
+      <p class="d-eyebrow">Coverage</p>
+      <h2 class="d-h2" id="coverage-heading">Where we work</h2>
+    </div>
+
+    {/* The area list is `business.serviceArea` verbatim — the same array the
+        home page's service-area section falls back to — so the two pages
+        cannot contradict each other about where the shop goes. */}
+    <ul class="d-area__list" data-reveal>
+      {business.serviceArea.map((area) => <li>{area}</li>)}
+    </ul>
+  </div>
+</section>

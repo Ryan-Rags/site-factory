@@ -83,6 +83,81 @@ const deIsland = (html) =>
  * So a client's tone silently flipping, or any other token moving alongside,
  * still fails. Returns the scheme name when the exemption applies, else null.
  */
+/**
+ * The five routes that moved from `BaseLayout` into the design system.
+ *
+ * `/` is deliberately NOT in this list. The home page is the standing
+ * acceptance for every piece of design work in this repo, it is compared in
+ * full, and it takes no allowance here whatsoever.
+ */
+const REDESIGNED = new Set([
+  'services/index.html',
+  'about/index.html',
+  'contact/index.html',
+  'gallery/index.html',
+  '404.html',
+]);
+
+/**
+ * Whether a page may take the redesigned-route allowance.
+ *
+ * All three conditions must hold, and each is doing work:
+ *
+ *   - the page is one of the five named above;
+ *   - the BASELINE is a legacy page — no design token block at all. This is
+ *     what makes the allowance a one-way migration rather than a standing
+ *     licence for those five routes to drift. The moment this branch lands on
+ *     main, a later stream comparing against it finds design tokens in the
+ *     baseline, this returns false, and those pages are fully gated again;
+ *   - the CANDIDATE is a design page. A client with no `design` block still
+ *     renders `BaseLayout` on all five, takes no allowance, and stays
+ *     byte-locked — which is the property that keeps a legacy client honest.
+ */
+/*
+ * The gate is run both ways: against a single `dist/<slug>/` and against the
+ * whole `dist/` tree, in which case every page path carries its client's slug
+ * in front. Matching on the tail handles both, and the `/` boundary keeps
+ * `404.html` from matching something like `custom-404.html`.
+ */
+const isRedesignedPath = (page) =>
+  [...REDESIGNED].some((route) => page === route || page.endsWith(`/${route}`));
+
+function redesignedRoute(page, ra, rb) {
+  if (!isRedesignedPath(page)) return false;
+  const baselineIsLegacy = ra.root === '' && ra.matrix === '';
+  const candidateIsDesign = rb.root !== '' || rb.matrix !== '';
+  return baselineIsLegacy && candidateIsDesign;
+}
+
+/**
+ * The reveal script changed, and nothing else in the body did.
+ *
+ * `Reveal.astro` now reveals anything already on the first screen rather than
+ * waiting for an IntersectionObserver to reach it — measured, not assumed:
+ * `check-reveal.mjs` found 37 elements painting blank inside the initial
+ * viewport. That script is inline in `<body>`, so on a DELIVERED design page it
+ * sits inside the `content` region and moves it. On a pitch page it renders
+ * after the customizer toggle and is already outside the compared region, which
+ * is exactly why only the three delivered builds failed.
+ *
+ * Narrow in the same way the `color-scheme` exemption is narrow: the reveal
+ * script is replaced by a placeholder on both sides, and the rest of the body
+ * must then be identical. One word of copy moving anywhere else on the page and
+ * this returns null and the page fails.
+ */
+const REVEAL_SCRIPT =
+  /<script\b[^>]*>(?:(?!<\/script>)[^])*?data-reveal-ready(?:(?!<\/script>)[^])*?<\/script>/;
+
+function onlyRevealScriptChanged(before, after) {
+  const a = REVEAL_SCRIPT.exec(before);
+  const b = REVEAL_SCRIPT.exec(after);
+  // Both sides must have one, and it must actually be what differs.
+  if (!a || !b || a[0] === b[0]) return null;
+  const strippedBefore = before.replace(REVEAL_SCRIPT, '<script reveal/>');
+  const strippedAfter = after.replace(REVEAL_SCRIPT, '<script reveal/>');
+  return strippedBefore === strippedAfter ? true : null;
+}
+
 const SCHEME_LINE = /\n[ \t]*color-scheme:\s*(light|dark);/;
 
 function onlyColorSchemeAdded(before, after) {
@@ -248,6 +323,10 @@ let identical = 0;
 const schemeAdded = [];
 /** Pages that took each named `head` exemption, by exemption name. */
 const headExempt = new Map();
+/** Pages that took the redesigned-route allowance, reported by name. */
+const redesigned = [];
+/** Pages whose only body change was the reveal script. */
+const revealChanged = [];
 
 /**
  * The client being compared, taken from the candidate directory's name.
@@ -287,6 +366,22 @@ for (const page of pages) {
    * fail 35 pages that are perfectly fine.
    */
   const isDesign = ra.root !== '' || ra.matrix !== '' || rb.root !== '' || rb.matrix !== '';
+
+  /*
+   * The redesigned-route allowance, applied before anything is compared.
+   *
+   * It has to come first: the baseline for these five is a legacy page with no
+   * `:root` token block, so the emptiness guard below is what fires on them,
+   * not the region diff. There is nothing to compare region by region — the
+   * page is a different page, deliberately — so the honest thing is to say so
+   * by name rather than to grant `html`, `head` and `content` individually and
+   * pretend a comparison happened.
+   */
+  if (redesignedRoute(page, ra, rb)) {
+    redesigned.push(page);
+    continue;
+  }
+
   const gated = isDesign ? (isPitch ? GATED_PITCH : GATED_DELIVERED) : GATED_LEGACY;
   const hollow = gated.filter((k) => ra[k].trim() === '' || rb[k].trim() === '');
   if (hollow.length > 0) {
@@ -348,6 +443,12 @@ for (const page of pages) {
     }
   }
 
+  // The named `content` exemption: the reveal script, and nothing else.
+  if (moved.includes('content') && onlyRevealScriptChanged(ra.content, rb.content)) {
+    moved = moved.filter((k) => k !== 'content');
+    revealChanged.push(page);
+  }
+
   if (moved.length > 0) {
     regressions++;
     console.error(
@@ -384,6 +485,27 @@ if (headExempt.size > 0) {
   for (const [name, pages_] of headExempt) {
     console.log(`    + ${name}  ${pages_.length} page(s): ${pages_.join(', ')}`);
   }
+}
+
+if (redesigned.length > 0) {
+  console.log(
+    `\n${redesigned.length} page(s) took the redesigned-route allowance (design-coverage).\n` +
+      `  Each moved from BaseLayout into the design system on purpose, so there is no\n` +
+      `  region-by-region comparison to make. It applies ONLY where the baseline page\n` +
+      `  is legacy and the candidate is a design page, so it expires by itself the\n` +
+      `  moment this lands on main. '/' is not eligible and is compared in full:`,
+  );
+  for (const page of redesigned) console.log(`    + redesignedRoute  ${page}`);
+}
+
+if (revealChanged.length > 0) {
+  console.log(
+    `\n${revealChanged.length} page(s) took the named reveal-script exemption. The inline\n` +
+      `  reveal script now reveals anything already on the first screen instead of\n` +
+      `  waiting for an observer to reach it. With that script alone replaced by a\n` +
+      `  placeholder, the rest of the body is byte-identical on every page below:`,
+  );
+  for (const page of revealChanged) console.log(`    + revealScriptChanged  ${page}`);
 }
 
 if (regressions > 0) {

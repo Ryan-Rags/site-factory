@@ -3,26 +3,42 @@ import { site } from '../../site.config';
 import { telHref } from '../lib/business';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import TextUsLink from '../components/TextUsLink.astro';
+import DesignLayout from '../components/design/DesignLayout.astro';
+import DesignPage from '../components/design/DesignPage.astro';
+import DesignNotFound from '../components/design/DesignNotFound.astro';
+
+/** See the note on the same fork in `index.astro`. */
+const design = site.design;
 ---
 
-<BaseLayout title="Page not found" description="That page does not exist.">
-  <section class="section">
-    <div class="container-page">
-      <div class="max-w-prose">
-        <p class="eyebrow">404</p>
-        <h1 class="mt-3 text-4xl sm:text-5xl">That page isn't here.</h1>
-        <p class="mt-4 text-lg leading-relaxed text-slate-600">
-          The link may be out of date, or the address may have a typo in it. Try the services page,
-          or just call the shop — that is usually faster anyway.
-        </p>
-        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a class="btn-outline" href="/services">See what we do</a>
-          <a class="btn-primary" href={telHref(site.business)}>
-            Call {site.business.phone}
-          </a>
-          <TextUsLink class="btn-outline" label="Text us instead" icon={false} />
+{
+  design ? (
+    <DesignLayout design={design} title="Page not found" description="That page does not exist.">
+      <DesignPage design={design}>
+        <DesignNotFound />
+      </DesignPage>
+    </DesignLayout>
+  ) : (
+    <BaseLayout title="Page not found" description="That page does not exist.">
+      <section class="section">
+        <div class="container-page">
+          <div class="max-w-prose">
+            <p class="eyebrow">404</p>
+            <h1 class="mt-3 text-4xl sm:text-5xl">That page isn't here.</h1>
+            <p class="mt-4 text-lg leading-relaxed text-slate-600">
+              The link may be out of date, or the address may have a typo in it. Try the services
+              page, or just call the shop — that is usually faster anyway.
+            </p>
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a class="btn-outline" href="/services">See what we do</a>
+              <a class="btn-primary" href={telHref(site.business)}>
+                Call {site.business.phone}
+              </a>
+              <TextUsLink class="btn-outline" label="Text us instead" icon={false} />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
-</BaseLayout>
+      </section>
+    </BaseLayout>
+  )
+}

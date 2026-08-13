@@ -12,6 +12,7 @@ import ksWeldingPrecision from './ks-welding-precision.config';
 import ksWeldingHeritage from './ks-welding-heritage.config';
 import zzFixturePhoneOptional from './zz-fixture-phone-optional.config';
 import zzFixtureGoLive from './zz-fixture-go-live.config';
+import zzFixtureLongName from './zz-fixture-long-name.config';
 
 /**
  * Every buildable client, keyed by slug.
@@ -52,6 +53,13 @@ export const clients = {
   // domain. Its `siteUrl` is on `.test`, which RFC 6761 reserves permanently.
   // `build-all.mjs` skips it and it is never deployed. See its config header.
   'zz-fixture-go-live': zzFixtureGoLive,
+
+  // A TEST FIXTURE, not a prospect: the standing regression case for the
+  // header lockup rule (a 28-character business name near the measured
+  // two-line bound), and the only build with `features.gallery` on, so the
+  // only one that emits the `/gallery` route. `build-all.mjs` skips it and it
+  // is never deployed. See its config header.
+  'zz-fixture-long-name': zzFixtureLongName,
 } satisfies Record<string, SiteConfig>;
 
 export type ClientSlug = keyof typeof clients;

@@ -1,0 +1,168 @@
+---
+/**
+ * `/contact`, in the client's design family.
+ *
+ * This is the page the whole coverage stream is really about. Every design
+ * client's header CTA points at `/contact` — it is the single most likely
+ * click on a demo — and until now that click left the design system and landed
+ * on a Tailwind page with a different header, different type and different
+ * colours. The prospect's own site, one click deep, stopped looking like the
+ * site they were just shown.
+ *
+ * Nothing here is new information: the number, the textable number, the email,
+ * the address, the map link and the hours are `site.business` verbatim, and
+ * the form is the same island the legacy page mounts with the same resolved
+ * props. What changes is the furniture around them.
+ *
+ * The two guards from the legacy page come across unchanged, because they are
+ * about the client's configuration rather than about the layout: `mailto` mode
+ * with no confirmed email is a build failure rather than a dead form, and
+ * `worker` mode with no endpoint is the normal pre-deploy state and warns.
+ */
+import { site } from '../../../site.config';
+import { smsHref, telHref } from '../../lib/business';
+import ContactForm from '../ContactForm';
+import Icon from '../Icon.astro';
+import TextUsLink from '../TextUsLink.astro';
+import DesignPageHead from './DesignPageHead.astro';
+import { buildForms, contactFormProps } from '../../lib/quote-form';
+
+const { business } = site;
+const hours = business.hours ?? [];
+
+const forms = buildForms();
+const formProps = forms.mode === 'disabled' ? null : contactFormProps();
+
+if (forms.mode === 'mailto' && !business.email) {
+  throw new Error(
+    `forms.mode is "mailto" but business.email is not set. Set an email or use forms.mode "disabled".`,
+  );
+}
+
+const fmt = (t: string) => {
+  const [hStr = '0', m = '00'] = t.split(':');
+  const h = Number(hStr);
+  const suffix = h >= 12 ? 'pm' : 'am';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === '00' ? `${h12}${suffix}` : `${h12}:${m}${suffix}`;
+};
+
+const canText = smsHref(business) !== null;
+---
+
+<DesignPageHead title={site.pages.contact.title} intro={site.pages.contact.intro} />
+
+<section class="d-section d-contact" aria-labelledby="contact-heading">
+  <div class="d-wrap">
+    <h2 class="d-sr" id="contact-heading">Contact the shop</h2>
+
+    <div class="d-contact__grid">
+      <div class="d-contact__direct">
+        <h3 class="d-h2 d-contact__h">Reach us directly</h3>
+
+        <ul class="d-contact__list">
+          <li>
+            <span class="d-contact__icon" aria-hidden="true"><Icon name="phone" class="d-icon-sm" /></span>
+            <span>
+              <span class="d-contact__label">Phone</span>
+              <a class="d-contact__value" href={telHref(business)}>{business.phone}</a>
+            </span>
+          </li>
+
+          {
+            /* A row of its own rather than a link tucked under the number:
+               texting is a different decision from calling and wants its own
+               tap target. Renders only when a textable number is confirmed. */
+            canText && (
+              <li>
+                <span class="d-contact__icon" aria-hidden="true">
+                  <Icon name="message" class="d-icon-sm" />
+                </span>
+                <span>
+                  <span class="d-contact__label">Text</span>
+                  <TextUsLink
+                    class="d-contact__value"
+                    label={business.smsHref === business.phoneHref ? business.phone : 'Send us a text'}
+                    icon={false}
+                  />
+                </span>
+              </li>
+            )
+          }
+
+          {
+            business.email && (
+              <li>
+                <span class="d-contact__icon" aria-hidden="true">
+                  <Icon name="badge" class="d-icon-sm" />
+                </span>
+                <span class="d-contact__wrapline">
+                  <span class="d-contact__label">Email</span>
+                  <a class="d-contact__value" href={`mailto:${business.email}`}>
+                    {business.email}
+                  </a>
+                </span>
+              </li>
+            )
+          }
+
+          <li>
+            <span class="d-contact__icon" aria-hidden="true"><Icon name="truck" class="d-icon-sm" /></span>
+            <span>
+              <span class="d-contact__label">Drop off &amp; collect</span>
+              <address class="d-contact__address">
+                {business.address.street && <Fragment>{business.address.street}<br /></Fragment>}
+                {business.address.locality}, {business.address.region}{
+                  business.address.postalCode ? ` ${business.address.postalCode}` : ''
+                }
+              </address>
+              {
+                business.mapUrl && (
+                  <a class="d-contact__map" href={business.mapUrl} rel="noopener noreferrer" target="_blank">
+                    Open in maps
+                  </a>
+                )
+              }
+            </span>
+          </li>
+        </ul>
+
+        {
+          hours.length > 0 && (
+            <div class="d-contact__hours">
+              <h3 class="d-h2 d-contact__h">Shop hours</h3>
+              <dl class="d-hourlist">
+                {hours.map((h) => (
+                  <div>
+                    <dt>{h.day}</dt>
+                    <dd>
+                      {h.closed || !h.opens || !h.closes ? 'Closed' : `${fmt(h.opens)} – ${fmt(h.closes)}`}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )
+        }
+      </div>
+
+      {
+        /* `.d-quick` is the design system's form panel, written for the compact
+           home-page block. It is reused rather than duplicated: the full field
+           set is the same controls in the same tokens, and a second near-copy
+           of those rules is how the two would drift apart. `design.css` extends
+           the block for the two-column `layout="full"` case instead. */
+        forms.mode !== 'disabled' && formProps && (
+          <div class="d-quick d-quick--page">
+            <div class="d-quick__head">
+              <h3 class="d-h2" id="contact-form-heading">
+                {site.cta.buttonText}
+              </h3>
+            </div>
+            <ContactForm client:visible {...formProps} />
+          </div>
+        )
+      }
+    </div>
+  </div>
+</section>
