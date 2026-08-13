@@ -77,6 +77,32 @@ this lane closes.
   the exact `gh pr create` command. That file is a courier, not a record: it is
   deleted by the next cleanup once the PR exists.
 
+## GitHub issues
+Issues track ACTIONABLE WORK AWAITING AN OWNER — never knowledge
+(known-issues.md), never rulings (decisions.md), never per-PR judgment (the
+Brief).
+- File an issue ONLY for: (a) a defect confirmed by measurement that this
+  stream cannot fix (wrong owner, wrong scope, or blocked); (b) a follow-up a
+  merged PR names as deferred work; (c) a live/operational finding needing
+  action on a specific surface. Nothing speculative, nothing cosmetic, no
+  "ideas."
+- Every issue: a one-line title naming the surface, a body with <=5 lines of
+  repro-or-source (link the PR, ledger line, or known-issues entry — never
+  re-explain), a fix sketch if one exists, and exactly one label from:
+  defect / follow-up / ops / decision-needed.
+- decision-needed is reserved for items blocked on Ryan and should be rare —
+  the Brief remains the primary channel for rulings.
+- NEVER include client names, phone numbers, lead data, or live URLs of
+  prospect demos in an issue. Reference configs by slug and docs by path.
+- Filing an issue never substitutes for the Brief. If a Brief item is deferred
+  rather than ruled, the PR's author files the follow-up issue and links it in
+  the PR body.
+- Close discipline: the PR that resolves an issue says "Closes #N". A session
+  that discovers an issue is stale closes it with one line of evidence. Anyone
+  may close; only measurable items may be opened.
+- Cap: if open issues exceed ~15, the next session to notice says so to Ryan
+  instead of filing more — a queue nobody drains is worse than no queue.
+
 ## Verification norms
 - Green ≠ correct: acceptance is behavior of the built artifact.
 - Verify you're measuring your own build — ports move; confirm client/URL
