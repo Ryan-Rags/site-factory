@@ -1,0 +1,189 @@
+{
+  "theme": {
+    "preset": "heritage",
+    "scheme": "light",
+    "accent": "brick",
+    "fontPairing": "signwriter"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Our work",
+        "href": "#gallery"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": ["stats", "services", "reviews", "gallery", "serviceArea", "faq"],
+  "sections": {
+    "hero": {
+      "variant": "split",
+      "eyebrow": "Testville, New Jersey",
+      "badges": ["A test fixture", "Not a real business"]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Mon-Fri",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Two invented services",
+      "intro": "Neither of these is real. They exist so the services section and the services route have something to render.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "Nobody said any of this",
+      "intro": "The single review below was invented for a test fixture.",
+      "sourceLabel": "Invented for a test fixture - not a customer, and not a quotation",
+      "variant": "grid"
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 2,
+          "label": "Invented services",
+          "note": "Neither one is real"
+        },
+        {
+          "value": 5,
+          "label": "Gated viewports",
+          "note": "320, 390, 768, 1024, 1440"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions about a business that does not exist",
+      "items": [
+        {
+          "q": "Is this a real shop?",
+          "a": "No. Every detail on this build is invented. It is a test fixture for the header lockup rule and the gallery route."
+        },
+        {
+          "q": "Why is the business name so long?",
+          "a": "That is the fixture. The name sits near the measured two-line bound for the header lockup, so a change that narrows the budget fails check:textfit here before it reaches a real client."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": true,
+      "eyebrow": "Our work",
+      "heading": "Off the shop floor",
+      "intro": "Declared placeholders. This is a test fixture and no photograph here shows anybody's work.",
+      "items": [
+        {
+          "src": "/images/gallery-1.svg",
+          "alt": "Placeholder image on a test fixture. Not a photograph of real work.",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-2.svg",
+          "alt": "Placeholder image on a test fixture. Not a photograph of real work.",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-3.svg",
+          "alt": "Placeholder image on a test fixture. Not a photograph of real work.",
+          "width": 800,
+          "height": 800
+        },
+        {
+          "src": "/images/gallery-4.svg",
+          "alt": "Placeholder image on a test fixture. Not a photograph of real work.",
+          "width": 800,
+          "height": 800
+        }
+      ]
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Testville and the invented towns around it",
+      "intro": "None of these places exist.",
+      "areas": [],
+      "note": "Invented service area on a test fixture."
+    },
+    "beforeAfter": {
+      "enabled": false,
+      "heading": "Before and after",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder image on a test fixture.",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder image on a test fixture.",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "An invented business, used to test the header lockup rule.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Our work",
+              "href": "#gallery"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Test fixture. Not a real business, and never deployed."
+    }
+  }
+}

@@ -26,6 +26,7 @@ import khBrief from './kh-machine-works.brief.json';
 import ktsBrief from './kts-machine-shop.brief.json';
 import amsBrief from './american-machine-specialty.brief.json';
 import imcBrief from './industrial-machine-corp.brief.json';
+import longNameBrief from './zz-fixture-long-name.brief.json';
 
 /** The full-payload reference. Every field stated; nothing derived. */
 export const ksWeldingDesign = parseDesign('ks-welding', ksWeldingRaw);
@@ -44,6 +45,11 @@ const briefs: Record<string, DesignBrief> = {
   'kts-machine-shop': ktsBrief as unknown as DesignBrief,
   'american-machine-specialty': amsBrief as unknown as DesignBrief,
   'industrial-machine-corp': imcBrief as unknown as DesignBrief,
+
+  // Not a prospect. The header lockup's regression fixture, on the widest
+  // display face in the matrix (Heritage's signwriter) so its shipped cell is
+  // also its worst case. See `clients/zz-fixture-long-name.config.ts`.
+  'zz-fixture-long-name': longNameBrief as unknown as DesignBrief,
 };
 
 export function designFor(slug: string, site: SiteConfig): DesignConfig {
