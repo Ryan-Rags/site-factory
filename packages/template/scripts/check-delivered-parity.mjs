@@ -42,6 +42,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { previewOriginFor } from '../src/lib/preview-origin.mjs';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, '..');
 
@@ -255,6 +257,97 @@ function onlyBrandCardSwapped(before, after, slug) {
   return rest;
 }
 
+/**
+ * Exemption 3 — `previewCardOrigin`.
+ *
+ * `og:image` and `twitter:image` move from `seo.siteUrl` to the origin the
+ * preview is actually served from, `https://<slug>-preview.pages.dev`. The
+ * card file, its path, its dimensions and every other tag stay exactly as
+ * they were — only the host in front of the path changes. Issue #25: measured
+ * live, 0 of 8 demos advertised a reachable card and 8 of 8 served one
+ * correctly at this origin.
+ *
+ * Narrow in the same three ways the older exemptions are:
+ *
+ *   - the BASELINE must not already be at the preview origin, so this is a
+ *     one-way migration and not a standing licence for the card's host to
+ *     drift afterwards;
+ *   - both tags must move, both to that exact origin, and the pathname must be
+ *     byte-identical on each — an origin change is all this permits;
+ *   - with the two values put back, the heads must be identical.
+ *
+ * A delivered build never reaches here: `cardOrigin` is empty when `noindex`
+ * is false, so its card does not move and there is nothing to exempt.
+ */
+function onlyPreviewCardOriginMoved(before, after, slug) {
+  const want = previewOriginFor(slug);
+  const tags = [
+    '<meta property="og:image" content="',
+    '<meta name="twitter:image" content="',
+  ];
+  let rest = after;
+  for (const open of tags) {
+    const pattern = new RegExp(`${open.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^"]*)">`);
+    const b = pattern.exec(before);
+    const a = pattern.exec(rest);
+    if (!b || !a) return null;
+    let baseUrl, candUrl;
+    try {
+      baseUrl = new URL(b[1]);
+      candUrl = new URL(a[1]);
+    } catch {
+      return null;
+    }
+    if (baseUrl.origin === want) return null; // Not the one-way migration.
+    if (candUrl.origin !== want) return null; // Must land on the deploy origin.
+    if (candUrl.pathname !== baseUrl.pathname) return null; // Origin only.
+    rest = rest.replace(a[0], b[0]);
+  }
+  return rest;
+}
+
+/**
+ * Exemption 4 — `deadAnchorLinkDropped`.
+ *
+ * A nav or footer entry pointing at a section the config does not render is
+ * no longer emitted. On `industrial-machine-corp` that is `Reviews → #reviews`
+ * — `testimonials: []` is deliberate, so `reviews.enabled` is false and no
+ * `#reviews` section exists — and it was ten dead links across five routes and
+ * two navs.
+ *
+ * The narrowness that matters here is the second condition. It is not enough
+ * that a nav item disappeared; the item must have been pointing at a section
+ * that genuinely is not on the candidate page. So the anchor it names must be
+ * absent as an `id` from the candidate. A nav entry quietly deleted from a
+ * config, or one whose section still renders, fails this and is a regression
+ * like any other.
+ *
+ * Returns the anchors dropped, or null.
+ */
+function onlyDeadAnchorLinksDropped(before, after) {
+  const ITEM = /<li\b[^>]*>\s*<a href="\/?#([a-z-]+)"[^>]*>[^<]*<\/a>\s*<\/li>/g;
+
+  const byAnchor = new Map();
+  for (const match of before.matchAll(ITEM)) {
+    if (!byAnchor.has(match[1])) byAnchor.set(match[1], []);
+    byAnchor.get(match[1]).push(match[0]);
+  }
+
+  let rest = before;
+  const dropped = [];
+  for (const [anchor, items] of byAnchor) {
+    // Still on the candidate page: not dropped, and none of this applies.
+    if (items.some((item) => after.includes(item))) continue;
+    // Gone because the section is gone — not because an entry was deleted.
+    if (new RegExp(`\\sid="${anchor}"`).test(after)) return null;
+    for (const item of items) rest = rest.split(item).join('');
+    dropped.push(anchor);
+  }
+
+  if (dropped.length === 0) return null;
+  return rest === after ? dropped : null;
+}
+
 function regions(html) {
   const clean = deIsland(html);
   const headStart = clean.indexOf('<head');
@@ -327,6 +420,8 @@ const headExempt = new Map();
 const redesigned = [];
 /** Pages whose only body change was the reveal script. */
 const revealChanged = [];
+/** Pages whose only body change was dropping links to absent sections. */
+const deadAnchors = [];
 
 /**
  * The client being compared, taken from the candidate directory's name.
@@ -434,6 +529,12 @@ for (const page of pages) {
       applied.push('brandCardSwapped');
     }
 
+    const rehomed = onlyPreviewCardOriginMoved(ra.head, rest, SLUG);
+    if (rehomed !== null) {
+      rest = rehomed;
+      applied.push('previewCardOrigin');
+    }
+
     if (applied.length > 0 && rest === ra.head) {
       moved = moved.filter((k) => k !== 'head');
       for (const name of applied) {
@@ -443,10 +544,19 @@ for (const page of pages) {
     }
   }
 
-  // The named `content` exemption: the reveal script, and nothing else.
+  // The named `content` exemptions: the reveal script, and nothing else; or
+  // dead anchor links dropped, and nothing else.
   if (moved.includes('content') && onlyRevealScriptChanged(ra.content, rb.content)) {
     moved = moved.filter((k) => k !== 'content');
     revealChanged.push(page);
+  }
+
+  if (moved.includes('content')) {
+    const anchors = onlyDeadAnchorLinksDropped(ra.content, rb.content);
+    if (anchors) {
+      moved = moved.filter((k) => k !== 'content');
+      deadAnchors.push(`${page} (${anchors.map((a) => `#${a}`).join(', ')})`);
+    }
   }
 
   if (moved.length > 0) {
@@ -479,8 +589,9 @@ if (schemeAdded.length > 0) {
 
 if (headExempt.size > 0) {
   console.log(
-    `\nNamed head exemptions taken (trust-seo). Each is a deliberate metadata\n` +
-      `  change, scoped to the delta that was measured and to nothing else:`,
+    `\nNamed head exemptions taken. Each is a deliberate metadata change, scoped\n` +
+      `  to the delta that was measured and to nothing else. cardMetadataAdded and\n` +
+      `  brandCardSwapped are trust-seo's; previewCardOrigin is issue #25's:`,
   );
   for (const [name, pages_] of headExempt) {
     console.log(`    + ${name}  ${pages_.length} page(s): ${pages_.join(', ')}`);
@@ -506,6 +617,16 @@ if (revealChanged.length > 0) {
       `  placeholder, the rest of the body is byte-identical on every page below:`,
   );
   for (const page of revealChanged) console.log(`    + revealScriptChanged  ${page}`);
+}
+
+if (deadAnchors.length > 0) {
+  console.log(
+    `\n${deadAnchors.length} page(s) took the named dead-anchor exemption. Each dropped a\n` +
+      `  nav or footer link to a section the config does not render — and the anchor it\n` +
+      `  named is absent as an id from the candidate page, which is what makes it a dead\n` +
+      `  link removed rather than a nav entry deleted. Nothing else in the body moved:`,
+  );
+  for (const page of deadAnchors) console.log(`    + deadAnchorLinkDropped  ${page}`);
 }
 
 if (regressions > 0) {
