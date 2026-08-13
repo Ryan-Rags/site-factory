@@ -143,3 +143,95 @@ otherwise ship into a live sweep.
 
 **Fix:** two lines, plus a test asserting that an audited site decides at least
 one Lighthouse-derived check.
+
+---
+
+## 4. Every preview demo unfurls with no social card — `og:image` is rooted at `seo.siteUrl`, not at the deploy origin
+
+**Status:** open. **Owner:** a post-coverage `packages/template` stream.
+**Found by:** the ops redeploy of 2026-08-12, by checking the live fleet rather
+than the built artifact. **Pre-existing** — not caused by that session, which
+changed no code.
+
+The card *file* is correct everywhere and always has been: a real PNG,
+1200 × 630, matching its declared `og:image:width` / `og:image:height`, 31–36 KB,
+and present on the deploy. What is wrong is the **origin in the tag**.
+`og:image` is emitted as an absolute URL rooted at `seo.siteUrl`. On a
+`*.pages.dev` preview that origin is not the origin serving the page, so every
+prospect demo link shared into Facebook, X, LinkedIn, iMessage, WhatsApp or
+Slack arrives with no image — the same end state as the SVG card ruled out on
+2026-08-12, reached through the origin instead of the file format.
+
+This is the pitch surface. A preview URL exists to be sent to somebody.
+
+**Measured live, all eight deployed demos, 2026-08-12.** "On deploy origin" is
+the same pathname requested from the host actually serving the page:
+
+| Client | Origin in `og:image` | At declared URL | Same path on deploy origin |
+|---|---|---|---|
+| american-machine-specialty | `https://americanmachinespecialty.com` | **404** | 200, PNG 1200×630, 36 KB |
+| industrial-machine-corp | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 36 KB |
+| kh-machine-works | `https://www.khmachineworks.com` | **404** | 200, PNG 1200×630, 31 KB |
+| ks-welding | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| ks-welding-forge | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| ks-welding-heritage | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| ks-welding-precision | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| kts-machine-shop | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+
+0 / 8 reachable at the declared URL; 8 / 8 reachable on the deploy origin.
+`twitter:image` carries the same value, so it is wrong identically and the
+existing agreement check between the two passes while both are unreachable.
+
+**Security headers were green on all eight in the same run** — `nosniff`,
+`strict-origin-when-cross-origin`, `x-frame-options: DENY`, and a hash-only CSP
+with `default-src`, `frame-ancestors`, `form-action`, `base-uri` and
+`object-src` all present. Cloudflare Pages is serving the generated `_headers`.
+Recorded here so the next session does not re-measure it.
+
+**Why no gate catches it, and why that is not a bug in the gate.**
+`check-metadata.mjs` resolves the tag with `new URL(ogImage).pathname` and
+asserts the file exists under `dist/<slug>` — it **discards the origin by
+design**. For a delivered site that is exactly right: the site is served from
+its own `siteUrl`, so origin and deploy origin are the same string and checking
+the pathname is checking the whole URL. For a preview the two diverge, and the
+gate is structurally blind to the difference rather than failing to look. No
+amount of artifact inspection can see it, because the artifact is correct — only
+the pairing of artifact with host is wrong.
+
+It also sits directly on the sanctioned `example.invalid` path: the ruling of
+2026-08-12 permits `example.invalid` in `siteUrl` while a client is noindex, and
+`check-go-live.mjs` refuses to let one go live carrying it. That ruling settled
+go-live. It did not consider that a noindex mockup is still *sent to people*,
+and that its social card resolves against the same placeholder.
+
+**Reproduce:**
+
+```sh
+DEMO_FORM_ENDPOINT=<endpoint> pnpm --filter @site-factory/template build:all
+pnpm deploy:mockups
+curl -sI "$(curl -s https://ks-welding-preview.pages.dev/ \
+  | grep -o 'property="og:image" content="[^"]*"' | cut -d'"' -f4)"
+# -> DNS failure for example.invalid; the same pathname on
+#    https://ks-welding-preview.pages.dev/og/ks-welding.png returns 200.
+```
+
+**Fix sketch.** Two halves, and the second is what stops it recurring:
+
+1. A build-time origin override. A preview build roots `og:image` and
+   `twitter:image` at the known per-slug deploy origin
+   (`https://<slug>-preview.pages.dev`) instead of at `seo.siteUrl`. The origin
+   is derivable from the slug by the same rule `deploy-mockups.mjs` already
+   uses to name the project, so nothing new has to be configured per client,
+   and a delivered build — where `siteUrl` *is* the deploy origin — is
+   unaffected.
+2. `check-metadata.mjs` gains a demo-mode assertion that the `og:image` origin
+   equals the deploy origin, so the pairing is checked rather than just the
+   pathname. Per the 2026-08-12 fail-closed ruling it must fail on any shape it
+   cannot resolve, not skip.
+
+Land it failure-first: the assertion red against today's build, then the
+override green.
+
+**Not fixed in the session that found it** — that was an ops session with a
+deploy grant and no template-code grant, and the fix belongs to a stream that
+owns `packages/template`. This entry is the durable record.
