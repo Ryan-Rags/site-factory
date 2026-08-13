@@ -222,6 +222,8 @@ from the fact that a red run is inconvenient.
 not documentation — so `pnpm smoke -- --all` stays red on the five until that
 lands, and this addendum is the evidence and the boundary that stream builds to.
 
+**Landed 2026-08-13 in [PR #34](https://github.com/Ryan-Rags/site-factory/pull/34)** — `scripts/live-smoke/checks/lighthouse.mjs` and its selftest now accept the measured pair at exactly the boundary above, and no wider; the paragraph before this one is superseded on that one point only.
+
 **Reproduce:** `pnpm smoke -- --client ks-welding`, and read the
 `lighthouse performance` row of the generated `report.md`.
 
