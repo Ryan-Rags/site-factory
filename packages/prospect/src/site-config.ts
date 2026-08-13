@@ -60,7 +60,7 @@ export type SiteIconName =
 export interface SiteConfig {
   business: SiteBusiness;
   theme: {
-    preset?: "forge" | "precision" | "heritage";
+    preset?: "forge" | "precision" | "heritage" | "meridian" | "apex";
     colors: { primary: string; accent: string };
     fonts: { heading: string; body: string; faces?: unknown[] };
   };

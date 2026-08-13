@@ -165,7 +165,7 @@ export interface Geo {
  * prospect's niche and passes it straight through, so it will name a family
  * before every checkout of the template can render one.
  */
-export type ThemePreset = 'forge' | 'precision' | 'heritage';
+export type ThemePreset = 'forge' | 'precision' | 'heritage' | 'meridian' | 'apex';
 
 export interface Theme {
   /** Optional. See {@link ThemePreset}. Absent means the base design. */

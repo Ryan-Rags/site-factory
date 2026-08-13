@@ -27,6 +27,7 @@ import ktsBrief from './kts-machine-shop.brief.json';
 import amsBrief from './american-machine-specialty.brief.json';
 import imcBrief from './industrial-machine-corp.brief.json';
 import longNameBrief from './zz-fixture-long-name.brief.json';
+import motionBrief from './zz-fixture-motion.brief.json';
 
 /** The full-payload reference. Every field stated; nothing derived. */
 export const ksWeldingDesign = parseDesign('ks-welding', ksWeldingRaw);
@@ -50,6 +51,11 @@ const briefs: Record<string, DesignBrief> = {
   // display face in the matrix (Heritage's signwriter) so its shipped cell is
   // also its worst case. See `clients/zz-fixture-long-name.config.ts`.
   'zz-fixture-long-name': longNameBrief as unknown as DesignBrief,
+
+  // Not a prospect. Where the motion axis is proved: the only build carrying
+  // an autoplaying reviews rail, and the only one on `apex`. See
+  // `clients/zz-fixture-motion.config.ts`.
+  'zz-fixture-motion': motionBrief as unknown as DesignBrief,
 };
 
 export function designFor(slug: string, site: SiteConfig): DesignConfig {

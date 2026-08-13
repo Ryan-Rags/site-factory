@@ -106,7 +106,7 @@ export interface BrandColors {
 }
 
 /** Mirrors `ThemePreset` in `packages/template/src/types/site.ts`. */
-export type ThemePreset = 'forge' | 'precision' | 'heritage';
+export type ThemePreset = 'forge' | 'precision' | 'heritage' | 'meridian' | 'apex';
 
 /**
  * What is actually at the prospect's listed web address.

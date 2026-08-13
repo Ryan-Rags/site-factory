@@ -19,11 +19,32 @@ import { palettePasses, repairPalette, rotateHue } from "./color.js";
  *   forge     — "Machine shops, welding, fabrication."
  *   precision — "Contractors, HVAC, electrical."
  *   heritage  — "Legacy shops, 'family owned since' trades."
+ *   meridian  — "Roofing, landscaping and the exterior trades, where the work
+ *                is photographed outside."
+ *   apex      — "Auto and tech-adjacent."
  *
  * This table used to map machine shops to `precision` and contractors to
  * `heritage` — the template's assignment for a *different* trade in both
  * cases. Every generated demo since has been dressed in the wrong family. The
  * column below now follows the template.
+ *
+ * ## Three rows move to the two new families
+ *
+ * `meridian` and `apex` exist because three trades in this table were sitting
+ * on `precision` for want of anywhere better, not because `precision` was
+ * right for them:
+ *
+ *   auto/mechanic/tire/collision  forge     -> apex
+ *   roof/siding/contractor/...    precision -> meridian
+ *   landscap/lawn/garden/tree     precision -> meridian
+ *
+ * The clinical row (dental, medical, physio, chiro) DOES NOT MOVE. A clinical
+ * family is a reasonable thing to want and `meridian`'s daylight register is
+ * not it — those niches stay on `precision` until a family is designed for
+ * them. Nothing is waiting on that: they are not in the discovery sweep yet.
+ *
+ * Everything else stays where it is. As before, the `colors` column is not
+ * touched: correcting one axis is not a reason to disturb the other.
  *
  * The `colors` column is unchanged. Preset and palette are separate axes in
  * `DesignConfig` (the preset owns the page's own palette; these two colours
@@ -67,9 +88,12 @@ export const NICHE_STYLES: readonly NicheStyle[] = [
   },
   {
     match: ["auto", "mechanic", "tire", "collision", "body shop"],
-    preset: "forge",
+    preset: "apex",
     colors: { primary: "#1e3a8a", accent: "#b91c1c" },
-    rationale: "Workshop blue and a warning red: familiar to anyone who has stood in a service bay.",
+    rationale:
+      "Workshop blue and a warning red: familiar to anyone who has stood in a service bay. " +
+      "On apex, whose near-black field and single electric accent is the register this trade " +
+      "already advertises in.",
   },
   {
     match: ["plumb", "hvac", "heating", "boiler", "drain"],
@@ -85,9 +109,11 @@ export const NICHE_STYLES: readonly NicheStyle[] = [
   },
   {
     match: ["roof", "siding", "contractor", "construction", "carpent", "builder"],
-    preset: "precision",
+    preset: "meridian",
     colors: { primary: "#14532d", accent: "#b45309" },
-    rationale: "Timber green and a saw-dust amber: outdoor trades, not tech.",
+    rationale:
+      "Timber green and a saw-dust amber: outdoor trades, not tech. On meridian, whose " +
+      "photography-forward hero is the point for work that is only visible outside.",
   },
   {
     match: ["dental", "dentist", "orthodont", "medical", "clinic", "physio", "chiro"],
@@ -97,9 +123,11 @@ export const NICHE_STYLES: readonly NicheStyle[] = [
   },
   {
     match: ["landscap", "lawn", "garden", "tree", "nursery"],
-    preset: "precision",
+    preset: "meridian",
     colors: { primary: "#166534", accent: "#a16207" },
-    rationale: "Foliage green with an earth accent.",
+    rationale:
+      "Foliage green with an earth accent. On meridian for the same reason as roofing: the " +
+      "work is photographed outdoors and the daylight base is what it sits on.",
   },
   {
     match: ["groom", "pet", "veterin", "kennel"],

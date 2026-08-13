@@ -46,12 +46,12 @@
     // excluded from batch builds and from the deploy script.
     // See clients/zz-fixture-go-live.config.ts.
     //
-    // `zz-fixture-long-name` is the third, and is here for the same registry
+    // `zz-fixture-long-name,zz-fixture-motion` is the third, and is here for the same registry
     // reason: the list is asserted in both directions, so a config that exists
     // and is not named here fails the build. It uses the default field rules,
     // so it deliberately gets no PROSPECT_FIELDS entry below, and it is never
-    // deployed. See clients/zz-fixture-long-name.config.ts.
-    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage,zz-fixture-phone-optional,zz-fixture-go-live,zz-fixture-long-name",
+    // deployed. See clients/zz-fixture-long-name,zz-fixture-motion.config.ts.
+    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage,zz-fixture-phone-optional,zz-fixture-go-live,zz-fixture-long-name,zz-fixture-motion",
 
     // Who each prospect's leads belong to: `slug=address,slug=address`.
     // A prospect with no entry falls back to MAIL_TO, which is how every demo

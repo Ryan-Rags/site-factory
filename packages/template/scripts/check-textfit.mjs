@@ -253,10 +253,20 @@ const measure = (page) =>
           const s = getComputedStyle(el);
           return s.display !== 'none' && s.visibility !== 'hidden';
         })
-        .map((el) => ({ ...fit(el), cls: el.getAttribute('class') ?? '' })),
+        .map((el) => ({ ...fit(el), lines: lineCount(el), cls: el.getAttribute('class') ?? '' })),
       viewportWidth: innerWidth,
     };
   }, NAV_BREAKPOINT);
+
+/**
+ * The three CTAs that must never wrap.
+ *
+ * `.d-header__cta` sits in the header lockup beside the business name;
+ * `.d-callbar__call` and `.d-callbar__secondary` are the sticky bar fixed to
+ * the bottom of a phone viewport. All three live in chrome that is visible on
+ * every route, at every width, in every cell.
+ */
+const SINGLE_LINE_CTA = ['d-header__cta', 'd-callbar__call', 'd-callbar__secondary'];
 
 /**
  * The assertions themselves, against one measurement.
@@ -364,7 +374,89 @@ function assertFit(where, m, cell) {
       !button.clipsY || button.scrollHeight <= button.clientHeight + 1,
       `button "${button.text}" is clipped vertically: ${button.scrollHeight}px > ${button.clientHeight}px on a box that clips`,
     );
+
+    /*
+     * 6b — the header and sticky CTAs must be ONE line, not merely unclipped.
+     *
+     * Unclipped was never the right bar for these three. A wrapped "GET IN
+     * TOUCH" is perfectly unclipped: the box grows, nothing overflows, and the
+     * assertion above passes while the header carries a two-line button that
+     * looks like a mistake in a demo we are about to show somebody.
+     *
+     * Scoped to the header CTA and the two sticky call-bar actions on purpose.
+     * A body button may legitimately wrap — a long service name in a card CTA
+     * is fine on a phone — so this is not a rule about buttons, it is a rule
+     * about the three that sit in fixed chrome and set the first impression.
+     */
+    if (SINGLE_LINE_CTA.some((cls) => button.cls.split(/\s+/).includes(cls))) {
+      assert(
+        where,
+        button.lines <= 1,
+        `CTA "${button.text}" wraps onto ${button.lines} lines — the header and sticky ` +
+          `call bar carry single-line labels, and a wrapped one is unclipped but wrong`,
+      );
+    }
   }
+}
+
+/**
+ * Which offered cell lays the display face out widest.
+ *
+ * Replaces a hardcoded `heritage/light/signwriter`. That was correct when
+ * three families offered eight pairings; it is a guess now, and a route sweep
+ * anchored to a stale "widest" sweeps the wrong cell and reports green.
+ *
+ * The measurement is done in the page rather than from font metrics, because
+ * what matters is what THIS browser lays out with THIS stack — including the
+ * fallbacks, which are most of why one pairing is wider than another on a
+ * machine that has none of the named faces installed. Uppercase transform and
+ * letter-spacing are applied too: they are the two properties that actually
+ * decide whether a name fits, and a pairing can be narrow in glyphs and wide
+ * in tracking.
+ *
+ * Ties break toward the earlier cell, so the answer is stable across runs.
+ */
+async function widestCell(page, all) {
+  // One pairing per (preset, font) — the tone does not change the type.
+  const seen = new Set();
+  const pairings = [];
+  for (const cell of all) {
+    const key = `${cell.preset}/${cell.font}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const preset = presetFile.presets.find((p) => p.id === cell.preset);
+    const font = preset?.fonts.find((f) => f.id === cell.font);
+    if (font) pairings.push({ cell, font });
+  }
+
+  const widths = await page.evaluate((entries) => {
+    const sample =
+      (document.querySelector('.d-header__name')?.textContent ?? '').trim() ||
+      'Sample Business Name';
+    const probe = document.createElement('span');
+    probe.style.cssText =
+      'position:absolute;left:-9999px;top:-9999px;white-space:nowrap;font-size:1.25rem';
+    document.body.appendChild(probe);
+    const out = entries.map((e, i) => {
+      probe.style.fontFamily = e.display;
+      probe.style.fontWeight = e.displayWeight;
+      probe.style.textTransform = e.displayTransform;
+      probe.style.letterSpacing = e.displayTracking;
+      probe.textContent = sample;
+      return { i, width: probe.getBoundingClientRect().width };
+    });
+    probe.remove();
+    return out;
+  }, pairings.map(({ font }) => ({
+    display: font.display,
+    displayWeight: font.displayWeight,
+    displayTransform: font.displayTransform,
+    displayTracking: font.displayTracking,
+  })));
+
+  let best = { i: 0, width: -1 };
+  for (const w of widths) if (w.width > best.width) best = w;
+  return pairings[best.i].cell;
 }
 
 /* ---------------------------------------------------------------------- run */
@@ -461,11 +553,19 @@ try {
    * The two cells the route sweep runs in: what the client ships, and the
    * widest display type the matrix can be switched into. Anything wider than
    * the second one does not exist, so a route that fits both fits all of them.
+   *
+   * MEASURED, not named. This used to hardcode `heritage/light/signwriter`,
+   * which was the widest pairing when three families offered eight between
+   * them. Five families offer seventeen, and a "widest" nobody re-checked
+   * makes the whole route sweep prove nothing — it would faithfully sweep the
+   * second-widest cell for ever and report green.
+   *
+   * So it is derived: render one representative string in every pairing the
+   * matrix offers, at the display size and weight the pairing declares, and
+   * keep the one that lays out widest. The string is the client's own business
+   * name, because that is the text this gate exists to protect.
    */
-  const widest = isPitch
-    ? cells().find((c) => c.preset === 'heritage' && c.scheme === 'light' && c.font === 'signwriter') ??
-      cells()[0]
-    : shipped;
+  const widest = isPitch ? await widestCell(page, cells()) : shipped;
   const ROUTE_CELLS = isPitch ? [shipped, widest] : [shipped];
 
   console.log(
@@ -473,6 +573,10 @@ try {
       `  home sweep:  ${ALL.length} cell(s) × ${VIEWPORTS.length} viewports\n` +
       `  route sweep: ${ROUTES.length} routes × ${VIEWPORTS.length} viewports × ` +
       `${ROUTE_CELLS.length} cell(s) (shipped${isPitch ? ' + widest type in the matrix' : ''})\n` +
+      (isPitch
+        ? `  widest type:  ${widest.preset}/${widest.scheme}/${widest.font} — measured, ` +
+          `not assumed\n`
+        : '') +
       `  viewports:   ${VIEWPORTS.join(', ')}\n`,
   );
 
