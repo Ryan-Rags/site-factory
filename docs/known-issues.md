@@ -237,7 +237,7 @@ lands, and this addendum is the evidence and the boundary that stream builds to.
   reference. The last text of #3 is readable at
   https://github.com/Ryan-Rags/site-factory/blob/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909/docs/known-issues.md
 
-  #4 — the og:image origin defect — was fixed by PR #40 (issue #25) and is
+  #4 — the og:image origin defect — was fixed by PR #38 (issue #25) and is
   deleted, and it takes TWO numbers with it, because it was filed twice under
   the same one:
 
