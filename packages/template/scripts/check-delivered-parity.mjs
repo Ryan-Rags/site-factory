@@ -184,6 +184,42 @@ function onlyRevealScriptChanged(before, after) {
   return strippedBefore === strippedAfter ? true : null;
 }
 
+/**
+ * Exemption — `revealMotionAxis`.
+ *
+ * The named, announced allowance the motion axis was told to come back for.
+ * `onlyRevealScriptChanged` above was narrowed to its own migration precisely
+ * so that this change could not ride in on it; this is the front door.
+ *
+ * What it covers, and why it is not "no delta at all". `Reveal.astro` gains two
+ * lines: it reads `data-motion-preset` from <html>, and treats the `still`
+ * preset as the path a reduced-motion request already took. A delivered page
+ * never carries that attribute, so `motion` is null, `stillMotion` is false,
+ * and every branch resolves exactly as it did before — but the *script text* is
+ * the same on delivered and pitch builds, because it is one component, so the
+ * bytes move even though the behaviour does not.
+ *
+ * The alternative was a second copy of a 250-line inline script that differed
+ * by two lines, which is a worse thing to own than a narrow allowance.
+ *
+ * One-way, like every other exemption in this file: the token must be ABSENT
+ * from the baseline's script and PRESENT in the candidate's. The moment this
+ * branch lands on main, a later stream's baseline carries `data-motion-preset`,
+ * this returns null, and the three delivered design clients are gated on their
+ * script again.
+ */
+const MOTION_TOKEN = /data-motion-preset/;
+
+function onlyMotionAxisAdded(before, after) {
+  const a = REVEAL_SCRIPT.exec(before);
+  const b = REVEAL_SCRIPT.exec(after);
+  if (!a || !b || a[0] === b[0]) return null;
+  if (MOTION_TOKEN.test(a[0]) || !MOTION_TOKEN.test(b[0])) return null;
+  const strippedBefore = before.replace(REVEAL_SCRIPT, '<script reveal/>');
+  const strippedAfter = after.replace(REVEAL_SCRIPT, '<script reveal/>');
+  return strippedBefore === strippedAfter ? true : null;
+}
+
 const SCHEME_LINE = /\n[ \t]*color-scheme:\s*(light|dark);/;
 
 function onlyColorSchemeAdded(before, after) {
@@ -444,6 +480,8 @@ const headExempt = new Map();
 const redesigned = [];
 /** Pages whose only body change was the reveal script. */
 const revealChanged = [];
+/** Pages that took the motion-axis allowance, reported by name. */
+const motionAxis = [];
 /** Pages whose only body change was dropping links to absent sections. */
 const deadAnchors = [];
 
@@ -591,6 +629,11 @@ for (const page of pages) {
     revealChanged.push(page);
   }
 
+  if (moved.includes('content') && onlyMotionAxisAdded(ra.content, rb.content)) {
+    moved = moved.filter((k) => k !== 'content');
+    motionAxis.push(page);
+  }
+
   if (moved.includes('content')) {
     const anchors = onlyDeadAnchorLinksDropped(ra.content, rb.content);
     if (anchors) {
@@ -657,6 +700,18 @@ if (revealChanged.length > 0) {
       `  placeholder, the rest of the body is byte-identical on every page below:`,
   );
   for (const page of revealChanged) console.log(`    + revealScriptChanged  ${page}`);
+}
+
+if (motionAxis.length > 0) {
+  console.log(
+    `\n${motionAxis.length} page(s) took the named motion-axis exemption. The inline reveal\n` +
+      `  script now reads \`data-motion-preset\` from <html> and treats the \`still\` preset\n` +
+      `  as the path a reduced-motion request already took. A DELIVERED page never carries\n` +
+      `  that attribute, so nothing below renders differently — the script is one\n` +
+      `  component and its text is shared with the pitch builds, which is the only reason\n` +
+      `  these bytes move at all:`,
+  );
+  for (const page of motionAxis) console.log(`    + revealMotionAxis  ${page}`);
 }
 
 if (deadAnchors.length > 0) {

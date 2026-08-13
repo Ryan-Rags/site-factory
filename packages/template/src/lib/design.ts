@@ -28,6 +28,7 @@ import {
 import type { TestimonialStatus } from '../types/site';
 import {
   DENSITY_SCALE,
+  MOTIONS,
   RADIUS_SCALE,
   getPreset,
   isDarkPalette,
@@ -949,6 +950,37 @@ ${fontTokens(pairing)}
   }
 
   return blocks.join('\n');
+}
+
+/**
+ * The motion axis as CSS, one block per preset.
+ *
+ * Deliberately NOT folded into `themeMatrixCss()`, and deliberately not
+ * scoped by anything. Each block's selector is exactly
+ * `:root[data-motion-preset="<id>"]` — one attribute, no family, no tone, no accent,
+ * no pairing. That is the orthogonality claim, and `check-reveal.mjs` asserts
+ * it statically in both directions rather than trusting this comment: no block
+ * `themeMatrixCss()` emits may mention `data-motion-preset`, and no `[data-motion-preset]`
+ * rule in `design.css` may mention any of the other four.
+ *
+ * The claim is worth proving because it is what licenses the reveal gate to
+ * run as a SUM — three motion presets over one representative route set —
+ * instead of a product with the 272-cell theme matrix. If the axes ever did
+ * interact, that sum would stop being a proof and nobody would notice.
+ *
+ * `still` emits `0ms`/`0`/`0rem`, so a page in it has no reveal transition at
+ * all; `Reveal.astro` handles the two things CSS cannot, the counters and the
+ * carousel timer.
+ */
+export function motionMatrixCss(): string {
+  return MOTIONS.map(
+    (m) => `:root[data-motion-preset="${m.id}"] {
+  --d-motion-duration: ${m.reveal.duration};
+  --d-motion-stagger: ${m.reveal.stagger};
+  --d-motion-travel: ${m.reveal.travel};
+  --d-motion-ease: ${m.reveal.easing};
+}`,
+  ).join('\n');
 }
 
 /**

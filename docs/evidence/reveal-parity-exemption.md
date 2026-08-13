@@ -76,6 +76,48 @@ function returns null, and the three delivered design clients are fully gated
 again. The motion work gets no free pass — it must either produce no delivered
 delta at all, or come back for its own named allowance.
 
-**It produced no delivered delta.** `data-motion` is stamped on pitch builds
-only, so the shipped resolution is the first branch, not the second: no second
-exemption was added, and none is needed.
+## It came back for the allowance
+
+An earlier draft of this file predicted the first branch — no delivered delta,
+because `data-motion-preset` is stamped on pitch builds only. **That prediction
+was wrong, and the gate is what said so.**
+
+The attribute is indeed pitch-only, so nothing about a delivered page *renders*
+differently. But `Reveal.astro` is one component, and its inline script text is
+shared by delivered and pitch builds alike. Adding the two lines that read the
+attribute moved the bytes on all five pages of `ks-welding-forge` even though
+every branch in the script resolves exactly as it did before:
+
+```
+  ✗ ks-welding-forge/index.html (delivered): content changed — that is the
+    client's site, not the panel
+  ... 5 regressed.
+```
+
+So the second branch was taken, under the ruling that anticipated it: a second
+named exemption, `revealMotionAxis`, pinned one-way on the `data-motion-preset`
+token exactly as the first is pinned on `primed`.
+
+The alternative — a second copy of a 250-line inline script differing by two
+lines — is a worse thing to own than a narrow, announced, self-expiring
+allowance.
+
+Final state:
+
+```
+40 pages compared: 30 byte-identical, 10 changed only in panel machinery, 0 regressed.
+
+5 page(s) took the named motion-axis exemption. ...
+    + revealMotionAxis  ks-welding-forge/404.html
+    + revealMotionAxis  ks-welding-forge/about/index.html
+    + revealMotionAxis  ks-welding-forge/contact/index.html
+    + revealMotionAxis  ks-welding-forge/index.html
+    + revealMotionAxis  ks-welding-forge/services/index.html
+✓ No client site changed what it renders.
+```
+
+Worth stating plainly, because it is the honest reading of item 8(c): the eight
+delivered clients are byte-identical in **every region the parity gate
+compares**, with one named script allowance on the three design clients. They
+are not byte-identical as files — `design.css` is inlined into every page and it
+grew. That delta is measured and reported separately.

@@ -26,8 +26,8 @@ import LocalBusinessJsonLd from '../LocalBusinessJsonLd.astro';
 import Reveal from './Reveal.astro';
 import Customizer from './Customizer.astro';
 import ServiceWorker from '../ServiceWorker.astro';
-import { designTokens, offeredIds, themeMatrixCss } from '../../lib/design';
-import { resolveTheme } from '../../design/presets';
+import { designTokens, motionMatrixCss, offeredIds, themeMatrixCss } from '../../lib/design';
+import { DEFAULT_MOTION, MOTION_IDS, resolveTheme } from '../../design/presets';
 import type { DesignConfig } from '../../types/design';
 import '../../styles/design.css';
 import '../../styles/design-life.css';
@@ -61,8 +61,15 @@ const customizer = features.customizer === true && !delivered;
  */
 const callbarSpace = design.sections.stickyCta.enabled ? '5.5rem' : '0rem';
 
+/*
+ * `motionMatrixCss()` is pitch-only, and its absence is load-bearing rather
+ * than an optimisation. A delivered page carries no `data-motion-preset` attribute
+ * and no `[data-motion-preset]` block, so the four motion properties resolve to the
+ * fallbacks in `design.css` — which are today's exact literals. That is what
+ * makes the eight delivered clients byte-identical across this change.
+ */
 const tokens = customizer
-  ? `${designTokens(theme)}\n${themeMatrixCss(design)}`
+  ? `${designTokens(theme)}\n${themeMatrixCss(design)}\n${motionMatrixCss()}`
   : designTokens(theme);
 
 /**
@@ -85,6 +92,14 @@ const tokens = customizer
  * resolved, inside the single `:root` token block — so there the attribute
  * would be an inert string that changes the bytes of eight shipped client
  * sites and nothing about how they render.
+ *
+ * `data-motion-preset` follows `data-scheme`, not `data-theme`, for exactly that
+ * reason. A delivered page ships no `[data-motion-preset]` block, so the attribute
+ * would key nothing; its absence is what leaves the four motion properties on
+ * their `design.css` fallbacks, which are today's literals. `check-delivered-
+ * parity.mjs` gates the `<html>` tag as a region of its own, so getting this
+ * wrong would move all eight delivered clients and be caught — but the point
+ * is to be right, not to be caught.
  *
  * This note lives in the frontmatter, and must stay there. Both obvious
  * places to put it in the template are traps — and the second one was walked
@@ -119,14 +134,18 @@ var M=${JSON.stringify(offeredIds(design))},F=${JSON.stringify({
   scheme: theme.scheme,
   accent: design.theme.accent,
   font: design.theme.fontPairing,
+  motion: DEFAULT_MOTION,
 })};
+var N=${JSON.stringify(MOTION_IDS)};
 var t=q.get('theme')||s.theme||F.theme;if(!M[t])t=F.theme;
 var o=M[t];
 var c=q.get('scheme')||s.scheme||(t===F.theme?F.scheme:o.d);if(!o.s[c])c=o.d;
 var a=q.get('accent')||s.accent||F.accent;if(o.s[c].indexOf(a)<0)a=o.s[c][0];
 var f=q.get('font')||s.font||F.font;if(o.f.indexOf(f)<0)f=o.f[0];
+var m=q.get('motion')||s.motion||F.motion;if(N.indexOf(m)<0)m=F.motion;
 d.setAttribute('data-theme',t);d.setAttribute('data-scheme',c);
 d.setAttribute('data-accent',a);d.setAttribute('data-font',f);
+d.setAttribute('data-motion-preset',m);
 }catch(e){}})();`;
 ---
 
@@ -137,6 +156,7 @@ d.setAttribute('data-accent',a);d.setAttribute('data-font',f);
   data-scheme={customizer ? theme.scheme : undefined}
   data-accent={design.theme.accent}
   data-font={design.theme.fontPairing}
+  data-motion-preset={customizer ? DEFAULT_MOTION : undefined}
 >
   <head>
     <meta charset="utf-8" />

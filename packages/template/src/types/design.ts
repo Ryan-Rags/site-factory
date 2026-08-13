@@ -35,13 +35,23 @@ import type { ThemeSelection } from '../design/presets';
  *                 sans. Contractors, HVAC, electrical.
  * - `heritage`  — cream with a deep navy or forest ink, serif display,
  *                 ruled dividers. Legacy shops, "family owned since" trades.
+ * - `meridian`  — warm off-white daylight, sky/leaf/clay accents, humanist
+ *                 lettering, dusk-blue night tone. Roofing, landscaping and
+ *                 the exterior trades, where the work is photographed outside.
+ * - `apex`      — near-black and near-white extremes, geometric grotesk,
+ *                 hairline rules, one electric accent. Auto and tech-adjacent.
  *
  * Each family ships in both tones — see `SchemeName`. The tone changes the
  * palette and the accents and nothing else, so a dark Precision keeps its
  * blueprint grid and its geometry; the grid is drawn in the palette's own
  * line colour and follows the tone without a rule of its own.
+ *
+ * A family is more than a palette: each ships its own `[data-theme]` cosmetic
+ * block in `design.css` alongside the three that were already there. A
+ * palette-only family would be an accent set, and the customizer already
+ * offers eight of those per tone.
  */
-export type DesignFamily = 'forge' | 'precision' | 'heritage';
+export type DesignFamily = 'forge' | 'precision' | 'heritage' | 'meridian' | 'apex';
 
 /**
  * Hero layouts, available in every family.
@@ -459,5 +469,11 @@ export interface DesignConfig {
   sections: DesignSections;
 }
 
-export const DESIGN_FAMILIES: DesignFamily[] = ['forge', 'precision', 'heritage'];
+export const DESIGN_FAMILIES: DesignFamily[] = [
+  'forge',
+  'precision',
+  'heritage',
+  'meridian',
+  'apex',
+];
 export const HERO_VARIANTS: HeroVariant[] = ['split', 'full-bleed', 'stacked-panel'];

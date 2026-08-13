@@ -61,6 +61,12 @@
               "label": "Rust copper",
               "accent": "#9a4a12",
               "onAccent": "#ffffff"
+            },
+            {
+              "id": "zinc",
+              "label": "Zinc cyan",
+              "accent": "#007d82",
+              "onAccent": "#dffcfd"
             }
           ]
         },
@@ -117,6 +123,12 @@
               "label": "Rust copper",
               "accent": "#d98a4a",
               "onAccent": "#1a0f05"
+            },
+            {
+              "id": "zinc",
+              "label": "Zinc cyan",
+              "accent": "#00dfe8",
+              "onAccent": "#001112"
             }
           ]
         }
@@ -148,6 +160,15 @@
           "displayWeight": "700",
           "displayTransform": "uppercase",
           "displayTracking": "0.04em"
+        },
+        {
+          "id": "industrial",
+          "label": "Industrial gothic",
+          "display": "'Haettenschweiler', 'Impact', 'Franklin Gothic Bold', 'Arial Narrow Bold', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "400",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.02em"
         }
       ],
       "variants": {
@@ -227,6 +248,12 @@
               "label": "Violet",
               "accent": "#6a3fc0",
               "onAccent": "#ffffff"
+            },
+            {
+              "id": "amber",
+              "label": "Instrument amber",
+              "accent": "#8b6000",
+              "onAccent": "#fff3e2"
             }
           ]
         },
@@ -283,6 +310,12 @@
               "label": "Violet",
               "accent": "#b98bf5",
               "onAccent": "#12071f"
+            },
+            {
+              "id": "amber",
+              "label": "Instrument amber",
+              "accent": "#e19e02",
+              "onAccent": "#150b00"
             }
           ]
         }
@@ -305,6 +338,15 @@
           "displayWeight": "700",
           "displayTransform": "uppercase",
           "displayTracking": "0.03em"
+        },
+        {
+          "id": "humanist",
+          "label": "Humanist sans",
+          "display": "'Segoe UI', 'Frutiger', 'Open Sans', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "-0.005em"
         }
       ],
       "variants": {
@@ -384,6 +426,12 @@
               "label": "Verdigris",
               "accent": "#1a5f5a",
               "onAccent": "#ffffff"
+            },
+            {
+              "id": "olive",
+              "label": "Olive green",
+              "accent": "#586500",
+              "onAccent": "#f3f8e2"
             }
           ]
         },
@@ -408,8 +456,8 @@
             {
               "id": "oxblood",
               "label": "Oxblood",
-              "accent": "#e5808f",
-              "onAccent": "#1c0709"
+              "accent": "#e05366",
+              "onAccent": "#1e0306"
             },
             {
               "id": "forest",
@@ -440,6 +488,12 @@
               "label": "Verdigris",
               "accent": "#5ec4bb",
               "onAccent": "#02140f"
+            },
+            {
+              "id": "olive",
+              "label": "Olive green",
+              "accent": "#9bac4a",
+              "onAccent": "#0c0f00"
             }
           ]
         }
@@ -471,6 +525,15 @@
           "displayWeight": "700",
           "displayTransform": "uppercase",
           "displayTracking": "0.05em"
+        },
+        {
+          "id": "didone",
+          "label": "Didone display",
+          "display": "'Didot', 'Bodoni MT', 'Playfair Display', Georgia, 'Times New Roman', serif",
+          "body": "Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "0"
         }
       ],
       "variants": {
@@ -478,6 +541,362 @@
           "stacked-panel",
           "split",
           "full-bleed"
+        ],
+        "services": [
+          "cards",
+          "list"
+        ],
+        "reviews": [
+          "grid",
+          "carousel"
+        ]
+      }
+    },
+    {
+      "id": "meridian",
+      "label": "Meridian",
+      "blurb": "Warm daylight. Off-white paper, sky and leaf accents, humanist lettering and a dusk-blue night tone. Built for roofers, landscapers and exterior trades.",
+      "defaultScheme": "light",
+      "radius": "soft",
+      "density": "comfortable",
+      "schemes": {
+        "light": {
+          "palette": {
+            "base": "#fbf9f5",
+            "surface": "#ffffff",
+            "surfaceAlt": "#f2eee6",
+            "ink": "#1e1c18",
+            "inkMuted": "#55504a",
+            "line": "#ddd7cc",
+            "primary": "#24352c",
+            "onPrimary": "#f2f6f1"
+          },
+          "accents": [
+            {
+              "id": "sky",
+              "label": "Open sky",
+              "accent": "#026ab6",
+              "onAccent": "#eef6ff"
+            },
+            {
+              "id": "lake",
+              "label": "Lake teal",
+              "accent": "#007f8a",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "leaf",
+              "label": "Leaf green",
+              "accent": "#037a2f",
+              "onAccent": "#e8fbea"
+            },
+            {
+              "id": "fern",
+              "label": "Fern",
+              "accent": "#677a00",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "clay",
+              "label": "Clay",
+              "accent": "#a64302",
+              "onAccent": "#fff2ec"
+            },
+            {
+              "id": "copper",
+              "label": "Weathered copper",
+              "accent": "#a16500",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "brick",
+              "label": "Brick red",
+              "accent": "#9f3231",
+              "onAccent": "#fff2f0"
+            },
+            {
+              "id": "slate",
+              "label": "Slate blue",
+              "accent": "#3f54ae",
+              "onAccent": "#f1f5ff"
+            }
+          ]
+        },
+        "dark": {
+          "palette": {
+            "base": "#101720",
+            "surface": "#18202b",
+            "surfaceAlt": "#141b25",
+            "ink": "#eef2f7",
+            "inkMuted": "#a9b4c2",
+            "line": "#263141",
+            "primary": "#18202b",
+            "onPrimary": "#eef2f7"
+          },
+          "accents": [
+            {
+              "id": "sky",
+              "label": "Open sky",
+              "accent": "#409df3",
+              "onAccent": "#000e20"
+            },
+            {
+              "id": "lake",
+              "label": "Lake teal",
+              "accent": "#00d6e7",
+              "onAccent": "#001113"
+            },
+            {
+              "id": "leaf",
+              "label": "Leaf green",
+              "accent": "#47b15e",
+              "onAccent": "#001203"
+            },
+            {
+              "id": "fern",
+              "label": "Fern",
+              "accent": "#8da518",
+              "onAccent": "#0b0f00"
+            },
+            {
+              "id": "clay",
+              "label": "Clay",
+              "accent": "#e4743d",
+              "onAccent": "#1d0600"
+            },
+            {
+              "id": "copper",
+              "label": "Weathered copper",
+              "accent": "#e19005",
+              "onAccent": "#170a00"
+            },
+            {
+              "id": "brick",
+              "label": "Brick red",
+              "accent": "#e86c66",
+              "onAccent": "#1e0403"
+            },
+            {
+              "id": "slate",
+              "label": "Slate blue",
+              "accent": "#7491f7",
+              "onAccent": "#060b22"
+            }
+          ]
+        }
+      },
+      "fonts": [
+        {
+          "id": "humanist",
+          "label": "Humanist sans",
+          "display": "'Segoe UI', 'Frutiger', 'Open Sans', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "-0.005em"
+        },
+        {
+          "id": "daylight-serif",
+          "label": "Daylight serif",
+          "display": "Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "0"
+        },
+        {
+          "id": "field-caps",
+          "label": "Field caps",
+          "display": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.04em"
+        }
+      ],
+      "variants": {
+        "hero": [
+          "full-bleed",
+          "split",
+          "stacked-panel"
+        ],
+        "services": [
+          "cards",
+          "list"
+        ],
+        "reviews": [
+          "grid",
+          "carousel"
+        ]
+      }
+    },
+    {
+      "id": "apex",
+      "label": "Apex",
+      "blurb": "Near-black and near-white, geometric grotesk, hairline rules and one electric accent. Built for auto, performance and tech-adjacent trades.",
+      "defaultScheme": "dark",
+      "radius": "sharp",
+      "density": "compact",
+      "schemes": {
+        "light": {
+          "palette": {
+            "base": "#ffffff",
+            "surface": "#ffffff",
+            "surfaceAlt": "#f4f5f6",
+            "ink": "#08090a",
+            "inkMuted": "#4b5057",
+            "line": "#d8dbde",
+            "primary": "#0b0d0f",
+            "onPrimary": "#fafafa"
+          },
+          "accents": [
+            {
+              "id": "lime",
+              "label": "Lime",
+              "accent": "#558300",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "cyan",
+              "label": "Cyan",
+              "accent": "#008484",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "magenta",
+              "label": "Magenta",
+              "accent": "#d100cb",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "signal",
+              "label": "Signal orange",
+              "accent": "#c85200",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "azure",
+              "label": "Azure",
+              "accent": "#0078cf",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "violet",
+              "label": "Violet",
+              "accent": "#8302ff",
+              "onAccent": "#f6f3ff"
+            },
+            {
+              "id": "acid",
+              "label": "Acid yellow",
+              "accent": "#7f7700",
+              "onAccent": "#ffffff"
+            },
+            {
+              "id": "coral",
+              "label": "Coral",
+              "accent": "#eb003e",
+              "onAccent": "#ffffff"
+            }
+          ]
+        },
+        "dark": {
+          "palette": {
+            "base": "#08090a",
+            "surface": "#101214",
+            "surfaceAlt": "#0c0e10",
+            "ink": "#fafafa",
+            "inkMuted": "#a8adb4",
+            "line": "#1e2226",
+            "primary": "#101214",
+            "onPrimary": "#fafafa"
+          },
+          "accents": [
+            {
+              "id": "lime",
+              "label": "Lime",
+              "accent": "#9ae900",
+              "onAccent": "#071100"
+            },
+            {
+              "id": "cyan",
+              "label": "Cyan",
+              "accent": "#00ebeb",
+              "onAccent": "#001111"
+            },
+            {
+              "id": "magenta",
+              "label": "Magenta",
+              "accent": "#fe00f6",
+              "onAccent": "#180517"
+            },
+            {
+              "id": "signal",
+              "label": "Signal orange",
+              "accent": "#fe6a00",
+              "onAccent": "#1d0600"
+            },
+            {
+              "id": "azure",
+              "label": "Azure",
+              "accent": "#0095fe",
+              "onAccent": "#000e20"
+            },
+            {
+              "id": "violet",
+              "label": "Violet",
+              "accent": "#9c6bff",
+              "onAccent": "#0f0820"
+            },
+            {
+              "id": "acid",
+              "label": "Acid yellow",
+              "accent": "#e0d300",
+              "onAccent": "#100e00"
+            },
+            {
+              "id": "coral",
+              "label": "Coral",
+              "accent": "#ff2f4e",
+              "onAccent": "#1e0305"
+            }
+          ]
+        }
+      },
+      "fonts": [
+        {
+          "id": "grotesk",
+          "label": "Apex grotesk",
+          "display": "'Helvetica Neue', 'Inter', 'Arial', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "800",
+          "displayTransform": "none",
+          "displayTracking": "-0.02em"
+        },
+        {
+          "id": "geometric",
+          "label": "Geometric sans",
+          "display": "'Century Gothic', 'Futura', 'Avenir Next', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "none",
+          "displayTracking": "-0.01em"
+        },
+        {
+          "id": "signal-caps",
+          "label": "Signal caps",
+          "display": "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui, sans-serif",
+          "body": "ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          "displayWeight": "700",
+          "displayTransform": "uppercase",
+          "displayTracking": "0.03em"
+        }
+      ],
+      "variants": {
+        "hero": [
+          "split",
+          "full-bleed",
+          "stacked-panel"
         ],
         "services": [
           "cards",
@@ -511,5 +930,50 @@
       "sectionLg": "6.5rem",
       "gap": "1.75rem"
     }
-  }
+  },
+  "motion": [
+    {
+      "id": "still",
+      "label": "Still",
+      "blurb": "No motion at all. Everything arrives at its final state.",
+      "reveal": {
+        "duration": "0ms",
+        "stagger": 0,
+        "travel": "0rem",
+        "easing": "linear",
+        "settle": 0
+      },
+      "counters": "paint",
+      "carousel": "off"
+    },
+    {
+      "id": "calm",
+      "label": "Calm",
+      "blurb": "Slower and shorter travel. A quieter version of the same reveal.",
+      "reveal": {
+        "duration": "900ms",
+        "stagger": 1.5,
+        "travel": "0.5rem",
+        "easing": "cubic-bezier(0.33, 1, 0.68, 1)",
+        "settle": 1200
+      },
+      "counters": "animate",
+      "carousel": "auto"
+    },
+    {
+      "id": "lively",
+      "label": "Lively",
+      "blurb": "The shipped default: a 620ms fade with a 1rem rise.",
+      "reveal": {
+        "duration": "620ms",
+        "stagger": 1,
+        "travel": "1rem",
+        "easing": "cubic-bezier(0.22, 0.61, 0.36, 1)",
+        "settle": 800
+      },
+      "counters": "animate",
+      "carousel": "auto"
+    }
+  ],
+  "defaultMotion": "lively"
 }
