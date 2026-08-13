@@ -308,12 +308,46 @@ async function main() {
   };
   ok('known-issues #2\'s signature is allowed', isKnownNoLcp(knownLhr).known);
 
-  const brokenRun = JSON.parse(JSON.stringify(knownLhr));
-  brokenRun.audits['total-blocking-time'] = { errorMessage: 'something else went wrong' };
+  /*
+   * The widened fingerprint, from both sides. PR #24 measured `NO_LCP` and
+   * `total-blocking-time` unscored *together* on five of five red clients, and
+   * authorised accepting exactly that pair — so the companion is allowed only
+   * in `NO_LCP`'s company, and only alone. The refusals below are the boundary
+   * either side of it; none of them follows from the allowed case.
+   */
+  const tbtWithNoLcp = JSON.parse(JSON.stringify(knownLhr));
+  tbtWithNoLcp.audits['total-blocking-time'] = { errorMessage: 'LanternError: NO_LCP' };
   ok(
-    'a run where other performance audits also failed is NOT allowed',
-    isKnownNoLcp(brokenRun).known === false,
-    isKnownNoLcp(brokenRun).reason,
+    'total-blocking-time unscored alongside NO_LCP IS allowed',
+    isKnownNoLcp(tbtWithNoLcp).known,
+    isKnownNoLcp(tbtWithNoLcp).reason,
+  );
+
+  const tbtAlone = JSON.parse(JSON.stringify(tbtWithNoLcp));
+  tbtAlone.audits['largest-contentful-paint'] = { errorMessage: 'PROTOCOL_TIMEOUT' };
+  ok(
+    'total-blocking-time unscored WITHOUT NO_LCP is NOT allowed',
+    isKnownNoLcp(tbtAlone).known === false,
+    isKnownNoLcp(tbtAlone).reason,
+  );
+
+  const otherAudit = JSON.parse(JSON.stringify(knownLhr));
+  otherAudit.audits['speed-index'] = { errorMessage: 'something else went wrong' };
+  ok(
+    'a different weighted audit unscored alongside NO_LCP is NOT allowed',
+    isKnownNoLcp(otherAudit).known === false,
+    isKnownNoLcp(otherAudit).reason,
+  );
+
+  // The waiver is for one companion, not for "TBT plus whatever else". Without
+  // this case a rule that merely looked for total-blocking-time *somewhere* in
+  // the unscored list would pass every case above while waiving a broken run.
+  const tbtAndAThird = JSON.parse(JSON.stringify(tbtWithNoLcp));
+  tbtAndAThird.audits['speed-index'] = { errorMessage: 'something else went wrong' };
+  ok(
+    'total-blocking-time plus a third unscored audit is NOT allowed',
+    isKnownNoLcp(tbtAndAThird).known === false,
+    isKnownNoLcp(tbtAndAThird).reason,
   );
 
   const otherCause = JSON.parse(JSON.stringify(knownLhr));
