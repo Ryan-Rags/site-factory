@@ -529,11 +529,11 @@
         {
           "id": "didone",
           "label": "Didone display",
-          "display": "'Didot', 'Bodoni MT', 'Playfair Display', Georgia, 'Times New Roman', serif",
+          "display": "'Didot', 'Bodoni MT', 'Playfair Display', 'Times New Roman', Georgia, serif",
           "body": "Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif",
           "displayWeight": "700",
           "displayTransform": "none",
-          "displayTracking": "0"
+          "displayTracking": "-0.01em"
         }
       ],
       "variants": {
