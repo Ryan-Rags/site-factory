@@ -230,6 +230,36 @@ does not go on the site.
 If the photos are not there yet, the site ships with labelled placeholders and
 we swap them. It is not a blocker for the build. It is a blocker for go-live.
 
+### No photos?
+
+The common answer, and not a problem — but it is a thing to *book*, not a thing
+to wait for. An owner who leaves the call believing photography is their
+homework is an owner whose launch slips a month.
+
+- **The default offer: Ryan takes them.** At the walk-in or at handoff, about
+  ten minutes on a phone — the exterior, the workspace, three to five examples
+  of the work, and the team if they are willing to be in a picture. Offer this
+  outright rather than asking whether they have photos and seeing what arrives.
+- **Their Google Business photos can seed the build.** Useful for getting a real
+  mockup in front of them quickly. Before go-live, though, **every one of them is
+  either confirmed by the owner as theirs to publish or swapped for one that
+  is** — the standing attribution rule. A photo we pulled rather than sourced has
+  nowhere on the page to carry its credit, so it does not survive to a live site;
+  the owner confirming it is what makes it publishable, exactly as with any other
+  fact they are the source for.
+- **Real stock photography is for atmosphere only.** A texture, a backdrop, a
+  material. Never a photograph standing in for their shop, their team or their
+  work — that is a picture of somebody else's business on their About page.
+- **AI imagery only for abstract backgrounds and textures.** Never depicting the
+  trade, the shop, a tool, a part or a person. A generated welder is a fabricated
+  welder, and it is the one kind of fake that the people they are selling to spot
+  instantly.
+- **If nothing exists at all, the site ships text-forward.** `features.gallery`
+  goes `false`, which emits no gallery page and no nav link pointing at one, and
+  the copy is written to stand up without the images rather than around the gaps
+  where they should be. Placeholders are a mockup state and only a mockup state:
+  **no placeholder hole ever goes live.**
+
 ---
 
 ## 3. Access & accounts
@@ -372,13 +402,20 @@ If they have not, or if they want to change something:
 
 - **Which plan do you want?**
 
-  <!-- Fill in the tiers and prices once, here, and this becomes readable
-       verbatim on a call. The repo does not define them, so this document
-       does not invent them. -->
+  Two, and they buy the same site and the same service — the only difference is
+  how it is paid for. These are Ryan's prices as set. Read the row out as it is
+  written: none of it is an opening position, and there is no third tier to
+  reach for if they hesitate.
 
   | Plan | What's included | Price |
   |---|---|---|
-  | _ | _ | _ |
+  | **A — paid up front** | **Year one fully included:** hosting, SSL, security, the domain, up to **two content edits a month**, the Google Business Profile kept in sync with the site, and support by text. | **$3,000** one time. After year one, an **optional care plan at $99/month**. |
+  | **B — monthly** | The same inclusions, in full. | **$500** deposit, then **$200/month**. **Six-month minimum**, then cancel any time. Price **locked for 24 months**. |
+
+  > The inclusions are identical, so this is not a tier ladder and nothing is
+  > held back from B. The two lines a client most often remembers differently
+  > afterwards are "up to two content edits a month" and the six-month minimum,
+  > so say both out loud rather than leaving them to be read.
 
 - **When do you want to be live?**
   > Then say what actually gates it: markers cleared, photos in, domain access.

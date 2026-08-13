@@ -269,7 +269,46 @@ what makes the consistency automatic rather than remembered.
 
 ---
 
-## 8. After launch
+## 8. Handoff: send a test lead from the owner's machine
+
+Everything above is verified from our side. This one is not: do it **with the
+owner, on their computer, signed into the inbox the leads actually land in.**
+The form working from our desk proves the Worker. It does not prove that the
+person who has to answer the enquiry will ever see it.
+
+1. **Submit a test lead together**, filled in the way a customer would fill it —
+   a real name, their own phone number, and **their own email address in the
+   email field**, which matters for the reply check below. One sentence in the
+   message is enough. It creates a lead nobody has to answer and it is the only
+   thing that proves the whole path end to end.
+
+2. **Watch where it lands, and fix it there and then if it lands in spam.** A
+   first message from a sending domain that mailbox has never seen before is a
+   normal thing to be filtered, and it is a five-minute fix on the day and a
+   silent disaster three weeks later:
+
+   - Open the message and mark it **Not Spam**.
+   - Add a filter on `mail.raghubans.com` as the sender: **never send it to
+     spam, keep it in the inbox, and apply the label "Website Leads".**
+
+   Do it on their machine. The filter belongs to their mailbox and cannot be set
+   from ours, and an owner who cannot find the first real enquiry concludes the
+   website does not work.
+
+3. **Hit Reply on the notification and confirm it arrives.** The lead email sets
+   its reply-to to **the address the form carried**, so replying goes to the
+   customer rather than to us — and because the test lead was submitted under the
+   owner's own address, the reply comes straight back to the inbox they are
+   sitting in front of. That round trip is the confirmation.
+
+   Note the condition: reply-to is set **only when the submission included an
+   email address**. A test lead sent with the email field blank will deliver
+   fine and prove nothing at all about replying, which is why the first step
+   above insists on filling it in.
+
+---
+
+## 9. After launch
 
 **Week one.** Confirm indexing (`site:example.com` in Google). Check Search
 Console for coverage errors. Re-run the header curl from step 2.
