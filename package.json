@@ -27,6 +27,8 @@
     "pitch:all": "node scripts/pitch/compare.mjs --all",
     "verify:offline": "node scripts/pitch/verify-offline.mjs",
     "verify:offline:all": "node scripts/pitch/verify-offline.mjs --all --local",
+    "smoke": "node scripts/live-smoke/index.mjs",
+    "smoke:selftest": "node scripts/live-smoke/selftest.mjs",
     "lint": "echo \"lint: not configured yet\"",
     "test": "pnpm -r --if-present test",
     "review-card": "node packages/prospect/dist/review-card-cli.js"

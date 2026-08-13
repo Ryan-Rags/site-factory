@@ -125,7 +125,79 @@ not the work. SEO 69 on a mockup is the `is-crawlable` deduction, i.e. the
 `noindex: false`, scores 100 / 100 / 100 / 100.
 
 **Still open:** finding what in `DesignLayout` suppresses LCP under device
-emulation. The 90+ mobile bar has never been demonstrated, in either direction.
+emulation.
+
+**Measured live, 2026-08-12 (`feat/live-smoke`).** The 90+ mobile bar has now
+been demonstrated on three of the eight deployed demos, against
+`https://<slug>-preview.pages.dev/` with the same mobile emulation, on
+Lighthouse 12.8.2:
+
+| Client | performance | accessibility | best-practices | seo |
+|---|---|---|---|---|
+| american-machine-specialty | **99** | 96 | 100 | 69 |
+| industrial-machine-corp | **99** | 96 | 100 | 69 |
+| kh-machine-works | **100** | 96 | 100 | 69 |
+| ks-welding, ks-welding-{forge,heritage,precision}, kts-machine-shop | `NO_LCP` | 96–100 | 100 | 69 |
+
+So the defect is **not** universal to `DesignLayout` under device emulation, and
+it is not the network either — three design-family home pages served over the
+same path score. What separates the two groups is not yet known.
+
+**The live presentation differs from the table above in one respect**, and it
+matters because `scripts/live-smoke` keys its waiver on the signature: on
+Lighthouse 12.8.2 the LCP failure surfaces as a thrown `LanternError: NO_LCP`
+out of `@paulirish/trace_engine`, and **`total-blocking-time` also fails to
+score** — where this entry records every other performance audit at 1/1. Both
+are lantern-simulated metrics off the same graph, so one cause with two
+casualties is the likely reading, but that is inference. Until it is settled,
+live-smoke refuses the waiver on this signature and reports the run as a
+failure, which is the conservative half of "a known issue never fails smoke; an
+unknown one always does".
+
+**Reproduce:** `pnpm smoke -- --client ks-welding`, and read the
+`lighthouse performance` row of the generated `report.md`.
+
+---
+
+## 4. Every demo advertises its `og:image` on a domain the demo is not served from
+
+**Status:** open. **Owner:** whoever owns `src/components/Seo.astro` and the
+demo deploy path. **Found by:** `feat/live-smoke`, measured against the fleet
+redeployed from `main@c301f2c`.
+
+`Seo.astro` builds the card URL as `new URL(site.brand.ogImage, Astro.site ??
+site.seo.siteUrl)`, and `astro.config.mjs` sets `site: site.seo.siteUrl`. So the
+tag's origin is always `seo.siteUrl`. On a demo build that is the *prospect's*
+domain, while the demo is served from `https://<slug>-preview.pages.dev`:
+
+| og:image origin | clients |
+|---|---|
+| `https://example.invalid` (the prospect has no site) | 6 |
+| the prospect's own real domain, which 404s the path | 2 |
+| the origin actually serving the demo | 0 |
+
+**The PNG itself is fine.** At the deploy origin the same path answers `200
+image/png, 1200×630` on all eight. Nothing is missing and nothing is malformed —
+the card is simply advertised at an address no crawler can fetch it from, so
+every link shared for a demo unfurls with no image.
+
+**Why no local gate catches it, by design.** `check-metadata.mjs` takes
+`new URL(ogImage).pathname` and asserts the *path* exists in `dist/<slug>` at
+the right size and format. That is exactly right for a delivered build, where
+`siteUrl` **is** the origin the site is served from, and structurally blind on a
+demo, where it is not. The check is not wrong; it is measuring a build, and this
+is a property of a deployment.
+
+**Reproduce:** `pnpm smoke -- --client kh-machine-works`; the `og:image` section
+of the generated `report.md` shows the declared URL, its status, and the same
+path measured at the deploy origin.
+
+**Fix sketch (not done here — this stream builds the instrument and reports):**
+give the demo build an origin override so `Seo.astro` resolves the card against
+the Pages origin when `seo.noindex` is set, the same way `DEMO_FORM_ENDPOINT`
+already overrides the form target for exactly this class of demo-vs-delivered
+difference. Anything that leaves `seo.siteUrl` as the card's origin on a demo
+reproduces this.
 
 ---
 
