@@ -134,9 +134,9 @@ Lighthouse 12.8.2:
 
 | Client | performance | accessibility | best-practices | seo |
 |---|---|---|---|---|
-| american-machine-specialty | **99** | 96 | 100 | 69 |
-| industrial-machine-corp | **99** | 96 | 100 | 69 |
-| kh-machine-works | **100** | 96 | 100 | 69 |
+| american-machine-specialty | **100** | 96 | 100 | 69 |
+| industrial-machine-corp | **99** | 100 | 100 | 69 |
+| kh-machine-works | **98** | 96 | 100 | 69 |
 | ks-welding, ks-welding-{forge,heritage,precision}, kts-machine-shop | `NO_LCP` | 96–100 | 100 | 69 |
 
 So the defect is **not** universal to `DesignLayout` under device emulation, and
@@ -153,6 +153,74 @@ casualties is the likely reading, but that is inference. Until it is settled,
 live-smoke refuses the waiver on this signature and reports the run as a
 failure, which is the conservative half of "a known issue never fails smoke; an
 unknown one always does".
+
+### Addendum, 2026-08-12 — the inference above is now a measurement
+
+Read this in preference to the paragraph it follows; that paragraph is left in
+place because the ledger is append-only in spirit and because the reasoning it
+records is what the measurement was taken to settle.
+
+**Corrected first: three cells of the table above were mis-transcribed.** The
+table and the instrument output landed in the same commit
+([`ef98f75`](https://github.com/Ryan-Rags/site-factory/commit/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909))
+and disagree. The run itself is authoritative —
+[`docs/evidence/live-smoke/report.md`@ef98f75](https://github.com/Ryan-Rags/site-factory/blob/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909/docs/evidence/live-smoke/report.md),
+per-client `Scores (mobile, port …)` lines — and the table above has been set to
+match it. What changed: `american-machine-specialty` performance 99 → **100**,
+`kh-machine-works` performance 100 → **98**, `industrial-machine-corp`
+accessibility 96 → **100**. Nothing else moved, and no conclusion depends on the
+difference: all three are ≥ 90 either way. Anyone quoting "99 / 99 / 100" for
+these three is quoting the mis-transcription.
+
+**(a) `total-blocking-time` is unscored on all five red clients, and always
+together with `NO_LCP`.** This is now read off the instrument rather than
+inferred. `isKnownNoLcp` returns early with `no NO_LCP error on the LCP audit`
+whenever the LCP audit carries no `NO_LCP` error message, so a client can only
+reach the `other performance audits also failed to score: …` branch if the
+`NO_LCP` error was present. All five red clients reached that branch, and each
+named exactly one audit:
+
+```
+ks-welding            other performance audits also failed to score: total-blocking-time
+ks-welding-forge      other performance audits also failed to score: total-blocking-time
+ks-welding-heritage   other performance audits also failed to score: total-blocking-time
+ks-welding-precision  other performance audits also failed to score: total-blocking-time
+kts-machine-shop      other performance audits also failed to score: total-blocking-time
+```
+
+So on Lighthouse **12.8.2** (resolved in `pnpm-lock.yaml`; `packages/audit`
+declares `^12.3.0`) the live shape is `NO_LCP` **and** `total-blocking-time`
+unscored, five for five, with every other weighted performance audit scoring.
+`total-blocking-time` is the only companion casualty observed. Why the two fall
+together is still unproven — the lantern-graph reading remains a hypothesis, and
+this entry's **Still open** line covers it.
+
+**(b) The 90+ mobile bar is demonstrable on `DesignLayout`.** 100, 99 and 98 on
+three deployed design-family home pages, under the same mobile emulation, same
+Lighthouse, same deploy path as the five that fail. The defect is
+**page-specific, not layout-universal** — which is what makes it a defect worth
+localising rather than a property of the layout.
+
+**What this authorises, and its exact boundary.** The waiver signature may be
+widened to accept `total-blocking-time` as unscored **only when the LCP audit
+carries the `NO_LCP` error message in the same LHR**. Every other refusal stands
+unchanged and is not up for reinterpretation:
+
+- LCP absent for any other reason (`PROTOCOL_TIMEOUT`, and anything else) —
+  refused.
+- `total-blocking-time` unscored *without* `NO_LCP` — refused.
+- Any *third* weighted performance audit unscored — refused, `NO_LCP` present or
+  not.
+- `docs/known-issues.md` no longer carrying a `NO_LCP` entry — refused, as
+  before.
+
+Same issue, fuller fingerprint. Nothing about the waiver's reach is inferred
+from the fact that a red run is inconvenient.
+
+**Not done in this entry's PR:** the widening itself. It is a change to
+`scripts/live-smoke/checks/lighthouse.mjs` and its selftest — gate-script code,
+not documentation — so `pnpm smoke -- --all` stays red on the five until that
+lands, and this addendum is the evidence and the boundary that stream builds to.
 
 **Reproduce:** `pnpm smoke -- --client ks-welding`, and read the
 `lighthouse performance` row of the generated `report.md`.
@@ -201,22 +269,14 @@ reproduces this.
 
 ---
 
-## 3. `packages/shortlist/src/cli.ts` opens no debugging port, so Lighthouse cannot attach
-
-**Status:** open, flagged before the first live sweep.
-**Found by:** `test/localhost-sites`, [PR #18](https://github.com/Ryan-Rags/site-factory/pull/18) Brief 2.
-
-`packages/audit`'s own CLI launches Chromium with `--remote-debugging-port=<free
-port>`; `packages/shortlist`'s calls plain `chromium.launch()` and passes the
-default 9222. The run does not crash — every Lighthouse-derived check reads
-`unavailable`, is excluded from neglect by design, and neglect is quietly
-computed over the probe-based checks alone. Silent degradation, and it would
-otherwise ship into a live sweep.
-
-**Fix:** two lines, plus a test asserting that an audited site decides at least
-one Lighthouse-derived check.
-
----
+<!--
+  #3 — "packages/shortlist opens no debugging port, so Lighthouse cannot attach"
+  (found by test/localhost-sites, PR #18 Brief 2) was fixed and is deleted; see
+  the ledger entry of 2026-08-12. Numbers are never reused or renumbered: code
+  comments cite these entries by number, so a gap is cheaper than a shifted
+  reference. The last text of #3 is readable at
+  https://github.com/Ryan-Rags/site-factory/blob/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909/docs/known-issues.md
+-->
 
 ## 4. Every preview demo unfurls with no social card — `og:image` is rooted at `seo.siteUrl`, not at the deploy origin
 
