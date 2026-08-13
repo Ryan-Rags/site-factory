@@ -261,3 +261,97 @@ lands, and this addendum is the evidence and the boundary that stream builds to.
   The last text of both #4 entries is readable at
   https://github.com/Ryan-Rags/site-factory/blob/df1accdd23af21b5062f25751bd1acacca8e7b76/docs/known-issues.md
 -->
+
+---
+
+## 6. The served-slug guard cannot tell two worktrees apart
+
+**Status:** open. **Owner:** whoever next touches the browser gates' preamble.
+**Found by:** `feat/design-expansion`, while running `check:switching` and
+`check:reveal`. **Pre-existing** — the guard has always had this shape.
+
+Every browser gate confirms the served build before measuring, per the ruling
+of 2026-08-13 (PR #40). It does so by reading the client slug out of the built
+page's manifest link:
+
+```js
+const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? '';
+return /\/icons\/([^/]+)\//.exec(manifest)?.[1] ?? null;
+```
+
+That proves *which client* is being served. It does not prove *which worktree*
+built it, and the slug is identical across all of them.
+
+**Repro.** Two worktrees of this repo, both with a `ks-welding` build:
+
+```
+cd D:/worktree-a/packages/template && SITE_CLIENT=ks-welding pnpm exec astro preview --port 4321
+cd D:/worktree-b/packages/template && SITE_CLIENT=ks-welding pnpm exec astro preview --port 4321
+#   → "Port 4321 is in use, trying another one..."  → binds 4322, silently
+cd D:/worktree-b/packages/template && SITE_CLIENT=ks-welding PREVIEW_URL=http://localhost:4321 pnpm check:switching
+#   → guard passes. It is grading worktree A.
+```
+
+Observed here with live previews from `D:\sf-design-coverage` and
+`D:\sf-baseline-main` still holding 4321–4327 from earlier sessions, so
+`astro preview` walked this worktree's server up to 4327 while `PREVIEW_URL`
+still said 4321.
+
+**What saved this stream** was not the guard: every run was cross-checked
+against content that only exists on this branch — 272 cells rather than 112,
+the three motion sweeps, the `8s` transition visible in the served CSS. That is
+a habit, not a mechanism, and the next session will not know to do it.
+
+**Fix sketch.** Stamp a build identity the guard can compare — the short git
+SHA and worktree path are both already available at build time — into a `<meta>`
+tag on every page, and have the guard compare that rather than the slug. Or,
+narrower and cheaper: have the gates start and own their own preview on an
+ephemeral port, which the 2026-08-13 ruling already names as structurally
+satisfying the requirement.
+
+**Ruled out:** killing stray previews before a run. It is what was done here,
+and it is a person remembering, which is the thing the guard exists to replace.
+
+Related: issue #37 (the `check:overflow` served-slug backfill).
+
+---
+
+## 7. A fixture left in `dist/` fails `build:all`
+
+**Status:** open. **Owner:** whoever owns `build-all.mjs` / `check-csp-runtime.mjs`.
+**Found by:** `feat/design-expansion`, after building `zz-fixture-motion`.
+**Pre-existing** — `zz-fixture-long-name` reproduces it identically.
+
+`build-all.mjs` deliberately skips every `zz-fixture-` slug, so a fixture is
+never built by a batch and never reaches a deploy. But the last step of the
+same script runs `check-csp-runtime.mjs --all`, and that discovers its work by
+listing directories:
+
+```js
+slugs = readdirSync(distRoot).filter((d) => statSync(join(distRoot, d)).isDirectory());
+```
+
+So a fixture built earlier on purpose is still sitting in `dist/`, is swept,
+has no `_headers` (nothing generated one for it), and fails the batch.
+
+**Repro.**
+
+```
+cd packages/template
+SITE_CLIENT=zz-fixture-motion pnpm exec astro build   # the documented way to build a fixture
+pnpm build:all
+#   → ✗ zz-fixture-motion: no _headers. Run scripts/gen-headers.mjs first.
+#   → 7/8 clients built and checked.   (exit 1)
+```
+
+**Workaround:** `rm -rf dist/zz-fixture-*` before `build:all`. Used throughout
+this stream.
+
+**Fix sketch.** `check-csp-runtime.mjs --all` should sweep the same set
+`build-all.mjs` builds rather than whatever is on disk — either by being handed
+the slug list, or by applying the same `zz-fixture-` exclusion. The exclusion
+already exists in one file and is the kind of rule that belongs in one place.
+
+**Not fixed here:** wrong scope. This stream added the fixture that surfaced
+it; it did not cause it, and changing what a gate script sweeps is a change to
+the batch's contract.

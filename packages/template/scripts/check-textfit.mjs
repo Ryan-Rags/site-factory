@@ -248,7 +248,15 @@ const measure = (page) =>
        * of a phone viewport and carries the single most important label on the
        * page, so a clipped one there is the worst version of this bug.
        */
-      buttons: [...document.querySelectorAll('.d-btn, .d-callbar__call, .d-callbar__secondary')]
+      /*
+       * `.d-callbar__label` and `.d-callbar__note` are spans inside the call
+       * button, not buttons — but they are the text that must not break, so
+       * they are measured here rather than in a second pass. The clipping
+       * assertions below are harmless on them.
+       */
+      buttons: [...document.querySelectorAll(
+        '.d-btn, .d-callbar__call, .d-callbar__secondary, .d-callbar__label, .d-callbar__note',
+      )]
         .filter((el) => {
           const s = getComputedStyle(el);
           return s.display !== 'none' && s.visibility !== 'hidden';
@@ -259,14 +267,26 @@ const measure = (page) =>
   }, NAV_BREAKPOINT);
 
 /**
- * The three CTAs that must never wrap.
+ * The text runs in fixed chrome that must never wrap.
  *
- * `.d-header__cta` sits in the header lockup beside the business name;
- * `.d-callbar__call` and `.d-callbar__secondary` are the sticky bar fixed to
- * the bottom of a phone viewport. All three live in chrome that is visible on
- * every route, at every width, in every cell.
+ * All of these live in chrome visible on every route, at every width, in every
+ * cell: the header CTA beside the business name, and the sticky bar fixed to
+ * the bottom of a phone viewport.
+ *
+ * NOT `.d-callbar__call`, and that distinction was measured rather than
+ * assumed. The plan named it, but it is a COMPOSITE — an icon, a label span
+ * carrying the phone number, and a note span — deliberately set on two lines.
+ * Asserting one line on the button reported 138 "failures" that were the design
+ * working as intended. The assertion belongs on the text runs inside it, where
+ * a break actually means something: `Call (201) 385-8848` split across two
+ * lines is not a phone number.
  */
-const SINGLE_LINE_CTA = ['d-header__cta', 'd-callbar__call', 'd-callbar__secondary'];
+const SINGLE_LINE_CTA = [
+  'd-header__cta',
+  'd-callbar__secondary',
+  'd-callbar__label',
+  'd-callbar__note',
+];
 
 /**
  * The assertions themselves, against one measurement.
@@ -376,14 +396,14 @@ function assertFit(where, m, cell) {
     );
 
     /*
-     * 6b — the header and sticky CTAs must be ONE line, not merely unclipped.
+     * 6b — the chrome CTAs must be ONE line, not merely unclipped.
      *
-     * Unclipped was never the right bar for these three. A wrapped "GET IN
-     * TOUCH" is perfectly unclipped: the box grows, nothing overflows, and the
-     * assertion above passes while the header carries a two-line button that
-     * looks like a mistake in a demo we are about to show somebody.
+     * Unclipped was never the right bar for these. A wrapped "Get in touch" is
+     * perfectly unclipped: the box grows, nothing overflows, and the assertion
+     * above passes while the header carries a two-line button that looks like a
+     * mistake in a demo we are about to show somebody.
      *
-     * Scoped to the header CTA and the two sticky call-bar actions on purpose.
+     * Scoped to fixed chrome on purpose.
      * A body button may legitimately wrap — a long service name in a card CTA
      * is fine on a phone — so this is not a rule about buttons, it is a rule
      * about the three that sit in fixed chrome and set the first impression.
