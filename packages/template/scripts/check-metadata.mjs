@@ -18,6 +18,13 @@
  * get, and a gate that reads the config is a gate that agrees with the config
  * even when the build disagrees with both.
  *
+ * ONE ASSERTION IS NOT ABOUT THE ARTIFACT. On a `noindex` build the card's
+ * *origin* is checked against the origin that build will be served from —
+ * `https://<slug>-preview.pages.dev`. Everything else here can be settled by
+ * reading `dist/`; that one cannot, because the file was always correct and it
+ * was the address in the tag that was wrong. See the block at "the card's
+ * origin" below, and issue #25.
+ *
  * Usage:
  *   node scripts/check-metadata.mjs              # the client SITE_CLIENT selected
  *   node scripts/check-metadata.mjs <slug>       # one named client
@@ -26,6 +33,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { previewOriginFor } from '../src/lib/preview-origin.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const pkgRoot = join(here, '..');
@@ -248,6 +257,60 @@ function checkClient(slug) {
     if (twImage && ogImage && twImage !== ogImage) {
       say(file, `twitter:image (${twImage}) disagrees with og:image (${ogImage})`);
     }
+
+    /* --- the card's origin, on a preview build --------------------------- */
+    /*
+     * Everything above this point checks the *artifact*: the file exists in
+     * `dist/`, it is a real PNG, it is the size it declares. All of that was
+     * green on all eight clients while 0 of 8 deployed demos unfurled an
+     * image, because the artifact was never the problem — the pairing of
+     * artifact with host was. `new URL(ogImage).pathname` discards the origin
+     * by design, which is exactly right for a delivered site (served from its
+     * own `siteUrl`, so origin and deploy origin are the same string) and
+     * structurally blind on a preview, where they are not. See issue #25.
+     *
+     * So on a `noindex` build — the mockup lock, read back off the built HTML
+     * a few lines up rather than out of the config — the origin is checked
+     * too, against the origin the deploy will actually serve this slug from.
+     *
+     * FAIL-CLOSED, per the ruling of 2026-08-12. A tag that is missing, or
+     * absolute in some shape this cannot resolve, is a failure and not a
+     * skip: the whole defect was a check that looked at a preview and saw
+     * nothing to say.
+     */
+    if (noindex) {
+      const want = previewOriginFor(slug);
+      for (const [label, value] of [
+        ['og:image', ogImage],
+        ['twitter:image', twImage],
+      ]) {
+        if (!value) {
+          say(
+            file,
+            `${label} is missing on a noindex build, so its origin cannot be checked ` +
+              `against ${want} — a preview card is only reachable if it names the ` +
+              `origin serving the page`,
+          );
+          continue;
+        }
+        let got = null;
+        try {
+          got = new URL(value).origin;
+        } catch {
+          /* Reported immediately below; `got` stays null. */
+        }
+        if (got === null) {
+          say(file, `${label} is not an absolute URL, so its origin cannot be resolved: ${value}`);
+        } else if (got !== want) {
+          say(
+            file,
+            `${label} is rooted at ${got}, but this preview is served from ${want} — ` +
+              `the card is correct and advertised at an address no crawler can fetch ` +
+              `it from, so every link shared for this demo unfurls blank (issue #25)`,
+          );
+        }
+      }
+    }
   }
 
   for (const note of notes) console.log(`  · ${slug}/${note}`);
@@ -255,7 +318,8 @@ function checkClient(slug) {
   if (problems.length === 0) {
     console.log(
       `✓ ${slug}: ${files.length} page(s), metadata complete ` +
-        `(${noindex ? 'noindex' : 'LIVE'}, canonical origin ${origin ?? 'unknown'})` +
+        `(${noindex ? 'noindex' : 'LIVE'}, canonical origin ${origin ?? 'unknown'}` +
+        `${noindex ? `, card origin ${previewOriginFor(slug)}` : ''})` +
         `${notes.length > 0 ? ` — ${notes.length} note(s) above` : ''}.`,
     );
     return true;
