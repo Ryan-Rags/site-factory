@@ -227,48 +227,6 @@ lands, and this addendum is the evidence and the boundary that stream builds to.
 
 ---
 
-## 4. Every demo advertises its `og:image` on a domain the demo is not served from
-
-**Status:** open. **Owner:** whoever owns `src/components/Seo.astro` and the
-demo deploy path. **Found by:** `feat/live-smoke`, measured against the fleet
-redeployed from `main@c301f2c`.
-
-`Seo.astro` builds the card URL as `new URL(site.brand.ogImage, Astro.site ??
-site.seo.siteUrl)`, and `astro.config.mjs` sets `site: site.seo.siteUrl`. So the
-tag's origin is always `seo.siteUrl`. On a demo build that is the *prospect's*
-domain, while the demo is served from `https://<slug>-preview.pages.dev`:
-
-| og:image origin | clients |
-|---|---|
-| `https://example.invalid` (the prospect has no site) | 6 |
-| the prospect's own real domain, which 404s the path | 2 |
-| the origin actually serving the demo | 0 |
-
-**The PNG itself is fine.** At the deploy origin the same path answers `200
-image/png, 1200×630` on all eight. Nothing is missing and nothing is malformed —
-the card is simply advertised at an address no crawler can fetch it from, so
-every link shared for a demo unfurls with no image.
-
-**Why no local gate catches it, by design.** `check-metadata.mjs` takes
-`new URL(ogImage).pathname` and asserts the *path* exists in `dist/<slug>` at
-the right size and format. That is exactly right for a delivered build, where
-`siteUrl` **is** the origin the site is served from, and structurally blind on a
-demo, where it is not. The check is not wrong; it is measuring a build, and this
-is a property of a deployment.
-
-**Reproduce:** `pnpm smoke -- --client kh-machine-works`; the `og:image` section
-of the generated `report.md` shows the declared URL, its status, and the same
-path measured at the deploy origin.
-
-**Fix sketch (not done here — this stream builds the instrument and reports):**
-give the demo build an origin override so `Seo.astro` resolves the card against
-the Pages origin when `seo.noindex` is set, the same way `DEMO_FORM_ENDPOINT`
-already overrides the form target for exactly this class of demo-vs-delivered
-difference. Anything that leaves `seo.siteUrl` as the card's origin on a demo
-reproduces this.
-
----
-
 <!--
   #3 — "packages/shortlist opens no debugging port, so Lighthouse cannot attach"
   (found by test/localhost-sites, PR #18 Brief 2) was fixed and is deleted; see
@@ -276,94 +234,28 @@ reproduces this.
   comments cite these entries by number, so a gap is cheaper than a shifted
   reference. The last text of #3 is readable at
   https://github.com/Ryan-Rags/site-factory/blob/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909/docs/known-issues.md
+
+  #4 — the og:image origin defect — was fixed by PR #33 (issue #25) and is
+  deleted, and it takes TWO numbers with it, because it was filed twice under
+  the same one:
+
+    * PR #22 filed "Every preview demo unfurls with no social card" as #4,
+      from the ops redeploy of 2026-08-12.
+    * PR #23 filed "Every demo advertises its og:image on a domain the demo is
+      not served from" ALSO as #4, from feat/live-smoke, inserting it above the
+      first. Same defect, same measurement, second write-up.
+
+  The duplicate should have been #5. It is recorded as having been #5 rather
+  than renumbered in place, because renumbering a live entry is the one thing
+  the 2026-08-12 append-only ruling forbids — and because the deletion makes
+  the question moot in every way except this note. NEITHER 4 NOR 5 IS EVER
+  REUSED. The next entry filed here is #6.
+
+  No code cites #4 or #5. The only numbered citations in the tree are to #2
+  (scripts/live-smoke/checks/lighthouse.mjs, its selftest, and
+  packages/audit/src/lighthouse.ts) and to #3 (scripts/live-smoke/browser.mjs,
+  scripts/live-smoke/checks/lighthouse.mjs), and none of them moved.
+
+  The last text of both #4 entries is readable at
+  https://github.com/Ryan-Rags/site-factory/blob/df1accdd23af21b5062f25751bd1acacca8e7b76/docs/known-issues.md
 -->
-
-## 4. Every preview demo unfurls with no social card — `og:image` is rooted at `seo.siteUrl`, not at the deploy origin
-
-**Status:** open. **Owner:** a post-coverage `packages/template` stream.
-**Found by:** the ops redeploy of 2026-08-12, by checking the live fleet rather
-than the built artifact. **Pre-existing** — not caused by that session, which
-changed no code.
-
-The card *file* is correct everywhere and always has been: a real PNG,
-1200 × 630, matching its declared `og:image:width` / `og:image:height`, 31–36 KB,
-and present on the deploy. What is wrong is the **origin in the tag**.
-`og:image` is emitted as an absolute URL rooted at `seo.siteUrl`. On a
-`*.pages.dev` preview that origin is not the origin serving the page, so every
-prospect demo link shared into Facebook, X, LinkedIn, iMessage, WhatsApp or
-Slack arrives with no image — the same end state as the SVG card ruled out on
-2026-08-12, reached through the origin instead of the file format.
-
-This is the pitch surface. A preview URL exists to be sent to somebody.
-
-**Measured live, all eight deployed demos, 2026-08-12.** "On deploy origin" is
-the same pathname requested from the host actually serving the page:
-
-| Client | Origin in `og:image` | At declared URL | Same path on deploy origin |
-|---|---|---|---|
-| american-machine-specialty | `https://americanmachinespecialty.com` | **404** | 200, PNG 1200×630, 36 KB |
-| industrial-machine-corp | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 36 KB |
-| kh-machine-works | `https://www.khmachineworks.com` | **404** | 200, PNG 1200×630, 31 KB |
-| ks-welding | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
-| ks-welding-forge | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
-| ks-welding-heritage | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
-| ks-welding-precision | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
-| kts-machine-shop | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
-
-0 / 8 reachable at the declared URL; 8 / 8 reachable on the deploy origin.
-`twitter:image` carries the same value, so it is wrong identically and the
-existing agreement check between the two passes while both are unreachable.
-
-**Security headers were green on all eight in the same run** — `nosniff`,
-`strict-origin-when-cross-origin`, `x-frame-options: DENY`, and a hash-only CSP
-with `default-src`, `frame-ancestors`, `form-action`, `base-uri` and
-`object-src` all present. Cloudflare Pages is serving the generated `_headers`.
-Recorded here so the next session does not re-measure it.
-
-**Why no gate catches it, and why that is not a bug in the gate.**
-`check-metadata.mjs` resolves the tag with `new URL(ogImage).pathname` and
-asserts the file exists under `dist/<slug>` — it **discards the origin by
-design**. For a delivered site that is exactly right: the site is served from
-its own `siteUrl`, so origin and deploy origin are the same string and checking
-the pathname is checking the whole URL. For a preview the two diverge, and the
-gate is structurally blind to the difference rather than failing to look. No
-amount of artifact inspection can see it, because the artifact is correct — only
-the pairing of artifact with host is wrong.
-
-It also sits directly on the sanctioned `example.invalid` path: the ruling of
-2026-08-12 permits `example.invalid` in `siteUrl` while a client is noindex, and
-`check-go-live.mjs` refuses to let one go live carrying it. That ruling settled
-go-live. It did not consider that a noindex mockup is still *sent to people*,
-and that its social card resolves against the same placeholder.
-
-**Reproduce:**
-
-```sh
-DEMO_FORM_ENDPOINT=<endpoint> pnpm --filter @site-factory/template build:all
-pnpm deploy:mockups
-curl -sI "$(curl -s https://ks-welding-preview.pages.dev/ \
-  | grep -o 'property="og:image" content="[^"]*"' | cut -d'"' -f4)"
-# -> DNS failure for example.invalid; the same pathname on
-#    https://ks-welding-preview.pages.dev/og/ks-welding.png returns 200.
-```
-
-**Fix sketch.** Two halves, and the second is what stops it recurring:
-
-1. A build-time origin override. A preview build roots `og:image` and
-   `twitter:image` at the known per-slug deploy origin
-   (`https://<slug>-preview.pages.dev`) instead of at `seo.siteUrl`. The origin
-   is derivable from the slug by the same rule `deploy-mockups.mjs` already
-   uses to name the project, so nothing new has to be configured per client,
-   and a delivered build — where `siteUrl` *is* the deploy origin — is
-   unaffected.
-2. `check-metadata.mjs` gains a demo-mode assertion that the `og:image` origin
-   equals the deploy origin, so the pairing is checked rather than just the
-   pathname. Per the 2026-08-12 fail-closed ruling it must fail on any shape it
-   cannot resolve, not skip.
-
-Land it failure-first: the assertion red against today's build, then the
-override green.
-
-**Not fixed in the session that found it** — that was an ops session with a
-deploy grant and no template-code grant, and the fix belongs to a stream that
-owns `packages/template`. This entry is the durable record.
