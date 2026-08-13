@@ -102,6 +102,16 @@ export {
 
 export { assess, toScoredRow, type AssessOptions, type AssessOutcome } from "./run.js";
 
+export {
+  freePort,
+  launchAuditBrowser,
+  runAuditStage,
+  type AssessFn,
+  type AuditBrowser,
+  type AuditStageOptions,
+  type BrowserLauncher,
+} from "./browser.js";
+
 export { fixtureFetch, fixturePlaces } from "./fixture.js";
 
 export {
