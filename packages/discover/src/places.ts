@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { emptyLead, type LeadRow } from "./types.js";
+import type { UsageMeter } from "./usage.js";
 
 const ENDPOINT = "https://places.googleapis.com/v1/places:searchText";
 
@@ -21,6 +22,46 @@ export const FIELD_MASK = [
   "nextPageToken",
 ].join(",");
 
+/**
+ * The mask the county-wide discovery sweep sends. **Fixed. Nothing else, ever.**
+ *
+ * One Text Search per (niche, town), and this is everything that run needs to
+ * score a lead. There is no second pass.
+ *
+ * ## Why this is one Enterprise call rather than a cheap sweep plus a top-up
+ *
+ * The original design was a Pro-tier sweep, then Place Details on a filtered
+ * set of survivors, so that `rating` and `userRatingCount` — Enterprise
+ * fields — were bought only for businesses worth calling.
+ *
+ * That design cannot work, because `websiteUri` and `nationalPhoneNumber` are
+ * *also* Enterprise. A Pro sweep returns neither, and the survivor filter is
+ * defined on exactly those two: website status decides how badly a business
+ * needs us, and a lead with no phone cannot go on a call list. So the filter
+ * would have had nothing to filter on, and Details would have had to run
+ * against every deduplicated business in the county — hundreds of Enterprise
+ * calls — to learn who has no website.
+ *
+ * Once the call is Enterprise for `websiteUri`, `rating` and `userRatingCount`
+ * ride along at **no marginal cost**: same tier, same price, same request.
+ * One sweep at ~210 Enterprise calls is decisively cheaper than a Pro sweep
+ * plus hundreds of Enterprise top-ups, and it is simpler.
+ *
+ * The gate in `test/sku.test.mjs` asserts this constant byte-for-byte and
+ * bans the Enterprise + Atmosphere class outright.
+ */
+export const DISCOVERY_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.types",
+  "places.websiteUri",
+  "places.nationalPhoneNumber",
+  "places.rating",
+  "places.userRatingCount",
+  "nextPageToken",
+].join(",");
+
 /** Text Search (New) returns 20 per page and allows two token follow-ups. */
 export const PAGE_SIZE = 20;
 export const MAX_RESULTS = 60;
@@ -32,6 +73,8 @@ const PAGE_DELAY_MS = 1000;
 export interface PlacesPlace {
   id?: string;
   displayName?: { text?: string };
+  /** Places category strings, e.g. `car_repair`. Pro tier. */
+  types?: string[];
   websiteUri?: string;
   nationalPhoneNumber?: string;
   rating?: number;
@@ -84,30 +127,55 @@ function redact(text: string, apiKey: string): string {
 
 export type FetchLike = typeof globalThis.fetch;
 
-async function postSearchText(
-  body: Record<string, unknown>,
-  apiKey: string,
-  budget: CallBudget,
-  fetchImpl: FetchLike,
-): Promise<PlacesResponse> {
-  budget.consume();
-  const res = await fetchImpl(ENDPOINT, {
+interface PostOptions {
+  body: Record<string, unknown>;
+  apiKey: string;
+  budget: CallBudget;
+  fetchImpl: FetchLike;
+  mask: string;
+  meter?: UsageMeter | undefined;
+  niche?: string | undefined;
+  town?: string | undefined;
+}
+
+/**
+ * One Text Search request.
+ *
+ * The mask travels with the call rather than being read off a module constant,
+ * so the string the meter prices is provably the string sent in the header —
+ * there is no second copy for the two to drift apart. `emittedFieldMask` on
+ * the result is what the sweep gate compares against the declared mask.
+ */
+async function postSearchText(opts: PostOptions): Promise<PlacesResponse> {
+  // Price and reserve BEFORE spending. A call that would breach a ceiling, or
+  // that asks for a banned or unpriced field, is never issued.
+  const settle = opts.meter?.reserve({
+    endpoint: "searchText",
+    mask: opts.mask,
+    niche: opts.niche,
+    town: opts.town,
+  });
+  opts.budget.consume();
+
+  const res = await opts.fetchImpl(ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": FIELD_MASK,
+      "X-Goog-Api-Key": opts.apiKey,
+      "X-Goog-FieldMask": opts.mask,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(opts.body),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(
       `Places searchText failed: HTTP ${res.status} ${res.statusText}. ` +
-        redact(detail, apiKey).slice(0, 300),
+        redact(detail, opts.apiKey).slice(0, 300),
     );
   }
-  return (await res.json()) as PlacesResponse;
+  const json = (await res.json()) as PlacesResponse;
+  settle?.(json.places?.length ?? 0);
+  return json;
 }
 
 export interface SearchOptions {
@@ -118,14 +186,45 @@ export interface SearchOptions {
   apiKey: string;
   budget: CallBudget;
   fetchImpl?: FetchLike | undefined;
+  /**
+   * Field mask to send. Defaults to {@link FIELD_MASK}, which is what
+   * `pnpm discover` and `packages/prospect`'s `resolvePlaceId` have always
+   * sent. The county sweep passes {@link DISCOVERY_FIELD_MASK}.
+   */
+  mask?: string | undefined;
+  /** Prices and caps each call, and records it for reconciliation. */
+  meter?: UsageMeter | undefined;
+  /** Sweep context, recorded on each usage record. */
+  town?: string | undefined;
 }
 
-/** Live Text Search. Never called without an API key. */
+/** The mask a search actually sent, alongside its results. */
+export interface SearchOutcome {
+  places: PlacesPlace[];
+  emittedFieldMask: string;
+  calls: number;
+}
+
+/**
+ * Live Text Search, walking pages up to `max`. Never called without an API key.
+ *
+ * Note that every paging follow-up is a *fresh billable call at the same tier*
+ * as the first — a second page of Bergen machine shops costs exactly what the
+ * first did. That is why the sweep defaults to one page and why the meter
+ * records each page separately rather than collapsing a query into one row.
+ */
 export async function searchText(opts: SearchOptions): Promise<PlacesPlace[]> {
+  return (await searchTextDetailed(opts)).places;
+}
+
+/** As {@link searchText}, but also reporting the mask actually emitted. */
+export async function searchTextDetailed(opts: SearchOptions): Promise<SearchOutcome> {
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+  const mask = opts.mask ?? FIELD_MASK;
   const max = Math.min(opts.max, MAX_RESULTS);
   const out: PlacesPlace[] = [];
   let pageToken: string | undefined;
+  let calls = 0;
 
   while (out.length < max) {
     const body: Record<string, unknown> = {
@@ -142,7 +241,17 @@ export async function searchText(opts: SearchOptions): Promise<PlacesPlace[]> {
     }
     if (pageToken) body["pageToken"] = pageToken;
 
-    const res = await postSearchText(body, opts.apiKey, opts.budget, fetchImpl);
+    const res = await postSearchText({
+      body,
+      apiKey: opts.apiKey,
+      budget: opts.budget,
+      fetchImpl,
+      mask,
+      meter: opts.meter,
+      niche: opts.niche,
+      town: opts.town,
+    });
+    calls += 1;
     for (const place of res.places ?? []) {
       if (out.length >= max) break;
       out.push(place);
@@ -151,7 +260,7 @@ export async function searchText(opts: SearchOptions): Promise<PlacesPlace[]> {
     pageToken = res.nextPageToken;
     await sleep(PAGE_DELAY_MS);
   }
-  return out;
+  return { places: out, emittedFieldMask: mask, calls };
 }
 
 /**

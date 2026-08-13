@@ -46,10 +46,32 @@ const initial = (name: string) => {
   return /[A-Z0-9]/.test(ch) ? ch : '★';
 };
 
+/**
+ * The rating has to attach to the *business*, not to a second business.
+ *
+ * This graph and the one in `LocalBusinessJsonLd.astro` both describe the same
+ * shop, and both are `LocalBusiness`. Without a shared `@id` a consumer has two
+ * unrelated nodes: one carrying the address, phone, hours and offers, and one
+ * carrying a name and a rating. The rating then belongs to an entity that has
+ * no address and no phone — which is not the client's business — and the rich
+ * result it was emitted for cannot be awarded.
+ *
+ * `@id` is the join. It is the same value `LocalBusinessJsonLd` uses, so the
+ * two blocks describe one node and the rating lands on the shop.
+ *
+ * This was latent rather than live when it was found: no client currently
+ * satisfies `canEmitReviewJsonLd`, so no built page carries this block today
+ * and adding the key changes no delivered byte. It would have become a real
+ * defect the first time a client's reviews were verified — which is precisely
+ * when nobody would have been looking at the structured data.
+ */
+const businessId = new URL('/', site.seo.siteUrl).href;
+
 const jsonLd = canEmitReviewJsonLd(reviews)
   ? {
       '@context': 'https://schema.org',
       '@type': 'LocalBusiness',
+      '@id': businessId,
       name: site.business.name,
       aggregateRating: {
         '@type': 'AggregateRating',

@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import { createServer } from "node:net";
-
 import {
   auditReportFile,
   leadsFile,
@@ -10,6 +8,7 @@ import {
 import { chromium } from "playwright";
 
 import { readCached, writeCached } from "./cache.js";
+import { freePort } from "./port.js";
 import { renderReport, writeReport } from "./report.js";
 import { assignSlugs, auditOne } from "./run.js";
 import type { AuditResult } from "./types.js";
@@ -75,23 +74,6 @@ function parseArgs(argv: readonly string[]): Args {
     }
   }
   return args;
-}
-
-/** An ephemeral port for Chromium's CDP endpoint, so parallel runs cannot clash. */
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (address === null || typeof address === "string") {
-        server.close(() => reject(new Error("Could not determine a free port.")));
-        return;
-      }
-      const { port } = address;
-      server.close(() => resolve(port));
-    });
-  });
 }
 
 async function main(): Promise<number> {

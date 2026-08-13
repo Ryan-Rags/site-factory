@@ -71,7 +71,7 @@ const base: SiteConfig = {
   brand: {
     logo: '/images/logo.svg',
     favicon: '/favicon.svg',
-    ogImage: '/images/og.svg',
+    ogImage: '/og/kts-machine-shop.png',
   },
 
   hero: {

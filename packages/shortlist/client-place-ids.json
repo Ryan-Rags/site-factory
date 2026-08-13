@@ -1,0 +1,36 @@
+{
+  "_README": [
+    "Client slug -> Google Places id. The sidecar that lets identity resolution",
+    "match a swept business against an existing client by place id rather than by",
+    "a slug derived from their name.",
+    "",
+    "WHY THIS FILE EXISTS RATHER THAN A FIELD ON SiteConfig:",
+    "packages/template/src/types/** is on CLAUDE.md's green-lane exclusion list and",
+    "outside this stream's grant. Promoting these ids into SiteConfig is a later",
+    "decision, not this stream's to make.",
+    "",
+    "HOW IDS GET FILLED IN:",
+    "During the live acceptance sweep. The five real clients are Bergen machine",
+    "shops and welders, so they appear in the sweep's own results — their ids are",
+    "read from there at NO extra Places call, which is why this stream can hold to",
+    "'zero calls beyond the sweep'. A displayName that does not match the client's",
+    "business name is left empty rather than guessed: a wrong place id silently",
+    "attaches one business's identity to another, and an empty one merely falls",
+    "back to the loud slug warning.",
+    "",
+    "zz-fixture-phone-optional is a TEST FIXTURE, not a business. It has no place",
+    "id and never will."
+  ],
+
+  "kh-machine-works": "",
+  "kts-machine-shop": "",
+  "american-machine-specialty": "",
+  "industrial-machine-corp": "",
+  "ks-welding": "",
+
+  "ks-welding-forge": "",
+  "ks-welding-precision": "",
+  "ks-welding-heritage": "",
+
+  "zz-fixture-phone-optional": ""
+}

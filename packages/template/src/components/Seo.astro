@@ -13,6 +13,34 @@ const { title, description = site.seo.defaultDescription, bare = false } = Astro
 const fullTitle = bare ? title : site.seo.titleTemplate.replace('%s', title);
 const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', Astro.site ?? site.seo.siteUrl);
 const ogImage = new URL(site.brand.ogImage, Astro.site ?? site.seo.siteUrl);
+
+/**
+ * The brand card's dimensions, as emitted by `scripts/gen-brand-assets.mjs`.
+ *
+ * Declaring them lets a platform reserve the right space before the image
+ * arrives, which is the difference between a link that unfurls cleanly in a
+ * message thread and one that jumps. They are written here as constants rather
+ * than measured per page, because measuring would mean reading every PNG on
+ * every page of every build to restate a number the generator fixes.
+ *
+ * The obvious hazard is that a constant drifts from the file it describes. It
+ * cannot drift silently: `scripts/check-metadata.mjs` reads the actual PNG
+ * header out of `dist/` and fails the build if the declared size is not the
+ * real one.
+ */
+const OG_WIDTH = 1200;
+const OG_HEIGHT = 630;
+
+/**
+ * Alt text for the card, describing what is actually on it: the business name
+ * over its town, which is what `ogHtml()` in the generator draws. Someone
+ * reading a shared link through a screen reader gets the same two facts a
+ * sighted reader takes from the image.
+ */
+const place = [site.business.address.locality, site.business.address.region]
+  .filter(Boolean)
+  .join(', ');
+const ogImageAlt = place ? `${site.business.name} — ${place}` : site.business.name;
 ---
 
 <title>{fullTitle}</title>
@@ -32,9 +60,13 @@ const ogImage = new URL(site.brand.ogImage, Astro.site ?? site.seo.siteUrl);
 <meta property="og:description" content={description} />
 <meta property="og:url" content={canonical.href} />
 <meta property="og:image" content={ogImage.href} />
+<meta property="og:image:width" content={String(OG_WIDTH)} />
+<meta property="og:image:height" content={String(OG_HEIGHT)} />
+<meta property="og:image:alt" content={ogImageAlt} />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={ogImage.href} />
+<meta name="twitter:image:alt" content={ogImageAlt} />

@@ -5,3 +5,4 @@ packages:
   - "packages/prospect"
   - "packages/template"
   - "packages/copy"
+  - "packages/shortlist"

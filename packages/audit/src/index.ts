@@ -21,6 +21,7 @@ export { probeSite } from "./probe.js";
 export type { PageProbe, ProbeOptions } from "./probe.js";
 export { LH_CATEGORIES, runLighthouse } from "./lighthouse.js";
 export type { LighthouseCategory, LighthouseOutcome, LighthouseScores } from "./lighthouse.js";
+export { freePort } from "./port.js";
 export { MAX_LINK_TARGETS, checkLinks, faviconReachable } from "./network.js";
 export type { BrokenLinkReport, LinkCheck } from "./network.js";
 export { renderReport, writeReport } from "./report.js";
