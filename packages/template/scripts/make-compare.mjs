@@ -1,14 +1,33 @@
 /**
- * Write `dist/compare.html` — the three families, side by side.
+ * Write `dist/compare.html` — every family, side by side.
  *
  * The acceptance test for the design system is not "does Forge build" but
- * "can somebody see all three at once and say which one is theirs". This page
- * is that view: three live iframes of the three K&S builds, each labelled,
- * scrollable independently, with a direct link to open any of them full size.
+ * "can somebody see them all at once and say which one is theirs". This page
+ * is that view: one live iframe per family, each labelled, scrollable
+ * independently, with a direct link to open any of them full size.
  *
  * Iframes rather than screenshots because the point is the *behaviour* — the
  * sticky call bar, the FAQ accordion, the scroll reveal, the carousel. A
- * screenshot of three heroes proves nothing that matters.
+ * screenshot of five heroes proves nothing that matters.
+ *
+ * ONE CLIENT, LOADED ONCE PER FAMILY, WITH URL PARAMETERS.
+ *
+ * This used to point at `ks-welding-forge`, `-precision` and `-heritage` —
+ * three client directories that are one real business spread three ways. That
+ * pattern does not survive two more families: it would mean authoring
+ * `ks-welding-meridian` and `ks-welding-apex`, two more delivered builds of a
+ * real shop that exist only to be looked at beside each other.
+ *
+ * So the page now loads the ONE pitch build, `ks-welding`, once per family as
+ * `./ks-welding/?theme=<family>`. That build already emits every family's CSS
+ * and its no-flash script already resolves `?theme` before first paint — this
+ * page is simply the first consumer to ask for several cells at once. A sixth
+ * family costs nothing here.
+ *
+ * The three `ks-welding-*` directories are left exactly as they are. They are
+ * delivered output and deleting them would move shipped bytes; they become
+ * redundant once this page uses parameters, and that is a separate ruling with
+ * a follow-up issue against it.
  *
  * Serve `dist/` and open `/compare.html`:
  *   pnpm build:all && pnpm compare && npx serve dist
@@ -28,31 +47,56 @@ const distRoot = join(pkgRoot, 'dist');
 
 const presets = JSON.parse(readFileSync(join(pkgRoot, 'src', 'design', 'presets.json'), 'utf8'));
 
-const builds = [
-  { slug: 'ks-welding-forge', preset: 'forge' },
-  { slug: 'ks-welding-precision', preset: 'precision' },
-  { slug: 'ks-welding-heritage', preset: 'heritage' },
-];
+/**
+ * The pitch build every pane loads. It has to be a customizer build: a
+ * delivered one emits a single `:root` block and would render the same family
+ * in every frame while the labels claimed otherwise — the worst failure
+ * available to a page whose entire job is comparison.
+ */
+const SLUG = 'ks-welding';
 
-const missing = builds.filter((b) => !existsSync(join(distRoot, b.slug, 'index.html')));
-if (missing.length > 0) {
+if (!existsSync(join(distRoot, SLUG, 'index.html'))) {
+  console.error(`Not built yet: ${SLUG}. Run \`pnpm build:all\` first.`);
+  process.exit(1);
+}
+
+/*
+ * Fail loudly rather than render identical panes.
+ *
+ * `?theme=` only does anything on a build that shipped the matrix, and
+ * `data-scheme` is emitted on pitch builds alone — so its presence is the
+ * cheapest true test of "this build can switch". Without this check, a
+ * compare page generated against a delivered `ks-welding` would look
+ * completely normal and be five copies of one design.
+ */
+const home = readFileSync(join(distRoot, SLUG, 'index.html'), 'utf8');
+if (!/<html[^>]*\sdata-scheme=/.test(home)) {
   console.error(
-    `Not built yet: ${missing.map((m) => m.slug).join(', ')}. Run \`pnpm build:all\` first.`,
+    `${SLUG} was built without the customizer, so ?theme= would change nothing and every\n` +
+      `pane would render the same family under a different label. Rebuild it as a pitch\n` +
+      `build (features.customizer) before generating this page.`,
   );
   process.exit(1);
 }
 
+/** Every family the matrix offers, in the order `presets.json` declares them. */
+const builds = presets.presets.map((p) => ({ preset: p.id }));
+
 const cards = builds
-  .map(({ slug, preset }) => {
+  .map(({ preset }) => {
     const p = presets.presets.find((x) => x.id === preset);
+    // The family alone. Tone, accent and pairing are left to that family's own
+    // defaults, which is what "show me this family" ought to mean — and the
+    // panel inside each frame can still take it anywhere from there.
+    const url = `./${SLUG}/?theme=${encodeURIComponent(p.id)}`;
     return `      <section class="pane">
         <header>
           <h2>${p.label}</h2>
           <p>${p.blurb}</p>
-          <a href="./${slug}/" target="_blank" rel="noopener">Open full size →</a>
+          <a href="${url}" target="_blank" rel="noopener">Open full size →</a>
         </header>
         <div class="frame">
-          <iframe src="./${slug}/" title="${p.label} — K&amp;S Welding &amp; Fabricating"
+          <iframe src="${url}" title="${p.label} — K&amp;S Welding &amp; Fabricating"
                   loading="lazy"></iframe>
         </div>
       </section>`;
@@ -65,7 +109,7 @@ const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Three families — K&amp;S Welding &amp; Fabricating</title>
+<title>${builds.length} families — K&amp;S Welding &amp; Fabricating</title>
 <style>
   :root { color-scheme: light dark; }
   body {
@@ -79,6 +123,9 @@ const html = `<!doctype html>
   /* Each pane is a phone-width viewport: the families are designed
      mobile-first and this is the width the acceptance test cares about. */
   @media (min-width: 1180px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  /* Five panes only fit side by side on a very wide desktop; below that
+     they wrap to three and then to one, which is the reading order. */
+  @media (min-width: 1900px) { .grid { grid-template-columns: repeat(5, 1fr); } }
   .pane { background: #1b1e24; border: 1px solid #2a2f36; border-radius: 10px; overflow: hidden; }
   .pane header { padding: 1.1rem 1.25rem; border-bottom: 1px solid #2a2f36; }
   .pane h2 { margin: 0 0 .4rem; font-size: 1.1rem; }
@@ -91,18 +138,20 @@ const html = `<!doctype html>
 </style>
 </head>
 <body>
-  <h1>K&amp;S Welding &amp; Fabricating — three design families</h1>
+  <h1>K&amp;S Welding &amp; Fabricating — ${builds.length} design families</h1>
   <p class="intro">
-    The same business, the same confirmed content, the same components. Everything
-    that differs between these three is a theme selection in a JSON config: a
-    preset, an accent, a font pairing and a hero layout. Scroll each pane —
-    the sticky call bar, the FAQ accordion and the scroll reveals are live.
+    The same business, the same confirmed content, the same components — and the
+    same single build, loaded once per family with a different
+    <code>?theme=</code>. Everything that differs between these panes is a theme
+    selection: a preset, an accent, a font pairing and a hero layout. Scroll each
+    pane — the sticky call bar, the FAQ accordion and the scroll reveals are
+    live, and the panel inside any pane will take it anywhere else.
   </p>
   <div class="grid">
 ${cards}
   </div>
   <footer>
-    All three are <code>noindex</code> mockups. Review text is paraphrased from
+    Every pane is the same <code>noindex</code> mockup. Review text is paraphrased from
     relayed feedback and is labelled as such; nothing here was taken from any
     review platform. Images are placeholders pending the shop's own photographs.
   </footer>

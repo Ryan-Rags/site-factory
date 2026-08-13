@@ -755,9 +755,32 @@ body[data-family] :focus-visible {
   flex-shrink: 0;
 }
 
+/*
+ * The label carries the phone number, and a number broken across two lines is
+ * not a number.
+ *
+ * Measured, not assumed: `check:textfit`'s new single-line assertion found
+ * "Call (555) 010-0177" setting on two lines in 44 of the swept cells — at
+ * 320px in all five families, at 360px in several, and at 1024px in two where
+ * the wider display faces push it over. This is the bar fixed to the bottom of
+ * a phone carrying the most important label on the page, so it is the worst
+ * place in the design for this to happen. It predates the two new families;
+ * they are only how it was found.
+ *
+ * `nowrap` alone would overflow the bar instead, which is not an improvement,
+ * so the size goes fluid with it. The ceiling is the size that shipped, so
+ * nothing changes at 768px and up.
+ *
+ * The floor is 14px, and 14px is NOT enough to fit the longest realistic label
+ * beside the glyph, the gap and the secondary button at 320px — an earlier
+ * draft of this comment claimed it was, and `check:overflow` disproved it on
+ * `ks-welding`. What makes 320px fit is the narrow-width rule below, not this
+ * floor.
+ */
 .d-callbar__label {
   display: block;
-  font-size: 1.0625rem;
+  font-size: clamp(0.875rem, 3.9vw, 1.0625rem);
+  white-space: nowrap;
 }
 
 .d-callbar__note {
@@ -787,6 +810,47 @@ body[data-family] :focus-visible {
   font-weight: 700;
   font-size: 0.9375rem;
   text-decoration: none;
+}
+
+/*
+ * Below 360px the bar tightens rather than overflows.
+ *
+ * Measured on `ks-welding` at 320px, with the label held to one line: the call
+ * button's minimum is 210px (32px padding + a 20px glyph + a 10px gap + a 148px
+ * number at the clamp floor), and "Photo quote" beside it is 121px. With the
+ * bar's own 24px of padding and the 8px gap between them that is 363px of
+ * content in a 320px bar, and the secondary button was clipped off the right
+ * edge — `check:overflow` red on all five routes where `main` is green. The
+ * single-line rule bought the number and spent the bar.
+ *
+ * Type size is not the lever. Shrinking the number until the row fits needs
+ * ~12px, which is below the size this design is willing to set a phone number
+ * at. So the chrome gives up the room instead: the glyph goes — the button
+ * still reads "Call (201) 385-8848", so what is lost is decoration, not
+ * information — and the padding tightens. That puts 291px of content in 304px
+ * of bar, 13px clear.
+ *
+ * The rule stops at 359px, so every wider viewport keeps the glyph and the
+ * shipped padding exactly. This does change how the bar looks on every client
+ * at the narrowest phone widths, which is why it is in the PR's Brief and not
+ * only in this comment.
+ */
+@media (max-width: 359px) {
+  .d-callbar {
+    gap: 0.375rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .d-callbar__icon {
+    display: none;
+  }
+
+  .d-callbar__call,
+  .d-callbar__secondary {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
 }
 
 @media (min-width: 900px) {
@@ -1538,6 +1602,155 @@ body[data-family] :focus-visible {
   background: var(--d-surface);
 }
 
+/* -------------------------------------------------------------------------- *
+ * Meridian — warm daylight.
+ *
+ * The family for work that is photographed outdoors: roofing, landscaping,
+ * exterior trades. Its signature is a horizon rule rather than a bar or a
+ * double rule — a hairline that runs the full width of a heading block and
+ * carries a single accent segment at its left, like a skyline marker.
+ *
+ * Every colour below is a token. The family names none, so a scheme flip and
+ * an accent change both reach these rules through the cascade without a
+ * per-tone rule of their own — the same property the other three have.
+ * -------------------------------------------------------------------------- */
+
+[data-theme='meridian'] {
+  --d-radius-card: 0.625rem;
+  --d-radius-btn: 0.5rem;
+  --d-btn-transform: none;
+  --d-btn-tracking: 0.005em;
+}
+
+/* A low daylight wash from the top, warmer than Precision's flat field. */
+[data-theme='meridian'] .d-hero {
+  background-color: var(--d-base);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--d-accent) 7%, transparent) 0%,
+    transparent 55%
+  );
+}
+
+/* The horizon rule: full-width hairline, accent segment at the left. */
+[data-theme='meridian'] .d-head .d-h2::after {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-top: 1.15rem;
+  background: linear-gradient(
+    90deg,
+    var(--d-accent) 0 3.5rem,
+    var(--d-line) 3.5rem 100%
+  );
+}
+
+[data-theme='meridian'] .d-eyebrow {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+}
+
+[data-theme='meridian'] .d-card {
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+}
+
+[data-theme='meridian'] .d-section--alt {
+  background: var(--d-surface-alt);
+}
+
+/* The service icon sits in a soft accent disc — daylight, not a hot bar. */
+[data-theme='meridian'] .d-service__icon {
+  border-radius: 50%;
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+}
+
+[data-theme='meridian'] .d-stat {
+  border: 0;
+  border-top: 2px solid var(--d-accent);
+  background: transparent;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Apex — near-black, near-white, one electric accent.
+ *
+ * Auto and tech-adjacent. Its signature is the hairline: every boundary in
+ * this family is 1px and hard, with no radius anywhere, and the accent appears
+ * only in small quantities against the extreme. That restraint is the reason
+ * apex's accents are the most saturated in the set — a wide electric field
+ * would be unreadable, a hairline of it is the point.
+ * -------------------------------------------------------------------------- */
+
+[data-theme='apex'] {
+  --d-radius-card: 0;
+  --d-radius-btn: 0;
+  --d-btn-transform: uppercase;
+  --d-btn-tracking: 0.06em;
+}
+
+[data-theme='apex'] .d-hero {
+  background-color: var(--d-base);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--d-ink) 4%, transparent) 0%,
+    transparent 40%
+  );
+  border-bottom: 1px solid var(--d-line);
+}
+
+/* A short accent tick, not a bar: the whole family is drawn in hairlines. */
+[data-theme='apex'] .d-head .d-h2::after {
+  content: '';
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  margin-top: 1rem;
+  background: var(--d-accent);
+}
+
+[data-theme='apex'] .d-eyebrow {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  color: var(--d-accent);
+}
+
+[data-theme='apex'] .d-card {
+  position: relative;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+}
+
+/* The one place the accent is allowed to be a surface, and it is 1px tall. */
+[data-theme='apex'] .d-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: var(--d-accent);
+  opacity: 0;
+  transition: opacity 160ms linear;
+}
+
+[data-theme='apex'] .d-card:hover::before,
+[data-theme='apex'] .d-card:focus-within::before {
+  opacity: 1;
+}
+
+[data-theme='apex'] .d-section--alt {
+  background: var(--d-surface-alt);
+  border-block: 1px solid var(--d-line);
+}
+
+[data-theme='apex'] .d-stat {
+  border: 0;
+  border-left: 1px solid var(--d-accent);
+  padding-left: 1rem;
+  background: transparent;
+}
+
 /* ========================================================================== *
  * 4. Scroll reveal
  *
@@ -1549,14 +1762,32 @@ body[data-family] :focus-visible {
  * The starting state is applied *by the observer script itself* (it sets
  * `data-reveal-ready` on <html>), so a visitor with JavaScript disabled sees
  * the fully-rendered page rather than a blank one.
+ *
+ * THE MOTION AXIS IS FOUR CUSTOM PROPERTIES, AND EVERY FALLBACK IS TODAY'S
+ * LITERAL. `data-motion` is stamped on <html> for pitch builds only, exactly
+ * as `data-scheme` is. A delivered page carries no such attribute, so every
+ * `var()` below resolves to its fallback and the rule computes to the same
+ * 620ms / 1rem / cubic-bezier(0.22, 0.61, 0.36, 1) it always did. That is the
+ * whole byte-identity mechanism for the eight delivered clients, and it is why
+ * the motion work is additive rather than a rewrite.
+ *
+ * `--d-motion-stagger` is a MULTIPLIER on `--d-reveal-delay`, never a
+ * replacement for it. Eight components emit that delay as inline style on the
+ * element (`DesignServices.astro`, `Reviews.astro`, `Stats.astro`, `Faq.astro`,
+ * `Gallery.astro`, `DesignGalleryPage.astro`, `DesignAbout.astro`,
+ * `ServiceArea.astro`), and inline style in the body sits inside the region
+ * `check-delivered-parity.mjs` compares — so editing those literals would move
+ * every delivered page. At the default `1` the arithmetic is the identity.
  * ========================================================================== */
 
 [data-reveal-ready] [data-reveal] {
   opacity: 0;
-  transform: translateY(1rem);
-  transition: opacity 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  transition-delay: var(--d-reveal-delay, 0ms);
+  transform: translateY(var(--d-motion-travel, 1rem));
+  transition: opacity var(--d-motion-duration, 620ms)
+      var(--d-motion-ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+    transform var(--d-motion-duration, 620ms)
+      var(--d-motion-ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+  transition-delay: calc(var(--d-reveal-delay, 0ms) * var(--d-motion-stagger, 1));
   will-change: opacity, transform;
 }
 
@@ -1566,7 +1797,27 @@ body[data-family] :focus-visible {
   will-change: auto;
 }
 
+/*
+ * Reduced motion IS `still`, rather than a second thing that resembles it.
+ *
+ * The four properties are set to still's own values here, so there is one
+ * definition of "no motion" and not a parallel one that can drift from the
+ * preset. `Reveal.astro` collapses the same way in script — it treats a
+ * reduced-motion request as `still` rather than carrying its own branch — so
+ * the CSS, the script and the gate all agree by construction.
+ *
+ * The hard overrides below stay: they also cover the hero's `pan`/`zoom`
+ * keyframes, which are animations rather than reveal transitions and are not
+ * reachable from the four properties above.
+ */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --d-motion-duration: 0ms;
+    --d-motion-stagger: 0;
+    --d-motion-travel: 0rem;
+    --d-motion-ease: linear;
+  }
+
   [data-reveal-ready] [data-reveal],
   [data-reveal-ready] [data-reveal].is-revealed {
     opacity: 1;

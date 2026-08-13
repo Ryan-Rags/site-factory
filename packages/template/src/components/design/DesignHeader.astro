@@ -105,10 +105,26 @@ const ctaHref = header.cta ? resolveHref(header.cta.href, here) : '';
 <style>
   /* The header CTA duplicates the sticky call bar on a phone, and the bar is
      the better placement — always reachable, never scrolled past. */
+  /*
+   * One line, always.
+   *
+   * `check:textfit`'s single-line assertion caught "Get in touch" setting on
+   * two lines in `heritage/signwriter`, both tones, at 1024px — the widest
+   * display face in the matrix, at the width where the nav has just appeared
+   * and is competing with the lockup for the bar. A wrapped CTA is perfectly
+   * unclipped, which is why the older "not clipped" assertion passed it, and
+   * it is exactly the sort of thing a prospect notices in a demo.
+   *
+   * `nowrap` rather than a shorter label: the text is the client's own copy
+   * from their config, so the stylesheet does not get to abbreviate it. If a
+   * future label is long enough to overflow instead, `check:overflow` is the
+   * gate that says so.
+   */
   .d-header__cta {
     display: none;
     padding: 0.6rem 1.1rem;
     font-size: 0.9375rem;
+    white-space: nowrap;
   }
 
   @media (min-width: 900px) {

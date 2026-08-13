@@ -30,7 +30,7 @@ import { clearsGate } from './contrast.mjs';
 import type { HeroVariant } from '../types/design';
 import type { FontFace } from '../types/site';
 
-export type PresetId = 'forge' | 'precision' | 'heritage';
+export type PresetId = 'forge' | 'precision' | 'heritage' | 'meridian' | 'apex';
 export type RadiusName = 'sharp' | 'soft';
 export type DensityName = 'compact' | 'comfortable';
 
@@ -52,6 +52,58 @@ export type DensityName = 'compact' | 'comfortable';
 export type SchemeName = 'light' | 'dark';
 
 export const SCHEMES: SchemeName[] = ['light', 'dark'];
+
+/**
+ * How much the page moves, as an axis in its own right.
+ *
+ * Orthogonal to everything else, and declared at the top level of
+ * `presets.json` rather than inside a preset, because that is what
+ * orthogonality has to look like in the data as well as in the selectors: a
+ * motion preset knows nothing about a family, a tone, an accent or a pairing,
+ * and `check-reveal.mjs` asserts statically that no emitted selector ever
+ * combines `data-motion-preset` with any of the other four. That assertion is what
+ * licenses the reveal gate to run as a SUM over the axes rather than a product.
+ *
+ * `lively` restates today's exact numbers rather than leaving them as CSS
+ * defaults, so no preset depends on a literal living in a selector it does not
+ * own. `still` is degenerate by design — everything at its final state at once.
+ */
+export type MotionId = 'still' | 'calm' | 'lively';
+
+/**
+ * The timing half of a motion preset.
+ *
+ * `stagger` multiplies the per-element `--d-reveal-delay` that eight
+ * components emit as inline style. It has to be a multiplier rather than a
+ * replacement: those literals sit in the body, inside the region
+ * `check-delivered-parity.mjs` compares, so changing them would move every
+ * delivered page. At `1` the arithmetic is the identity and lively is
+ * byte-identical to what shipped.
+ *
+ * `settle` is what `check-reveal.mjs` waits before it reads opacity. It is
+ * declared here rather than derived in the gate so the contract and the gate
+ * cannot drift apart — and a motion preset with no `reveal` block fails the
+ * gate rather than inheriting a default, because a gate that quietly defaults
+ * is how a suite goes blind.
+ */
+export interface MotionReveal {
+  duration: string;
+  stagger: number;
+  travel: string;
+  easing: string;
+  settle: number;
+}
+
+export interface MotionPreset {
+  id: MotionId;
+  label: string;
+  blurb: string;
+  reveal: MotionReveal;
+  /** `paint` writes the final figure immediately; `animate` counts up to it. */
+  counters: 'paint' | 'animate';
+  /** `off` never starts the reviews rail's timer. */
+  carousel: 'off' | 'auto';
+}
 
 /** The colours a preset owns. The accent is not among them — it is chosen. */
 export interface PresetPalette {
@@ -117,6 +169,8 @@ export interface ThemePreset {
 
 interface PresetFile {
   presets: ThemePreset[];
+  motion: MotionPreset[];
+  defaultMotion: MotionId;
   radiusScale: Record<RadiusName, { card: string; btn: string }>;
   densityScale: Record<DensityName, { section: string; sectionLg: string; gap: string }>;
 }
@@ -127,6 +181,28 @@ export const PRESETS: ThemePreset[] = file.presets;
 export const RADIUS_SCALE = file.radiusScale;
 export const DENSITY_SCALE = file.densityScale;
 export const PRESET_IDS: PresetId[] = PRESETS.map((p) => p.id);
+
+export const MOTIONS: MotionPreset[] = file.motion;
+export const MOTION_IDS: MotionId[] = MOTIONS.map((m) => m.id);
+/** The tone of motion a page is in when nothing says otherwise. */
+export const DEFAULT_MOTION: MotionId = file.defaultMotion;
+
+/**
+ * One motion preset, by name. Fails loudly rather than falling back.
+ *
+ * Same discipline as `getPreset`: a typo'd id resolving to the first entry
+ * would ship a page whose motion nobody chose, and the customizer's resolver
+ * would then disagree with the CSS about which cell it is in.
+ */
+export function getMotion(id: string): MotionPreset {
+  const found = MOTIONS.find((m) => m.id === id);
+  if (!found)
+    throw new Error(
+      `Unknown motion preset "${id}" — expected one of ${MOTION_IDS.join(', ')}. ` +
+        `Motion presets are defined at the top level of src/design/presets.json.`,
+    );
+  return found;
+}
 
 export function getPreset(id: string): ThemePreset {
   const preset = PRESETS.find((p) => p.id === id);

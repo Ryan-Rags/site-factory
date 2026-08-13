@@ -69,10 +69,10 @@ carriage return `%0D`; neither survives as a raw control character. The
 recipient and the subject are constants from config, not from the form. No
 finding.
 
-### 2. Four URL query parameters → the customizer
+### 2. Five URL query parameters → the customizer
 
-Only on design-family pages, and only these four: `theme`, `scheme`, `accent`,
-`font`. They are read in two places, and **both resolve before use**:
+Only on design-family pages, and only these five: `theme`, `scheme`, `accent`,
+`font`, `motion`. They are read in two places, and **both resolve before use**:
 
 - `src/components/design/DesignLayout.astro:115-130` — the inline no-flash
   script, which runs before first paint. Its embedded allowlist `M` is
@@ -89,8 +89,27 @@ var t=q.get('theme')||s.theme||F.theme; if(!M[t])t=F.theme;
 var a=q.get('accent')||s.accent||F.accent; if(o.s[c].indexOf(a)<0)a=o.s[c][0];
 ```
 
+`motion` was added by `feat/design-expansion` and went through this door rather
+than around it — `check-injection.mjs` failed the build until `ALLOWED_PARAMS`
+was widened deliberately. Its audit:
+
+```js
+var m=q.get('motion')||s.motion||F.motion; if(N.indexOf(m)<0)m=F.motion;
+```
+
+`N` is the flat list of motion ids emitted from `presets.json`. Every source —
+URL, `localStorage`, the client's own config — lands in the same `indexOf`
+test, so the only three strings that can reach `setAttribute` are `still`,
+`calm` and `lively`. `Customizer.astro` only WRITES the parameter
+(`params.set`) and tests for its presence (`params.has`); it reads its own
+state back off the resolved attribute, never off the URL.
+
+The attribute it lands in, `data-motion-preset`, is consumed by CSS attribute
+selectors and by one `getAttribute` comparison against the literal `'still'`.
+It is never interpolated into markup, a URL or a style.
+
 The resolved value's only destination is `setAttribute('data-theme', …)` and its
-three siblings — a `data-*` attribute value, never markup, never a URL, never a
+four siblings — a `data-*` attribute value, never markup, never a URL, never a
 style. So a crafted `?theme=<script>…` does not reach the DOM in any form: the
 string fails the `M[t]` lookup and is dropped on the floor before anything is
 written.
@@ -134,7 +153,7 @@ matters more than the gate looking comprehensive.
 **It proves:** no banned sink exists anywhere in `src/`; the build is still
 static with no adapter; no request reflection (`Astro.request`,
 `Astro.url.searchParams`, `Astro.params`); every markup interpolation is one a
-human has reviewed at its current text; and no query parameter outside the four
+human has reviewed at its current text; and no query parameter outside the five
 is read in any shape the gate can follow.
 
 **It does not prove** that the allowlist resolution is *correct*. A gate that
@@ -180,7 +199,9 @@ the gate cannot follow is reported as unbounded rather than skipped.
   conversation and a re-audit, not a commit.
 - The build stays static. An adapter means a new surface this audit never
   considered.
-- A fifth query parameter needs an audit, a proof that it is resolved, and a
-  deliberate widening of `ALLOWED_PARAMS`.
+- A sixth query parameter needs an audit, a proof that it is resolved, and a
+  deliberate widening of `ALLOWED_PARAMS`. `motion` was the fifth and is the
+  worked example: the gate refused the build, the resolver was audited against
+  the same allowlist shape as the other four, and only then was the set widened.
 - A new or changed `set:html` / `define:vars` expression needs a re-read and a
   written justification in `REVIEWED`.

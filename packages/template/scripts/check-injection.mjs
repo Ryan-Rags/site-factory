@@ -316,11 +316,32 @@ for (const file of sourceFiles) {
 /* ------------------------------------------------------------------ 5 --
  * The query-parameter surface is bounded.
  *
- * Four parameters are read by shipped JavaScript, all of them the customizer's,
+ * Five parameters are read by shipped JavaScript, all of them the customizer's,
  * and every one is resolved against an allowlist before it is used — an unknown
- * value is replaced by the client's default, never stamped. A fifth parameter
+ * value is replaced by the client's default, never stamped. A sixth parameter
  * would be a new path from a visitor-supplied string into the page, and it must
  * not appear without somebody deciding it is safe.
+ *
+ * `motion` was the fifth, added by `feat/design-expansion`, and this gate is
+ * what stopped it arriving unexamined. The audit it demanded:
+ *
+ *   - it is read in exactly one place, the no-flash script in
+ *     `DesignLayout.astro`:
+ *       var m=q.get('motion')||s.motion||F.motion;if(N.indexOf(m)<0)m=F.motion;
+ *     where `N` is the flat list of motion ids emitted from `presets.json`.
+ *     Every path — URL, localStorage, config — lands in the same `indexOf`
+ *     test, so the only strings that can reach `setAttribute` are the three
+ *     ids. A visitor-supplied value is replaced, never stamped.
+ *   - `Customizer.astro` only ever WRITES it (`params.set`) and tests for its
+ *     presence (`params.has`); its own state is read back off the resolved
+ *     attribute, not off the URL.
+ *   - the attribute it lands in, `data-motion-preset`, is consumed only by
+ *     CSS attribute selectors and by one `getAttribute` comparison against the
+ *     literal 'still'. It is never interpolated into markup, a URL or a style.
+ *
+ * Same shape as the four before it, which is the point: a new parameter is
+ * allowed here when it goes through the same resolver, not when it is
+ * convenient.
  *
  * Scoping: only files that touch the query string are examined, and only
  * through variables bound to it. That matters — `ContactForm.tsx` calls
@@ -334,7 +355,7 @@ for (const file of sourceFiles) {
  * the trigger is now deliberately broad and the gate fails closed on anything
  * it cannot follow.
  */
-const ALLOWED_PARAMS = new Set(['theme', 'scheme', 'accent', 'font']);
+const ALLOWED_PARAMS = new Set(['theme', 'scheme', 'accent', 'font', 'motion']);
 
 /** Anything that could be a read of the query string, however spelled. */
 const QUERY_SURFACE = /URLSearchParams|searchParams|location\s*\.\s*search/;

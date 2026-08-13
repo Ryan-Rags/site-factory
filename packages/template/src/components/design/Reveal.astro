@@ -26,6 +26,27 @@
  *   never starts. The open/closed badge still runs — it is information, not
  *   decoration, and suppressing it would withhold a fact rather than a motion.
  *
+ * - The motion axis is CSS, not script. `data-motion-preset` selects four
+ *   custom properties in `design.css`; this file reads the attribute only for
+ *   the two things a stylesheet cannot express — painting a counter at its
+ *   final value and never starting the carousel's `setInterval`. Both are the
+ *   `still` preset, and `still` reuses the reduced-motion path rather than
+ *   adding a branch beside it, so the CSS, the script and `check-reveal.mjs`
+ *   agree by construction rather than by three authors remembering to.
+ *
+ *   A delivered build carries no `data-motion-preset`, so `stillMotion` is
+ *   exactly `reduced` there and every branch resolves as it did before the
+ *   axis existed. The bytes still move, because this script's text is shared
+ *   with the pitch builds — hence the named `revealMotionAxis` allowance in
+ *   `check-delivered-parity.mjs`.
+ *
+ *   COMMENTS IN THE SCRIPT BELOW ARE SHIPPED BYTES. `is:inline` emits this
+ *   block verbatim into every page of every design client, so an explanation
+ *   written inside the IIFE is downloaded by every visitor to a real shop's
+ *   site. Measured: the first draft of the motion comment added 1.2KB to all
+ *   five pages of all three delivered design clients. Explanations belong up
+ *   here in the frontmatter, which is build-time only and costs nothing.
+ *
  * - Elements unobserve themselves on first reveal, so nothing accumulates and
  *   scrolling back up does not re-animate.
  */
@@ -36,6 +57,11 @@
     var docEl = document.documentElement;
     var reduced =
       window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* Motion: CSS owns the timing; this owns the two things it cannot do.
+       See the frontmatter — the explanation does not need to ship. */
+    var stillMotion =
+      reduced || docEl.getAttribute('data-motion-preset') === 'still';
 
     /* ---------------------------------------------------------------- 3 --
      * Open / closed.
@@ -118,9 +144,15 @@
       requestAnimationFrame(frame);
     }
 
-    if (reduced || !('IntersectionObserver' in window)) {
+    if (stillMotion || !('IntersectionObserver' in window)) {
       // No motion, and no hidden content: whatever the reason, the page ends
       // up in its final state rather than in a half-animated one.
+      //
+      // `still` lands here by the same door as a reduced-motion request and a
+      // missing IntersectionObserver, which is the point — the degenerate
+      // preset is the existing safe path, not a new one. Counters are painted,
+      // no reveal observer is created so nothing is ever hidden, and the
+      // carousel below is never reached, so its timer never starts.
       for (var i = 0; i < counters.length; i++) {
         paint(counters[i], Number(counters[i].getAttribute('data-count-to')) || 0);
       }

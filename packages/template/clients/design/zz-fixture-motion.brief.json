@@ -1,0 +1,162 @@
+{
+  "theme": {
+    "preset": "apex",
+    "scheme": "dark",
+    "accent": "lime",
+    "fontPairing": "grotesk"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": ["stats", "services", "reviews", "serviceArea", "faq"],
+  "sections": {
+    "hero": {
+      "variant": "split",
+      "eyebrow": "Testville, New Jersey",
+      "badges": ["A test fixture", "Not a real business"]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Mon-Fri",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Two invented services",
+      "intro": "Neither of these is real. They exist so the services section has something to reveal.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "Nobody said any of this",
+      "intro": "Invented for a test fixture. The rail is a carousel here on purpose — it is what the still preset has to stop.",
+      "sourceLabel": "Invented for a test fixture - not a customer, and not a quotation",
+      "variant": "carousel",
+      "autoplayMs": 2500
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 3,
+          "label": "Motion presets",
+          "note": "still, calm, lively"
+        },
+        {
+          "value": 240,
+          "label": "Calm stagger ceiling, ms",
+          "note": "160ms x 1.5"
+        },
+        {
+          "value": 1200,
+          "label": "Calm settle window, ms",
+          "note": "What check:reveal waits"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions about a business that does not exist",
+      "items": [
+        {
+          "q": "Is this a real shop?",
+          "a": "No. Every detail on this build is invented. It is the test fixture for the motion axis and for the apex family."
+        },
+        {
+          "q": "Why does this page have a carousel and counters?",
+          "a": "Because they are the two things CSS cannot switch off. Under the still preset the counters must already read their final figure and the reviews rail must not advance on its own, and check:reveal measures both here."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": false,
+      "eyebrow": "Our work",
+      "heading": "Off the shop floor",
+      "intro": "Not rendered on this fixture.",
+      "items": []
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Testville and the invented towns around it",
+      "intro": "None of these places exist.",
+      "areas": [],
+      "note": "Invented service area on a test fixture."
+    },
+    "beforeAfter": {
+      "enabled": false,
+      "heading": "Before and after",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder image on a test fixture.",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder image on a test fixture.",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "An invented business, used to test the motion axis.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Test fixture. Not a real business, and never deployed."
+    }
+  }
+}

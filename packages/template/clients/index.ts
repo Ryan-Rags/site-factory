@@ -13,6 +13,7 @@ import ksWeldingHeritage from './ks-welding-heritage.config';
 import zzFixturePhoneOptional from './zz-fixture-phone-optional.config';
 import zzFixtureGoLive from './zz-fixture-go-live.config';
 import zzFixtureLongName from './zz-fixture-long-name.config';
+import zzFixtureMotion from './zz-fixture-motion.config';
 
 /**
  * Every buildable client, keyed by slug.
@@ -60,6 +61,13 @@ export const clients = {
   // only one that emits the `/gallery` route. `build-all.mjs` skips it and it
   // is never deployed. See its config header.
   'zz-fixture-long-name': zzFixtureLongName,
+
+  // A TEST FIXTURE, not a prospect: where the motion axis is proved. The only
+  // build carrying an autoplaying reviews rail and the only one on the `apex`
+  // family, so it is where `counters: paint` and `carousel: off` — the two
+  // things CSS cannot express — are actually measured. `build-all.mjs` skips
+  // it and it is never deployed. See its config header.
+  'zz-fixture-motion': zzFixtureMotion,
 } satisfies Record<string, SiteConfig>;
 
 export type ClientSlug = keyof typeof clients;
