@@ -60,6 +60,23 @@ this lane closes.
   task, full gates after each, ONE PR to main with a per-branch conflict log
   and combined Decision Brief. The integrator never merges to main.
 
+## Plan files & docs
+- A stream's PLAN-<stream>.md lives on its branch, not on main. The PR that
+  completes the stream deletes it.
+- Durable rulings are appended to docs/decisions.md in that same PR: one dated
+  line each, citing the PR number or plan file it came from. Append-only — a
+  reversal is a new line saying so, never an edit to an old one.
+- Open defects and unmeasured properties go in docs/known-issues.md, with a
+  repro. Settled rules go in decisions.md; the two are not interchangeable.
+- Evidence images and transcripts under docs/evidence/ are welcome during
+  review and are pruned by the next cleanup pass. Pin every link in a PR body
+  to a SHA, never a branch, so it keeps rendering after the prune.
+- Report plan and PR locations as GitHub blob URLs. Never an editor-internal
+  link or a bare local path — nobody else can open those.
+- When gh is unavailable, commit the PR body as PR-<stream>.md and hand Ryan
+  the exact `gh pr create` command. That file is a courier, not a record: it is
+  deleted by the next cleanup once the PR exists.
+
 ## Verification norms
 - Green ≠ correct: acceptance is behavior of the built artifact.
 - Verify you're measuring your own build — ports move; confirm client/URL
