@@ -8,6 +8,7 @@
  */
 import { site } from '../../../site.config';
 import Icon from '../Icon.astro';
+import { resolveHref } from '../../lib/design';
 import type { DesignHeader } from '../../types/design';
 
 interface Props {
@@ -16,6 +17,17 @@ interface Props {
 
 const { header } = Astro.props;
 const { business, brand } = site;
+
+/**
+ * The nav is the same config array on every route, so the labels are identical
+ * everywhere by construction. Only the hrefs move: an in-page anchor has to
+ * point back at the home page once this header is rendering somewhere that is
+ * not the home page. On `/` this is the identity function and the markup below
+ * is byte-for-byte what it was. See `resolveHref`.
+ */
+const here = Astro.url.pathname;
+const nav = header.nav.map((item) => ({ ...item, href: resolveHref(item.href, here) }));
+const ctaHref = header.cta ? resolveHref(header.cta.href, here) : '';
 ---
 
 <header class="d-header">
@@ -29,7 +41,7 @@ const { business, brand } = site;
 
       <nav class="d-header__nav" aria-label="Main">
         <ul>
-          {header.nav.map((item) => (
+          {nav.map((item) => (
             <li>
               <a href={item.href}>{item.label}</a>
             </li>
@@ -48,7 +60,7 @@ const { business, brand } = site;
         }
         {
           header.cta && (
-            <a class="d-btn d-btn--accent d-header__cta" href={header.cta.href}>
+            <a class="d-btn d-btn--accent d-header__cta" href={ctaHref}>
               {header.cta.text}
             </a>
           )

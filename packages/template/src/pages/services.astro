@@ -5,6 +5,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Icon from '../components/Icon.astro';
 import PageHeader from '../components/PageHeader.astro';
 import CtaBand from '../components/CtaBand.astro';
+import DesignLayout from '../components/design/DesignLayout.astro';
+import DesignPage from '../components/design/DesignPage.astro';
+import DesignServicesPage from '../components/design/DesignServicesPage.astro';
+
+/**
+ * The same fork `index.astro` has carried since the design families landed: a
+ * client with a `design` block renders through its family, a client without one
+ * renders exactly what it rendered before.
+ */
+const design = site.design;
 
 const entries = await getCollection('services');
 const byId = new Map(entries.map((e) => [e.id, e]));
@@ -25,7 +35,15 @@ const services = await Promise.all(
 );
 ---
 
-<BaseLayout title="Services" description={site.pages.services.metaDescription}>
+{
+  design ? (
+    <DesignLayout design={design} title="Services" description={site.pages.services.metaDescription}>
+      <DesignPage design={design}>
+        <DesignServicesPage />
+      </DesignPage>
+    </DesignLayout>
+  ) : (
+    <BaseLayout title="Services" description={site.pages.services.metaDescription}>
   <PageHeader title={site.pages.services.title} intro={site.pages.services.intro} />
 
   <nav aria-label="Services" class="border-b border-slate-200 bg-primary-wash">
@@ -112,8 +130,10 @@ const services = await Promise.all(
     ))
   }
 
-  <CtaBand />
-</BaseLayout>
+      <CtaBand />
+    </BaseLayout>
+  )
+}
 
 <style>
   /* Markdown body copy inside a service section. Scoped, so it cannot leak. */

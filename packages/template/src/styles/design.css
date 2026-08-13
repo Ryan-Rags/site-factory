@@ -1748,3 +1748,379 @@ body[data-family] :focus-visible {
   border-color: var(--d-accent);
   color: var(--d-on-accent);
 }
+
+/* ==========================================================================
+ * THE ROUTES THAT ARE NOT THE HOME PAGE
+ *
+ * `/services`, `/about`, `/contact`, `/gallery` and `/404` render through
+ * `DesignPage` rather than `BaseLayout`, so they load this stylesheet and no
+ * Tailwind at all. Everything below is what those five pages need and the home
+ * page did not already provide.
+ *
+ * The rule the rest of this file lives by applies here too: tokens only. No
+ * literal colour, no literal font, nothing that could let one family's contact
+ * page diverge from its own home page.
+ * ========================================================================== */
+
+/* --- the page head band ------------------------------------------------- */
+
+/*
+ * Deliberately quieter than the hero.
+ *
+ * A hero is the first thing on the site and earns a 4.25rem headline; a page
+ * head is a signpost on a page the reader has already chosen to be on, and the
+ * content underneath it is the point. Same fluid mechanism, smaller range, and
+ * the same `overflow-wrap` backstop the hero title carries — an `h1` here is
+ * whatever the client's config holds, which on `/about` is a headline written
+ * for a page and can be long.
+ */
+.d-page-head {
+  padding-bottom: 0;
+}
+
+.d-page-head__title {
+  font-family: var(--d-font-display);
+  font-weight: var(--d-display-weight);
+  letter-spacing: var(--d-display-tracking);
+  text-transform: var(--d-display-transform);
+  font-size: clamp(1.75rem, 6.5vw, 3rem);
+  line-height: 1.1;
+  margin: 0.5rem 0 0;
+  overflow-wrap: break-word;
+}
+
+.d-page-head__intro {
+  margin-top: 1rem;
+  max-width: 44rem;
+}
+
+/* --- markdown, rendered into a design page ------------------------------ */
+
+/*
+ * `<Content />` emits bare `<p>`, `<ul>`, `<ol>`, `<h2>`, `<h3>`, `<a>`,
+ * `<strong>` and `<blockquote>`. On a Tailwind page those inherit the base
+ * layer's typography; here they inherit nothing, so a service description would
+ * render as browser-default Times with no spacing in the middle of a pitch
+ * demo. This is that typography, in family tokens.
+ *
+ * Scoped under `.d-prose` rather than applied to bare elements, so it cannot
+ * reach a `<p>` inside a card, a review or the footer.
+ */
+.d-prose {
+  color: var(--d-ink);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  max-width: 40rem;
+}
+
+.d-prose > * + * {
+  margin-top: 1rem;
+}
+
+.d-prose h2,
+.d-prose h3 {
+  font-family: var(--d-font-display);
+  font-weight: var(--d-display-weight);
+  letter-spacing: var(--d-display-tracking);
+  text-transform: var(--d-display-transform);
+  line-height: 1.2;
+  margin-top: 2rem;
+}
+
+.d-prose h2 {
+  font-size: 1.5rem;
+}
+
+.d-prose h3 {
+  font-size: 1.25rem;
+}
+
+.d-prose ul,
+.d-prose ol {
+  padding-left: 1.25rem;
+}
+
+.d-prose li + li {
+  margin-top: 0.5rem;
+}
+
+.d-prose a {
+  color: var(--d-accent);
+  text-underline-offset: 0.2em;
+}
+
+.d-prose strong {
+  font-weight: 700;
+}
+
+.d-prose blockquote {
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--d-line-strong);
+  color: var(--d-ink-muted);
+}
+
+/* --- /services ---------------------------------------------------------- */
+
+.d-svc-jump {
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--d-line);
+  background: var(--d-surface-alt);
+}
+
+.d-svc-jump ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-svc-jump__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--d-line-strong);
+  border-radius: 999px;
+  background: var(--d-surface);
+  color: var(--d-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  /* A service title is a label, not a paragraph — the same rule the header nav
+     learned. `check:textfit` asserts one line per item. */
+  white-space: nowrap;
+}
+
+.d-svc-jump__link:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+.d-svc__grid {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .d-svc__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 3.5rem;
+  }
+
+  /*
+   * Alternating sides down the page, so a run of services does not read as one
+   * long column of identical blocks. `order` rather than a source-order swap:
+   * the markup stays image-then-copy on every section, so a screen reader and a
+   * phone both get the same sequence throughout.
+   */
+  .d-svc__grid--flip .d-svc__media {
+    order: 2;
+  }
+}
+
+.d-svc__media img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+}
+
+.d-svc__cta {
+  margin-top: 2rem;
+}
+
+.d-svc .d-service__points {
+  margin-top: 1.5rem;
+}
+
+/* --- /about ------------------------------------------------------------- */
+
+.d-about__grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .d-about__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+    gap: 3.5rem;
+  }
+
+  .d-about__media {
+    position: sticky;
+    top: 6rem;
+  }
+}
+
+.d-about__media img {
+  width: 100%;
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius-card, 0.5rem);
+}
+
+.d-creds {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .d-creds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.d-creds__item {
+  padding: 1.25rem;
+}
+
+.d-creds__label {
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  color: var(--d-ink);
+}
+
+.d-creds__detail {
+  margin: 0.4rem 0 0;
+  color: var(--d-ink-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+/* --- /contact ----------------------------------------------------------- */
+
+.d-contact__grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .d-contact__grid {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    gap: 3.5rem;
+  }
+}
+
+.d-contact__h {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.d-contact__list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.d-contact__list > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* A long email address must wrap rather than widen the column at 320px. */
+.d-contact__wrapline {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.d-contact__icon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--d-accent);
+}
+
+.d-contact__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--d-ink-muted);
+}
+
+.d-contact__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+  color: var(--d-accent);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  text-decoration: none;
+  overflow-wrap: break-word;
+}
+
+.d-contact__value:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.d-contact__address {
+  margin: 0.25rem 0 0;
+  font-style: normal;
+  color: var(--d-ink);
+  line-height: 1.6;
+}
+
+.d-contact__map {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--d-accent);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.d-contact__hours {
+  margin-top: 2.5rem;
+}
+
+.d-hourlist {
+  margin: 1.25rem 0 0;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-hourlist > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--d-line);
+  font-size: 0.9375rem;
+}
+
+.d-hourlist dt {
+  font-weight: 600;
+  color: var(--d-ink);
+}
+
+.d-hourlist dd {
+  margin: 0;
+  color: var(--d-ink-muted);
+}
+
+/*
+ * The full form, in the panel the compact block already defines.
+ *
+ * `.d-quick` caps itself at 46rem because the home-page block sits in a single
+ * column and a form wider than that is unreadable. On the contact page the
+ * panel is already inside a constrained grid column, so the cap fights the
+ * layout and leaves a gap on the right at 1440px. Everything else about the
+ * panel — the border, the padding, the control styling, the submit button, the
+ * error and status treatments — is inherited rather than restated, which is the
+ * point of reusing the block instead of writing a second one.
+ */
+.d-quick--page {
+  max-width: none;
+}

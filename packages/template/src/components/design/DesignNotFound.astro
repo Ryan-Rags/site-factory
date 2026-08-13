@@ -1,0 +1,36 @@
+---
+/**
+ * `/404`, in the client's design family.
+ *
+ * The one route in this stream that carries no claim about the business at
+ * all — the copy is template copy, and the only client-specific things on it
+ * are the phone number and the ways back into the site. That is deliberate: a
+ * 404 is the page most likely to be reached by a stale link from somewhere we
+ * do not control, and it is the wrong place to assert anything.
+ *
+ * It still renders through the design shell, because a 404 that loses the
+ * site's header and footer is a 404 that looks like somebody else's error
+ * page.
+ */
+import { site } from '../../../site.config';
+import { telHref } from '../../lib/business';
+import TextUsLink from '../TextUsLink.astro';
+import DesignPageHead from './DesignPageHead.astro';
+---
+
+<DesignPageHead
+  eyebrow="404"
+  title="That page isn't here."
+  intro="The link may be out of date, or the address may have a typo in it. Try the services page, or just call the shop — that is usually faster anyway."
+/>
+
+<section class="d-section" aria-labelledby="notfound-heading">
+  <div class="d-wrap">
+    <h2 class="d-sr" id="notfound-heading">Ways back</h2>
+    <div class="d-hero__ctas">
+      <a class="d-btn d-btn--accent" href={telHref(site.business)}>Call {site.business.phone}</a>
+      <a class="d-btn d-btn--ghost" href="/services">See what we do</a>
+      <TextUsLink class="d-btn d-btn--ghost" label="Text us instead" icon={false} />
+    </div>
+  </div>
+</section>

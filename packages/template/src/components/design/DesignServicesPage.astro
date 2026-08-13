@@ -1,0 +1,100 @@
+---
+/**
+ * `/services`, in the client's design family.
+ *
+ * Every fact on this page already exists. The list and its order come from
+ * `site.services` — the same array the home page's services cards are derived
+ * from — and the prose comes from `src/content/services/<slug>/*.md`, which is
+ * what the legacy Tailwind page renders today. Not one new sentence is written
+ * about any business here; this file decides arrangement, nothing else.
+ *
+ * A slug in the config with no matching markdown file is a build error naming
+ * the missing path, exactly as it is on the legacy page. A services route that
+ * silently drops a service the shop offers is worse than a failed build.
+ */
+import { getCollection, render } from 'astro:content';
+import { site, clientSlug } from '../../../site.config';
+import Icon from '../Icon.astro';
+import DesignPageHead from './DesignPageHead.astro';
+
+const entries = await getCollection('services');
+const byId = new Map(entries.map((e) => [e.id, e]));
+
+const services = await Promise.all(
+  site.services.map(async (service) => {
+    const entry = byId.get(`${clientSlug}/${service.slug}`);
+    if (!entry) {
+      throw new Error(
+        `${clientSlug}: services lists "${service.slug}" but src/content/services/${clientSlug}/${service.slug}.md does not exist.`,
+      );
+    }
+    const { Content } = await render(entry);
+    return { ...service, entry, Content };
+  }),
+);
+---
+
+<DesignPageHead title={site.pages.services.title} intro={site.pages.services.intro} />
+
+{/* The in-page jump list. These anchors name sections on *this* page, so they
+    are the one set of hrefs on a design route that `resolveHref` must not
+    touch — and it does not, because it is only ever applied to configured
+    hrefs, never to anchors this template generates for its own sections. */}
+<nav class="d-section d-svc-jump" aria-label="Services">
+  <div class="d-wrap">
+    <ul>
+      {
+        services.map((s) => (
+          <li>
+            <a class="d-svc-jump__link" href={`#${s.slug}`}>
+              <Icon name={s.icon} class="d-icon-sm" />
+              <span>{s.title}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</nav>
+
+{
+  services.map((s, i) => (
+    <section
+      id={s.slug}
+      class:list={['d-section', 'd-svc', i % 2 === 1 && 'd-section--alt']}
+      aria-labelledby={`${s.slug}-heading`}
+    >
+      <div class="d-wrap">
+        <div class:list={['d-svc__grid', i % 2 === 1 && 'd-svc__grid--flip']}>
+          <div class="d-svc__media" data-reveal>
+            <img src={s.image} alt={s.imageAlt} width="800" height="600" loading="lazy" decoding="async" />
+          </div>
+
+          <div data-reveal>
+            <span class="d-service__icon" aria-hidden="true">
+              <Icon name={s.icon} class="d-icon-md" />
+            </span>
+            <h2 class="d-h2" id={`${s.slug}-heading`}>
+              {s.title}
+            </h2>
+            <p class="d-lede">{s.entry.data.summary}</p>
+
+            <div class="d-prose">
+              <s.Content />
+            </div>
+
+            <ul class="d-service__points">
+              {s.entry.data.highlights.map((h) => (
+                <li>{h}</li>
+              ))}
+            </ul>
+
+            <a class="d-btn d-btn--ghost d-svc__cta" href="/contact">
+              Ask about {s.title.toLowerCase()}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  ))
+}

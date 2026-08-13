@@ -1,0 +1,59 @@
+---
+/**
+ * `/gallery`, in the client's design family.
+ *
+ * The images come from `design.sections.gallery.items` — the payload the home
+ * page's gallery section already renders — and NOT from the six stock SVGs the
+ * legacy route hard-codes. That is the whole reason this file exists rather
+ * than the legacy page being left alone: a design client who turns the gallery
+ * on and is shown six placeholder illustrations captioned as recent work is
+ * being shown fabricated work, which is exactly what `check-fabrication.mjs`
+ * is for. The config's own items are the only honest source.
+ *
+ * `features.gallery` on with an empty `items` is therefore a build error naming
+ * the field, rather than an empty grid or a silent fallback to the stock set.
+ */
+import { site } from '../../../site.config';
+import DesignPageHead from './DesignPageHead.astro';
+import type { DesignConfig } from '../../types/design';
+
+interface Props {
+  design: DesignConfig;
+}
+
+const { design } = Astro.props;
+const gallery = design.sections.gallery;
+
+if (gallery.items.length === 0) {
+  throw new Error(
+    `${site.business.name}: features.gallery is true but design.sections.gallery.items is empty. ` +
+      `Add the client's own photographs to that array — the /gallery route renders it and nothing else.`,
+  );
+}
+---
+
+<DesignPageHead eyebrow={gallery.eyebrow} title={gallery.heading} intro={gallery.intro} />
+
+<section class="d-section d-gallery" aria-labelledby="gallery-page-heading">
+  <div class="d-wrap">
+    <h2 class="d-sr" id="gallery-page-heading">Recent work</h2>
+
+    <div class="d-gallery__grid">
+      {
+        gallery.items.map((item, i) => (
+          <figure data-reveal style={`--d-reveal-delay: ${(i % 3) * 80}ms`}>
+            <img
+              src={item.src}
+              alt={item.alt}
+              width={item.width ?? 800}
+              height={item.height ?? 800}
+              loading="lazy"
+              decoding="async"
+            />
+            {item.caption && <figcaption>{item.caption}</figcaption>}
+          </figure>
+        ))
+      }
+    </div>
+  </div>
+</section>
