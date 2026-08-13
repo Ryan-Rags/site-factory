@@ -413,12 +413,48 @@ try {
    * delivered build has exactly one and cannot be switched at all, so the sweep
    * is that one cell — which is not a reduced check, it is the whole population.
    */
+  /*
+   * Not every client's theme is readable from `clients/design/`.
+   *
+   * `ks-welding-forge`, `-precision` and `-heritage` are one client's payload
+   * spread three ways by `inFamily()` in their `.config.ts`, so they have no
+   * `.design.json` and no `.brief.json` of their own. `clientTheme()` returns
+   * `{}` for them, and the shipped cell then resolved to `undefined` on every
+   * field — so this gate asserted `color-scheme` should be `"undefined"` and
+   * reported 25 failures against three builds that were perfectly correct.
+   *
+   * A gate that invents an expectation it cannot derive is the reveal gate's
+   * mistake again, so it does not invent one. Where the config is silent, the
+   * tone is read from the HOME PAGE of the build under test and every other
+   * route is then required to agree with it. That is not circular and it is not
+   * weaker: "every route declares the same tone as `/`" is precisely the seam
+   * this stream closes — before it, `/` was the only route that declared one at
+   * all. What is lost is only the ability to catch `/` itself shipping the
+   * wrong tone, which is `check:parity`'s job and is covered there.
+   */
+  const fromPage = await page.evaluate(() => ({
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+    preset: document.documentElement.getAttribute('data-theme'),
+    accent: document.documentElement.getAttribute('data-accent'),
+    font: document.documentElement.getAttribute('data-font'),
+  }));
+
   const shipped = {
-    preset: theme.preset,
-    scheme: theme.scheme ?? presetFile.presets.find((p) => p.id === theme.preset)?.defaultScheme,
-    accent: theme.accent,
-    font: theme.fontPairing,
+    preset: theme.preset ?? fromPage.preset,
+    scheme:
+      theme.scheme ??
+      presetFile.presets.find((p) => p.id === theme.preset)?.defaultScheme ??
+      fromPage.scheme,
+    accent: theme.accent ?? fromPage.accent,
+    font: theme.fontPairing ?? fromPage.font,
   };
+  if (theme.preset === undefined) {
+    console.log(
+      `  no design payload for "${SLUG}" — it is a spread of another client's, so the ` +
+        `shipped cell is read from its own home page: ` +
+        `${shipped.preset}/${shipped.scheme}/${shipped.accent}/${shipped.font}\n`,
+    );
+  }
   const ALL = isPitch ? cells() : [shipped];
 
   /**
