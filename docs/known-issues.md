@@ -125,21 +125,245 @@ not the work. SEO 69 on a mockup is the `is-crawlable` deduction, i.e. the
 `noindex: false`, scores 100 / 100 / 100 / 100.
 
 **Still open:** finding what in `DesignLayout` suppresses LCP under device
-emulation. The 90+ mobile bar has never been demonstrated, in either direction.
+emulation.
+
+**Measured live, 2026-08-12 (`feat/live-smoke`).** The 90+ mobile bar has now
+been demonstrated on three of the eight deployed demos, against
+`https://<slug>-preview.pages.dev/` with the same mobile emulation, on
+Lighthouse 12.8.2:
+
+| Client | performance | accessibility | best-practices | seo |
+|---|---|---|---|---|
+| american-machine-specialty | **100** | 96 | 100 | 69 |
+| industrial-machine-corp | **99** | 100 | 100 | 69 |
+| kh-machine-works | **98** | 96 | 100 | 69 |
+| ks-welding, ks-welding-{forge,heritage,precision}, kts-machine-shop | `NO_LCP` | 96–100 | 100 | 69 |
+
+So the defect is **not** universal to `DesignLayout` under device emulation, and
+it is not the network either — three design-family home pages served over the
+same path score. What separates the two groups is not yet known.
+
+**The live presentation differs from the table above in one respect**, and it
+matters because `scripts/live-smoke` keys its waiver on the signature: on
+Lighthouse 12.8.2 the LCP failure surfaces as a thrown `LanternError: NO_LCP`
+out of `@paulirish/trace_engine`, and **`total-blocking-time` also fails to
+score** — where this entry records every other performance audit at 1/1. Both
+are lantern-simulated metrics off the same graph, so one cause with two
+casualties is the likely reading, but that is inference. Until it is settled,
+live-smoke refuses the waiver on this signature and reports the run as a
+failure, which is the conservative half of "a known issue never fails smoke; an
+unknown one always does".
+
+### Addendum, 2026-08-12 — the inference above is now a measurement
+
+Read this in preference to the paragraph it follows; that paragraph is left in
+place because the ledger is append-only in spirit and because the reasoning it
+records is what the measurement was taken to settle.
+
+**Corrected first: three cells of the table above were mis-transcribed.** The
+table and the instrument output landed in the same commit
+([`ef98f75`](https://github.com/Ryan-Rags/site-factory/commit/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909))
+and disagree. The run itself is authoritative —
+[`docs/evidence/live-smoke/report.md`@ef98f75](https://github.com/Ryan-Rags/site-factory/blob/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909/docs/evidence/live-smoke/report.md),
+per-client `Scores (mobile, port …)` lines — and the table above has been set to
+match it. What changed: `american-machine-specialty` performance 99 → **100**,
+`kh-machine-works` performance 100 → **98**, `industrial-machine-corp`
+accessibility 96 → **100**. Nothing else moved, and no conclusion depends on the
+difference: all three are ≥ 90 either way. Anyone quoting "99 / 99 / 100" for
+these three is quoting the mis-transcription.
+
+**(a) `total-blocking-time` is unscored on all five red clients, and always
+together with `NO_LCP`.** This is now read off the instrument rather than
+inferred. `isKnownNoLcp` returns early with `no NO_LCP error on the LCP audit`
+whenever the LCP audit carries no `NO_LCP` error message, so a client can only
+reach the `other performance audits also failed to score: …` branch if the
+`NO_LCP` error was present. All five red clients reached that branch, and each
+named exactly one audit:
+
+```
+ks-welding            other performance audits also failed to score: total-blocking-time
+ks-welding-forge      other performance audits also failed to score: total-blocking-time
+ks-welding-heritage   other performance audits also failed to score: total-blocking-time
+ks-welding-precision  other performance audits also failed to score: total-blocking-time
+kts-machine-shop      other performance audits also failed to score: total-blocking-time
+```
+
+So on Lighthouse **12.8.2** (resolved in `pnpm-lock.yaml`; `packages/audit`
+declares `^12.3.0`) the live shape is `NO_LCP` **and** `total-blocking-time`
+unscored, five for five, with every other weighted performance audit scoring.
+`total-blocking-time` is the only companion casualty observed. Why the two fall
+together is still unproven — the lantern-graph reading remains a hypothesis, and
+this entry's **Still open** line covers it.
+
+**(b) The 90+ mobile bar is demonstrable on `DesignLayout`.** 100, 99 and 98 on
+three deployed design-family home pages, under the same mobile emulation, same
+Lighthouse, same deploy path as the five that fail. The defect is
+**page-specific, not layout-universal** — which is what makes it a defect worth
+localising rather than a property of the layout.
+
+**What this authorises, and its exact boundary.** The waiver signature may be
+widened to accept `total-blocking-time` as unscored **only when the LCP audit
+carries the `NO_LCP` error message in the same LHR**. Every other refusal stands
+unchanged and is not up for reinterpretation:
+
+- LCP absent for any other reason (`PROTOCOL_TIMEOUT`, and anything else) —
+  refused.
+- `total-blocking-time` unscored *without* `NO_LCP` — refused.
+- Any *third* weighted performance audit unscored — refused, `NO_LCP` present or
+  not.
+- `docs/known-issues.md` no longer carrying a `NO_LCP` entry — refused, as
+  before.
+
+Same issue, fuller fingerprint. Nothing about the waiver's reach is inferred
+from the fact that a red run is inconvenient.
+
+**Not done in this entry's PR:** the widening itself. It is a change to
+`scripts/live-smoke/checks/lighthouse.mjs` and its selftest — gate-script code,
+not documentation — so `pnpm smoke -- --all` stays red on the five until that
+lands, and this addendum is the evidence and the boundary that stream builds to.
+
+**Reproduce:** `pnpm smoke -- --client ks-welding`, and read the
+`lighthouse performance` row of the generated `report.md`.
 
 ---
 
-## 3. `packages/shortlist/src/cli.ts` opens no debugging port, so Lighthouse cannot attach
+## 4. Every demo advertises its `og:image` on a domain the demo is not served from
 
-**Status:** open, flagged before the first live sweep.
-**Found by:** `test/localhost-sites`, [PR #18](https://github.com/Ryan-Rags/site-factory/pull/18) Brief 2.
+**Status:** open. **Owner:** whoever owns `src/components/Seo.astro` and the
+demo deploy path. **Found by:** `feat/live-smoke`, measured against the fleet
+redeployed from `main@c301f2c`.
 
-`packages/audit`'s own CLI launches Chromium with `--remote-debugging-port=<free
-port>`; `packages/shortlist`'s calls plain `chromium.launch()` and passes the
-default 9222. The run does not crash — every Lighthouse-derived check reads
-`unavailable`, is excluded from neglect by design, and neglect is quietly
-computed over the probe-based checks alone. Silent degradation, and it would
-otherwise ship into a live sweep.
+`Seo.astro` builds the card URL as `new URL(site.brand.ogImage, Astro.site ??
+site.seo.siteUrl)`, and `astro.config.mjs` sets `site: site.seo.siteUrl`. So the
+tag's origin is always `seo.siteUrl`. On a demo build that is the *prospect's*
+domain, while the demo is served from `https://<slug>-preview.pages.dev`:
 
-**Fix:** two lines, plus a test asserting that an audited site decides at least
-one Lighthouse-derived check.
+| og:image origin | clients |
+|---|---|
+| `https://example.invalid` (the prospect has no site) | 6 |
+| the prospect's own real domain, which 404s the path | 2 |
+| the origin actually serving the demo | 0 |
+
+**The PNG itself is fine.** At the deploy origin the same path answers `200
+image/png, 1200×630` on all eight. Nothing is missing and nothing is malformed —
+the card is simply advertised at an address no crawler can fetch it from, so
+every link shared for a demo unfurls with no image.
+
+**Why no local gate catches it, by design.** `check-metadata.mjs` takes
+`new URL(ogImage).pathname` and asserts the *path* exists in `dist/<slug>` at
+the right size and format. That is exactly right for a delivered build, where
+`siteUrl` **is** the origin the site is served from, and structurally blind on a
+demo, where it is not. The check is not wrong; it is measuring a build, and this
+is a property of a deployment.
+
+**Reproduce:** `pnpm smoke -- --client kh-machine-works`; the `og:image` section
+of the generated `report.md` shows the declared URL, its status, and the same
+path measured at the deploy origin.
+
+**Fix sketch (not done here — this stream builds the instrument and reports):**
+give the demo build an origin override so `Seo.astro` resolves the card against
+the Pages origin when `seo.noindex` is set, the same way `DEMO_FORM_ENDPOINT`
+already overrides the form target for exactly this class of demo-vs-delivered
+difference. Anything that leaves `seo.siteUrl` as the card's origin on a demo
+reproduces this.
+
+---
+
+<!--
+  #3 — "packages/shortlist opens no debugging port, so Lighthouse cannot attach"
+  (found by test/localhost-sites, PR #18 Brief 2) was fixed and is deleted; see
+  the ledger entry of 2026-08-12. Numbers are never reused or renumbered: code
+  comments cite these entries by number, so a gap is cheaper than a shifted
+  reference. The last text of #3 is readable at
+  https://github.com/Ryan-Rags/site-factory/blob/ef98f7532ab24f3b9f721670cf6b1fe8fe5b5909/docs/known-issues.md
+-->
+
+## 4. Every preview demo unfurls with no social card — `og:image` is rooted at `seo.siteUrl`, not at the deploy origin
+
+**Status:** open. **Owner:** a post-coverage `packages/template` stream.
+**Found by:** the ops redeploy of 2026-08-12, by checking the live fleet rather
+than the built artifact. **Pre-existing** — not caused by that session, which
+changed no code.
+
+The card *file* is correct everywhere and always has been: a real PNG,
+1200 × 630, matching its declared `og:image:width` / `og:image:height`, 31–36 KB,
+and present on the deploy. What is wrong is the **origin in the tag**.
+`og:image` is emitted as an absolute URL rooted at `seo.siteUrl`. On a
+`*.pages.dev` preview that origin is not the origin serving the page, so every
+prospect demo link shared into Facebook, X, LinkedIn, iMessage, WhatsApp or
+Slack arrives with no image — the same end state as the SVG card ruled out on
+2026-08-12, reached through the origin instead of the file format.
+
+This is the pitch surface. A preview URL exists to be sent to somebody.
+
+**Measured live, all eight deployed demos, 2026-08-12.** "On deploy origin" is
+the same pathname requested from the host actually serving the page:
+
+| Client | Origin in `og:image` | At declared URL | Same path on deploy origin |
+|---|---|---|---|
+| american-machine-specialty | `https://americanmachinespecialty.com` | **404** | 200, PNG 1200×630, 36 KB |
+| industrial-machine-corp | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 36 KB |
+| kh-machine-works | `https://www.khmachineworks.com` | **404** | 200, PNG 1200×630, 31 KB |
+| ks-welding | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| ks-welding-forge | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| ks-welding-heritage | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| ks-welding-precision | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+| kts-machine-shop | `https://example.invalid` | **ENOTFOUND** | 200, PNG 1200×630, 34 KB |
+
+0 / 8 reachable at the declared URL; 8 / 8 reachable on the deploy origin.
+`twitter:image` carries the same value, so it is wrong identically and the
+existing agreement check between the two passes while both are unreachable.
+
+**Security headers were green on all eight in the same run** — `nosniff`,
+`strict-origin-when-cross-origin`, `x-frame-options: DENY`, and a hash-only CSP
+with `default-src`, `frame-ancestors`, `form-action`, `base-uri` and
+`object-src` all present. Cloudflare Pages is serving the generated `_headers`.
+Recorded here so the next session does not re-measure it.
+
+**Why no gate catches it, and why that is not a bug in the gate.**
+`check-metadata.mjs` resolves the tag with `new URL(ogImage).pathname` and
+asserts the file exists under `dist/<slug>` — it **discards the origin by
+design**. For a delivered site that is exactly right: the site is served from
+its own `siteUrl`, so origin and deploy origin are the same string and checking
+the pathname is checking the whole URL. For a preview the two diverge, and the
+gate is structurally blind to the difference rather than failing to look. No
+amount of artifact inspection can see it, because the artifact is correct — only
+the pairing of artifact with host is wrong.
+
+It also sits directly on the sanctioned `example.invalid` path: the ruling of
+2026-08-12 permits `example.invalid` in `siteUrl` while a client is noindex, and
+`check-go-live.mjs` refuses to let one go live carrying it. That ruling settled
+go-live. It did not consider that a noindex mockup is still *sent to people*,
+and that its social card resolves against the same placeholder.
+
+**Reproduce:**
+
+```sh
+DEMO_FORM_ENDPOINT=<endpoint> pnpm --filter @site-factory/template build:all
+pnpm deploy:mockups
+curl -sI "$(curl -s https://ks-welding-preview.pages.dev/ \
+  | grep -o 'property="og:image" content="[^"]*"' | cut -d'"' -f4)"
+# -> DNS failure for example.invalid; the same pathname on
+#    https://ks-welding-preview.pages.dev/og/ks-welding.png returns 200.
+```
+
+**Fix sketch.** Two halves, and the second is what stops it recurring:
+
+1. A build-time origin override. A preview build roots `og:image` and
+   `twitter:image` at the known per-slug deploy origin
+   (`https://<slug>-preview.pages.dev`) instead of at `seo.siteUrl`. The origin
+   is derivable from the slug by the same rule `deploy-mockups.mjs` already
+   uses to name the project, so nothing new has to be configured per client,
+   and a delivered build — where `siteUrl` *is* the deploy origin — is
+   unaffected.
+2. `check-metadata.mjs` gains a demo-mode assertion that the `og:image` origin
+   equals the deploy origin, so the pairing is checked rather than just the
+   pathname. Per the 2026-08-12 fail-closed ruling it must fail on any shape it
+   cannot resolve, not skip.
+
+Land it failure-first: the assertion red against today's build, then the
+override green.
+
+**Not fixed in the session that found it** — that was an ops session with a
+deploy grant and no template-code grant, and the fix belongs to a stream that
+owns `packages/template`. This entry is the durable record.

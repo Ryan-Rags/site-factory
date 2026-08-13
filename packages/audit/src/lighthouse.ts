@@ -33,6 +33,21 @@ export interface LighthouseOutcome {
   scores: LighthouseScores | undefined;
   /** Populated when the run failed; every LH check then reads `unavailable`. */
   error: string;
+  /**
+   * The raw Lighthouse result, when there was one.
+   *
+   * Category scores alone cannot say *why* a category has none, and the two
+   * reasons are opposite verdicts. A `performance` of `undefined` because the
+   * LCP audit reported `NO_LCP` is known-issues #2 — a documented, open defect
+   * in device emulation that no branch caused. A `performance` of `undefined`
+   * for any other reason is a failure nobody has looked at. Discriminating
+   * needs `audits['largest-contentful-paint'].errorMessage`, which lives here
+   * and nowhere else, so callers that must tell a known blindness from a new
+   * one can read it. Nothing in this package reads it; it is passed through
+   * untouched and typed as `unknown` so no shape is asserted about a foreign
+   * object.
+   */
+  lhr?: unknown;
 }
 
 interface LhrLike {
@@ -61,7 +76,7 @@ export async function runLighthouse(
 
     const lhr = runnerResult?.lhr as LhrLike | undefined;
     if (!lhr?.categories) {
-      return { scores: undefined, error: "Lighthouse returned no categories." };
+      return { scores: undefined, error: "Lighthouse returned no categories.", lhr };
     }
 
     const scores = {} as LighthouseScores;
@@ -70,7 +85,7 @@ export async function runLighthouse(
       scores[key] =
         typeof raw === "number" ? Math.round(raw * 100) : undefined;
     }
-    return { scores, error: "" };
+    return { scores, error: "", lhr };
   } catch (err: unknown) {
     return {
       scores: undefined,
