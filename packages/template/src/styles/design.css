@@ -225,17 +225,93 @@ body[data-family] :focus-visible {
   flex-shrink: 0;
 }
 
-/* A long business name must ellipsise rather than widen the viewport — the
-   same lesson the base template's header already learned at 320px. */
+/*
+ * The lockup, and the rule that a business name is never shortened to fit.
+ *
+ * This rule used to say `white-space: nowrap; overflow: hidden; text-overflow:
+ * ellipsis`, with a comment explaining that a long name must ellipsise rather
+ * than widen the viewport. Widening the viewport was never the only other
+ * option, and the ellipsis was not free: `K-H Machine Works` was rendered as
+ * `K-H Machine Wo…` at 320px and 390px on the shop's own site, and
+ * `Industrial Machine Corporation` fared worse. A name is the one string on
+ * the page we have no licence to edit. The furniture gives way first.
+ *
+ * So the lockup escalates, in this order, and stops before truncation:
+ *
+ *   1. FLUID SIZE. The name scales with the viewport instead of overflowing
+ *      it. `4vw` puts the whole fluid range across the phone widths — it
+ *      reaches the 1.0625rem ceiling, which is what the header shipped before,
+ *      at about 425px — so nothing on a tablet or a desktop moves at all.
+ *      The 0.8125rem floor is measured, not chosen: see the budget below.
+ *
+ *   2. TRACKING REDUCTION. Display tracking is a family token: positive in
+ *      Forge's condensed caps, negative in the geometric pairings. The step
+ *      has to tighten a positive tracking without loosening a negative one,
+ *      which is what `min()` does here — for a positive token the scaled
+ *      value is smaller and wins; for a negative token the scaled value is
+ *      *larger* (less negative) and the unscaled token wins. One expression,
+ *      no per-family branch, and no family can be made airier by a step that
+ *      exists to save space.
+ *
+ *   3. TWO LINES. Only once size and tracking have been spent. The lockup is
+ *      designed as a two-line block against the logo; `check:textfit` asserts
+ *      at most two lines at every offered cell and every viewport, so a name
+ *      that would need a third fails the gate loudly rather than quietly
+ *      taking one.
+ *
+ *   4. THERE IS NO STEP 4. No `text-overflow`, no clamp, no hidden overflow.
+ *      Nothing here can remove a character from a business name.
+ *
+ * `overflow-wrap: break-word` is the one concession, and it is not truncation:
+ * a single unbreakable 30-character word breaks across the two lines rather
+ * than widening the page, which is what `check:overflow` is protecting.
+ *
+ * THE BUDGET, measured rather than assumed.
+ *
+ * 320px is the binding case, and the widest cell in the matrix is Heritage's
+ * signwriter — Georgia, +0.05em, which sets wider than Forge's condensed caps
+ * despite the caps. With the icon-only menu button below (see `.d-menu`), the
+ * lockup has 174px of width there, and at the 0.8125rem floor that face sets
+ * about 13px per character. So:
+ *
+ *     two lines × ~174px ÷ ~6.5px per character ≈ 26–28 characters,
+ *     and the longer of the two lines must fit in 174px on its own.
+ *
+ * `Industrial Machine Corporation` — the longest name shipped — needs 168px
+ * for `Industrial Machine`, which is where the floor came from. It is not a
+ * generous margin, and it is not meant to be: `check:textfit` walks every
+ * offered cell at every viewport, so a name that does not fit fails the build
+ * with the measurement in the message rather than quietly taking a third line
+ * or, as it did before this rule, quietly losing its last few characters.
+ * `zz-fixture-long-name` is the standing regression case for the bound.
+ */
 .d-header__name {
   font-family: var(--d-font-display);
   font-weight: var(--d-display-weight);
-  letter-spacing: var(--d-display-tracking);
+  letter-spacing: min(
+    var(--d-display-tracking),
+    calc(var(--d-display-tracking) * var(--d-lockup-track, 1))
+  );
   text-transform: var(--d-display-transform);
-  font-size: 1.0625rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: clamp(0.8125rem, 4vw, 1.0625rem);
+  line-height: 1.15;
+  overflow-wrap: break-word;
+  /* `balance` keeps a two-line lockup from breaking as one long line and one
+     orphaned word, which is the ugly wrap this stream exists to prevent. */
+  text-wrap: balance;
+  min-width: 0;
+}
+
+@media (max-width: 430px) {
+  .d-header__name {
+    --d-lockup-track: 0.5;
+  }
+}
+
+@media (max-width: 360px) {
+  .d-header__name {
+    --d-lockup-track: 0.25;
+  }
 }
 
 .d-header__nav {
@@ -249,8 +325,19 @@ body[data-family] :focus-visible {
   list-style: none;
   margin: 0;
   padding: 0;
+  flex-shrink: 0;
 }
 
+/*
+ * `nowrap` on the label, with `flex-shrink: 0` on the list above.
+ *
+ * Without both, the flex bar resolves a crowded header by shrinking the nav
+ * and letting each label wrap inside its own padding — so at 1024px in Forge's
+ * condensed caps the nav read "What we / do", "Our / work", "Where we / work",
+ * three labels broken mid-phrase in a bar 300px wider than it needed to be.
+ * `check:textfit` found it; it had been shipping. A nav item is a label, not a
+ * paragraph: it stays on one line and the bar makes room.
+ */
 .d-header__nav a {
   display: block;
   padding: 0.5rem 0.75rem;
@@ -259,6 +346,7 @@ body[data-family] :focus-visible {
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .d-header__nav a:hover {
@@ -281,6 +369,56 @@ body[data-family] :focus-visible {
   .d-header__nav,
   .d-header__phone {
     display: flex;
+  }
+
+  /*
+   * The lockup's share of the bar just shrank, so its size curve has to
+   * change with it.
+   *
+   * Below 900px the only things beside the name are a logo and a menu button,
+   * and `4vw` reaches the ceiling by about 425px. From 900px the bar also
+   * carries five nav labels, the number and the CTA — at 1024px that leaves
+   * the name 190px, which is *less* than it had at 800px. A viewport-keyed
+   * clamp cannot see that, and it sat at the 17px ceiling and set
+   * `Industrial Machine Corporation` on three lines.
+   *
+   * `1.3vw` tracks the space that is actually left: 13px at 900, 13.3px at
+   * 1024, and it reaches the same 1.0625rem ceiling at about 1310px — so
+   * every desktop viewport renders the lockup at exactly the size it always
+   * did, and only the crowded band is scaled.
+   */
+  .d-header__name {
+    font-size: clamp(0.8125rem, 1.3vw, 1.0625rem);
+  }
+}
+
+/*
+ * The crowded band: the nav has just appeared, and the bar now carries the
+ * lockup, five labels, the number and the CTA in about 960px of content width.
+ *
+ * At 1024px that left `Industrial Machine Corporation` 190px and it set on
+ * four lines. The temptation is to drop something — the number is the usual
+ * casualty — but the number is the highest-value element on a local service
+ * site and the sticky call bar that would otherwise carry it is hidden from
+ * 900px up. So nothing is dropped: the header's own spacing tightens instead,
+ * and gives the lockup back the ~60px it needs. Above 1200px there is room for
+ * everything and the ordinary spacing applies.
+ *
+ * The lockup is still bounded — two lines at a legible size can only hold so
+ * much name — and `check:textfit` is what enforces the bound. See the note on
+ * the measured budget above `.d-header__name`.
+ */
+@media (min-width: 900px) and (max-width: 1200px) {
+  .d-header__bar {
+    gap: 0.75rem;
+  }
+
+  .d-header__nav ul {
+    gap: 0.125rem;
+  }
+
+  .d-header__nav a {
+    padding-inline: 0.5rem;
   }
 }
 
@@ -316,6 +454,35 @@ body[data-family] :focus-visible {
 
 .d-menu > summary::-webkit-details-marker {
   display: none;
+}
+
+/*
+ * Below 430px the button is the glyph alone, and the lockup gets the 40px back.
+ *
+ * This is the same rule as the one above it, applied to the other party. A
+ * business name is content, and content is never edited to fit the furniture;
+ * the word "Menu" beside a universally-read hamburger *is* the furniture, and
+ * the furniture gives way first. `Industrial Machine Corporation` needs 155px
+ * to set "Industrial Machine" on the first of two lines and the bar had 142px
+ * to give — the shortfall was almost exactly this label.
+ *
+ * Nothing is lost to a screen reader: `<summary aria-label="Open menu">` in
+ * `DesignHeader.astro` is the accessible name and is untouched. The tap target
+ * keeps its 44px minimum explicitly, because dropping the text would otherwise
+ * shrink it below the point of a thumb.
+ */
+@media (max-width: 430px) {
+  .d-menu > summary {
+    gap: 0;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0.55rem;
+  }
+
+  .d-menu > summary > span {
+    display: none;
+  }
 }
 
 .d-menu__panel {
@@ -375,9 +542,31 @@ body[data-family] :focus-visible {
   margin: 0 0 1rem;
 }
 
+/*
+ * The headline, and a bug `check:overflow` could not have found.
+ *
+ * At 320px in the widest display type in the matrix — Heritage's signwriter,
+ * uppercase Georgia at +0.05em — the single word `Machining` set 261px wide in
+ * a 230px column. Nothing about that is visible to the overflow gate: an
+ * overflowing *text run* is not an element, so no `getBoundingClientRect()`
+ * crosses the viewport edge, and `body { overflow-x: hidden }` then clipped the
+ * last letters against the right edge of the phone. It shipped that way.
+ *
+ * Two changes, and the second is the guarantee:
+ *
+ *   - `9vw` with a `1.75rem` floor rather than `10vw` with `2.25rem`. This
+ *     only bites below about 480px — from 768px up the old and new curves are
+ *     within a couple of pixels, and the 4.25rem ceiling is untouched, so the
+ *     desktop hero is the same hero.
+ *   - `overflow-wrap: break-word`, which does nothing at all until a single
+ *     word cannot fit on a line by itself, and at that point breaks it rather
+ *     than letting it run off the page. It is the backstop, not the plan: the
+ *     size curve above is what keeps realistic headlines from ever reaching it.
+ */
 .d-hero__title {
-  font-size: clamp(2.25rem, 10vw, 4.25rem);
+  font-size: clamp(1.75rem, 9vw, 4.25rem);
   margin: 0;
+  overflow-wrap: break-word;
 }
 
 .d-hero__sub {
