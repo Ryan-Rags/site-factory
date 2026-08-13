@@ -594,18 +594,59 @@ const config = {
         persist(state);
     })();
 
-    function open(next) {
+    /**
+     * Show or hide the panel.
+     *
+     * `restoreFocus` is a parameter rather than always-on because the two ways
+     * of closing want opposite things. Dismissing with Esc has to put focus
+     * back on the toggle: a keyboard visitor has nowhere else for it to go,
+     * and leaving it on a now-hidden control strands them. Dismissing by
+     * clicking somewhere else must NOT move it — the visitor has just said
+     * where they want to be, and pulling focus back to a fixed button in the
+     * bottom-left corner scrolls the page out from under them.
+     *
+     * Neither path touches the selection or the address bar. Closing the panel
+     * is not a change to the design; the URL is the artefact a prospect sends
+     * back, and a dismissal that rewrote it would throw away the answer.
+     */
+    function open(next, restoreFocus) {
       panel.hidden = !next;
       toggle.setAttribute('aria-expanded', next ? 'true' : 'false');
-      if (!next) toggle.focus();
+      if (!next && restoreFocus) toggle.focus();
     }
 
     toggle.addEventListener('click', function () {
-      open(panel.hidden);
+      open(panel.hidden, false);
     });
 
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && !panel.hidden) open(false);
+      if (event.key === 'Escape' && !panel.hidden) open(false, true);
+    });
+
+    /*
+     * Dismiss on a click outside.
+     *
+     * The panel is non-modal on purpose — it changes the page behind it, so it
+     * must not trap focus or cover the thing it is changing — but non-modal
+     * still has to mean dismissible. Without this the only way out is to find
+     * the toggle again, so the panel sits on top of the page the prospect
+     * opened the link to look at.
+     *
+     * The toggle is excluded deliberately, and it is not redundant: a
+     * `pointerdown` on the button would close the panel here and its own
+     * `click` would immediately reopen it, so the button would stop working
+     * for closing. Clicks inside the panel are excluded for the obvious
+     * reason — the controls must not dismiss the thing they control.
+     *
+     * `pointerdown` rather than `click`, so a press that begins outside
+     * dismisses even if the pointer is released elsewhere, and nothing is
+     * cancelled: the click the visitor actually made still lands on whatever
+     * they aimed at.
+     */
+    document.addEventListener('pointerdown', function (event) {
+      if (panel.hidden) return;
+      if (panel.contains(event.target) || toggle.contains(event.target)) return;
+      open(false, false);
     });
 
     if (send) {
