@@ -1,5 +1,4 @@
-import { createServer } from "node:net";
-
+import { freePort } from "@site-factory/audit";
 import type { Browser } from "playwright";
 
 import { assess, type AssessOptions, type AssessOutcome } from "./run.js";
@@ -22,24 +21,10 @@ import { assess, type AssessOptions, type AssessOutcome } from "./run.js";
  * measured over the probe checks alone, with nothing thrown and nothing logged.
  *
  * `packages/audit`'s CLI has always done this. The sweep did not.
+ *
+ * `freePort` is `@site-factory/audit`'s, not a copy of it — the port and the
+ * Lighthouse run that consumes it belong to the same package.
  */
-
-/** An ephemeral port for Chromium's CDP endpoint, so parallel runs cannot clash. */
-export function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (address === null || typeof address === "string") {
-        server.close(() => reject(new Error("Could not determine a free port.")));
-        return;
-      }
-      const { port } = address;
-      server.close(() => resolve(port));
-    });
-  });
-}
 
 /**
  * Just enough of playwright's `BrowserType` to launch one. Narrowed to what is

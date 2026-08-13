@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:net';
 import { after, before, describe, test } from 'node:test';
 
+import { freePort } from '@site-factory/audit';
 import { chromium } from 'playwright';
 
 import {
@@ -32,17 +32,6 @@ import { startSites } from './fixtures/site-server.mjs';
  * ZERO network egress: everything is loopback, and no Places call happens
  * anywhere in this file.
  */
-
-/** A free TCP port for Chromium's remote debugging, which Lighthouse attaches to. */
-const freePort = () =>
-  new Promise((resolve, reject) => {
-    const server = createServer();
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
-    });
-  });
 
 const sweepResult = (over = {}) => ({
   placeId: `fixture-${over.key ?? 'x'}`,

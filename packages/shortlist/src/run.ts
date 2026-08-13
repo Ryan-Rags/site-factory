@@ -25,7 +25,15 @@ export interface AssessOptions {
   clientPlaceIds?: ClientPlaceIds | undefined;
   dataDirOverride?: string | undefined;
   excludeFiles?: readonly string[] | undefined;
-  debugPort?: number | undefined;
+  /**
+   * CDP port the browser was launched listening on, for Lighthouse to attach
+   * to. Required, and deliberately has no default: a browser started without
+   * `--remote-debugging-port` opens no port at all, so any default here is a
+   * port nobody is listening on, and every Lighthouse-derived check then reads
+   * `unavailable` without an error. `runAuditStage` exists so a caller never
+   * has to supply this by hand.
+   */
+  debugPort: number;
   now?: Date | undefined;
   onStatus?: ((done: number, total: number, r: SweepResult) => void) | undefined;
   onAudit?: ((done: number, total: number, r: SweepResult) => void) | undefined;
@@ -38,8 +46,6 @@ export interface AssessOutcome {
   degradedRanking: number;
   warnings: string[];
 }
-
-const DEFAULT_DEBUG_PORT = 9222;
 
 export async function assess(opts: AssessOptions): Promise<AssessOutcome> {
   const now = opts.now ?? new Date();
@@ -95,7 +101,7 @@ export async function assess(opts: AssessOptions): Promise<AssessOutcome> {
     try {
       const audit = await auditOne({
         browser: opts.browser,
-        debugPort: opts.debugPort ?? DEFAULT_DEBUG_PORT,
+        debugPort: opts.debugPort,
         row,
         slug: slugify(result.name) || result.placeId,
         now,
