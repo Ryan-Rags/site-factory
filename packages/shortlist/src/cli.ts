@@ -11,6 +11,7 @@ import {
   requireApiKey,
 } from "@site-factory/discover";
 
+import { runAuditStage } from "./browser.js";
 import { mergeScored, readScored, writeScored } from "./csv.js";
 import { fixtureFetch } from "./fixture.js";
 import {
@@ -21,7 +22,7 @@ import {
 } from "./identity.js";
 import { COPY_PACK_NICHE_SLUGS, NICHES, nicheBySlug, type Niche } from "./niches.js";
 import { renderOrdering } from "./rank.js";
-import { assess, toScoredRow } from "./run.js";
+import { toScoredRow } from "./run.js";
 import { renderHistogram, renderStatusTally, renderTop } from "./summary.js";
 import { sweep } from "./sweep.js";
 
@@ -231,26 +232,23 @@ async function main(): Promise<number> {
   }
 
   // ---- assess -------------------------------------------------------------
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch();
-  let outcome;
-  try {
-    console.log("");
-    outcome = await assess({
-      results: sweepOutcome.results,
-      browser,
-      auditCap: args.auditCap,
-      clientPlaceIds: readClientPlaceIds(
-        new URL("../client-place-ids.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
-      ),
-      onStatus: (d: number, t: number) => {
-        if (d % 10 === 0 || d === t) process.stdout.write(`  status ${d}/${t}\r`);
-      },
-      onAudit: (d, t, r) => process.stdout.write(`  audit ${d}/${t}: ${r.name}\r`.padEnd(78)),
-    });
-  } finally {
-    await browser.close();
-  }
+  // `runAuditStage` owns the browser because it owns the DevTools port: the port
+  // is opened at launch and handed to the audit, which is what lets Lighthouse
+  // attach. A browser launched without one makes every Lighthouse-derived check
+  // read `unavailable` and neglect compute over the probe checks alone —
+  // silently, with a plausible number coming out the other end.
+  console.log("");
+  const outcome = await runAuditStage({
+    results: sweepOutcome.results,
+    auditCap: args.auditCap,
+    clientPlaceIds: readClientPlaceIds(
+      new URL("../client-place-ids.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+    ),
+    onStatus: (d: number, t: number) => {
+      if (d % 10 === 0 || d === t) process.stdout.write(`  status ${d}/${t}\r`);
+    },
+    onAudit: (d, t, r) => process.stdout.write(`  audit ${d}/${t}: ${r.name}\r`.padEnd(78)),
+  });
   console.log("");
 
   // ---- output -------------------------------------------------------------
