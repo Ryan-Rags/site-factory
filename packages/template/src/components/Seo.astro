@@ -1,5 +1,5 @@
 ---
-import { site } from '../../site.config';
+import { site, cardOrigin } from '../../site.config';
 
 interface Props {
   title: string;
@@ -12,7 +12,24 @@ const { title, description = site.seo.defaultDescription, bare = false } = Astro
 
 const fullTitle = bare ? title : site.seo.titleTemplate.replace('%s', title);
 const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', Astro.site ?? site.seo.siteUrl);
-const ogImage = new URL(site.brand.ogImage, Astro.site ?? site.seo.siteUrl);
+
+/**
+ * The card is the one absolute URL that must name the origin actually serving
+ * this build, rather than the site's own address.
+ *
+ * `og:image` is fetched by a crawler on somebody else's machine, from whatever
+ * host it was told. Everything else absolute here — the canonical and `og:url`
+ * — is a *claim about identity*, and on a mockup that claim is still the
+ * client's own domain: those two deliberately keep `seo.siteUrl`. Moving them
+ * would be telling crawlers the prospect's business lives on a pages.dev
+ * subdomain, which is a different and much worse change than fixing a broken
+ * image.
+ *
+ * `cardOrigin` is `''` on a delivered build, so this is exactly what it always
+ * was there. See `site.config.ts` and issue #25.
+ */
+const cardBase = cardOrigin !== '' ? cardOrigin : (Astro.site ?? site.seo.siteUrl);
+const ogImage = new URL(site.brand.ogImage, cardBase);
 
 /**
  * The brand card's dimensions, as emitted by `scripts/gen-brand-assets.mjs`.

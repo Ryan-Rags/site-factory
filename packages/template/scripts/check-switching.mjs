@@ -422,6 +422,136 @@ try {
     assertEq(`illegal url (${what}) · page background`, clamped.painted.pageBg, tone.palette.base);
     assertEq(`illegal url (${what}) · panel agrees`, clamped.checked.accent, landed.id);
   }
+
+  /* ------------------------------------------------------------ dismissal */
+  /*
+   * Getting *out* of the panel.
+   *
+   * Everything above proves the panel applies what it offers. None of it
+   * proves a prospect can put it away, and a non-modal panel that only closes
+   * by finding the button again is a panel that sits on top of the page the
+   * prospect opened the link to look at. Reported by Ryan against the live
+   * demos.
+   *
+   * The two dismissals differ in exactly one respect, and it is deliberate:
+   *
+   *   Esc            focus returns to the toggle — a keyboard visitor has
+   *                  nowhere else to put it.
+   *   outside click  focus does NOT move — the visitor has just chosen where
+   *                  it goes, and yanking it back would scroll the page to
+   *                  the toggle.
+   *
+   * A click *inside* the panel must not dismiss it, or the controls would
+   * close the thing they are controlling. That is asserted too, because it is
+   * the way a careless outside-click handler breaks the panel.
+   *
+   * And dismissal is not a state change. The selection and the address bar
+   * must come through it untouched: the URL is the artefact a prospect sends
+   * back, and a panel that reset it on close would lose the answer.
+   */
+  const panelState = (page) =>
+    page.evaluate(() => {
+      const panel = document.getElementById('d-cust-panel');
+      const toggle = document.getElementById('d-cust-toggle');
+      return {
+        hidden: panel.hidden,
+        expanded: toggle.getAttribute('aria-expanded'),
+        focus: document.activeElement ? document.activeElement.id || null : null,
+      };
+    });
+
+  /**
+   * A point in the viewport that is outside the panel and the toggle, and over
+   * nothing interactive.
+   *
+   * Chosen by asking the page rather than by picking a corner: at 412px the
+   * header's menu button sits in the obvious empty corner, and a gate that
+   * opened a `<details>` menu instead of dismissing a panel would be measuring
+   * something else entirely.
+   */
+  const outsidePoint = (page) =>
+    page.evaluate(() => {
+      const panel = document.getElementById('d-cust-panel').getBoundingClientRect();
+      const toggle = document.getElementById('d-cust-toggle').getBoundingClientRect();
+      const inside = (r, x, y) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      const interactive = 'a, button, input, label, summary, select, textarea, [role="button"]';
+      for (let y = 40; y < window.innerHeight - 20; y += 20) {
+        for (let x = window.innerWidth - 20; x > 20; x -= 20) {
+          if (inside(panel, x, y) || inside(toggle, x, y)) continue;
+          const el = document.elementFromPoint(x, y);
+          if (!el || el.closest(interactive)) continue;
+          return { x, y };
+        }
+      }
+      return null;
+    });
+
+  await page.evaluate(() => {
+    try {
+      localStorage.clear();
+    } catch (e) {
+      /* nothing to clear */
+    }
+  });
+  await page.goto(BASE, { waitUntil: 'networkidle0' });
+
+  // Make a real selection first, so the URL carries one and "unchanged" has
+  // something to be true of.
+  await openPanel(page);
+  const firstCell = ALL[0];
+  await choose(page, `d-scheme-${firstCell.scheme}`, 'dismissal · tone');
+  const beforeDismiss = await readState(page);
+
+  await openPanel(page);
+  const opened = await panelState(page);
+  assertEq('dismissal · toggle opens the panel', opened.hidden, false);
+  assertEq('dismissal · toggle reports expanded', opened.expanded, 'true');
+
+  // 1 — a click inside must NOT dismiss.
+  await page.click('.d-cust__title');
+  const afterInside = await panelState(page);
+  assertEq('dismissal · a click inside the panel leaves it open', afterInside.hidden, false);
+
+  // 2 — a click outside must dismiss, without moving focus.
+  const point = await outsidePoint(page);
+  checks++;
+  if (!point) {
+    failures++;
+    console.error('  ✗ dismissal · found no point outside the panel to click');
+  } else {
+    await page.mouse.click(point.x, point.y);
+    const afterOutside = await panelState(page);
+    assertEq('dismissal · a click outside closes the panel', afterOutside.hidden, true);
+    assertEq('dismissal · outside click reports collapsed', afterOutside.expanded, 'false');
+    checks++;
+    if (afterOutside.focus === 'd-cust-toggle') {
+      failures++;
+      console.error(
+        '  ✗ dismissal · an outside click pulled focus back to the toggle — the visitor ' +
+          'just chose where focus goes, and this scrolls the page back to the button',
+      );
+    }
+    const afterOutsideState = await readState(page);
+    assertEq('dismissal · outside click leaves data-theme', afterOutsideState.attrs.theme, beforeDismiss.attrs.theme);
+    assertEq('dismissal · outside click leaves data-scheme', afterOutsideState.attrs.scheme, beforeDismiss.attrs.scheme);
+    assertEq('dismissal · outside click leaves data-accent', afterOutsideState.attrs.accent, beforeDismiss.attrs.accent);
+    assertEq('dismissal · outside click leaves data-font', afterOutsideState.attrs.font, beforeDismiss.attrs.font);
+    assertEq('dismissal · outside click leaves the url', afterOutsideState.href, beforeDismiss.href);
+  }
+
+  // 3 — Esc must dismiss, and must return focus to the toggle.
+  await openPanel(page);
+  await page.keyboard.press('Escape');
+  const afterEsc = await panelState(page);
+  assertEq('dismissal · Esc closes the panel', afterEsc.hidden, true);
+  assertEq('dismissal · Esc reports collapsed', afterEsc.expanded, 'false');
+  assertEq('dismissal · Esc returns focus to the toggle', afterEsc.focus, 'd-cust-toggle');
+  const afterEscState = await readState(page);
+  assertEq('dismissal · Esc leaves data-theme', afterEscState.attrs.theme, beforeDismiss.attrs.theme);
+  assertEq('dismissal · Esc leaves data-scheme', afterEscState.attrs.scheme, beforeDismiss.attrs.scheme);
+  assertEq('dismissal · Esc leaves data-accent', afterEscState.attrs.accent, beforeDismiss.attrs.accent);
+  assertEq('dismissal · Esc leaves data-font', afterEscState.attrs.font, beforeDismiss.attrs.font);
+  assertEq('dismissal · Esc leaves the url', afterEscState.href, beforeDismiss.href);
 } finally {
   await browser.close();
 }
