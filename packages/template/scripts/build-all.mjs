@@ -96,6 +96,7 @@ for (const slug of CLIENT_SLUGS) {
     'check-markers.mjs',
     'check-fabrication.mjs',
     'check-contact-links.mjs',
+    'check-links.mjs',
     // gen-headers must precede check-headers: the gate compares the file this
     // writes against the pages, and would otherwise fail on a batch build for
     // the absence of a file the batch is responsible for producing.

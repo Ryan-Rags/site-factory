@@ -193,7 +193,12 @@ for (const s of slugs) {
       }
 
       checked++;
-      const [rawPath, fragment] = href.split('#');
+      const [beforeHash, fragment] = href.split('#');
+      // A query string is not part of the path. Nothing emits one into an
+      // internal href today, but the customizer's own links are `?theme=…`
+      // shaped, and a gate that reported `/contact?x=1` as a missing page
+      // would be a confident lie the first time one did.
+      const rawPath = beforeHash.split('?')[0];
       // A bare `#fragment` is a link into the page it is written on.
       const targetRoute = rawPath === '' ? selfRoute : rawPath;
 
