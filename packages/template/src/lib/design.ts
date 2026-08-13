@@ -581,7 +581,7 @@ export function parseDesign(slug: string, raw: unknown): DesignConfig {
   requireVariant(services.variant, allowed.variants.services, 'sections.services.variant');
   requireVariant(reviews.variant, allowed.variants.reviews, 'sections.reviews.variant');
 
-  return {
+  const config: DesignConfig = {
     theme,
     header,
     ...(rawOrder ? { order: rawOrder as SectionKey[] } : {}),
@@ -597,6 +597,123 @@ export function parseDesign(slug: string, raw: unknown): DesignConfig {
       beforeAfter,
       openNow,
       footer,
+    },
+  };
+
+  return dropDeadAnchors(slug, config);
+}
+
+/**
+ * The anchor each home-page section answers to.
+ *
+ * `stats` is deliberately absent: `Stats.astro` renders no `id`, so nothing
+ * can link to it and a config that tried would be naming an anchor that has
+ * never existed. Every other entry is the `id` its component actually emits.
+ */
+export const SECTION_ANCHORS: Readonly<Partial<Record<SectionKey, string>>> = {
+  services: 'services',
+  reviews: 'reviews',
+  gallery: 'gallery',
+  serviceArea: 'service-area',
+  faq: 'faq',
+  beforeAfter: 'before-after',
+};
+
+/** Every anchor a section can own, whether or not this config renders it. */
+const SECTION_ANCHOR_IDS = new Set<string>(Object.values(SECTION_ANCHORS));
+
+/**
+ * The section anchor an href names, or null if it names something else.
+ *
+ * Both spellings resolve, so this does not care whether it runs before or
+ * after `resolveHref()`: `#reviews` on the home page and `/#reviews` on every
+ * other route are the same destination.
+ *
+ * An anchor that is not a section's — `#main`, or anything a future component
+ * introduces — returns null and is left alone. Dropping a link this module
+ * does not understand would be a silent edit to a client's site;
+ * `check-links.mjs` is what decides whether such a link resolves.
+ */
+function sectionAnchorOf(href: string): string | null {
+  const hash = href.startsWith('#') ? href.slice(1) : href.startsWith('/#') ? href.slice(2) : null;
+  return hash !== null && SECTION_ANCHOR_IDS.has(hash) ? hash : null;
+}
+
+/** The section anchors this config will actually put on the page. */
+export function renderedAnchors(design: DesignConfig): Set<string> {
+  const out = new Set<string>();
+  for (const key of sectionOrder(design)) {
+    const anchor = SECTION_ANCHORS[key];
+    if (anchor !== undefined) out.add(anchor);
+  }
+  return out;
+}
+
+/**
+ * Refuse to publish a link to a section this config does not render.
+ *
+ * The defect this closes shipped on `industrial-machine-corp`:
+ * `testimonials: []` is deliberate — none have been relayed and inventing one
+ * is not an option — so `deriveDesign` sets `reviews.enabled = false` and no
+ * `#reviews` section renders, while the brief's nav still listed
+ * `Reviews → #reviews`. Ten dead links: five routes × two navs, the desktop
+ * one and the `<details>` menu that is the only one a phone shows.
+ *
+ * It is fixed here rather than in that one brief because the brief was not
+ * wrong in an interesting way — any client whose testimonials, gallery images
+ * or FAQ have not come back yet reaches the same state, and a rule that has to
+ * be remembered per config is a rule that gets forgotten. Enablement is
+ * already derived from content (`reviews.enabled = testimonials.length > 0`);
+ * this makes the nav derive from enablement, so the two cannot disagree.
+ *
+ * Applied to the header nav and to the footer's link columns, because both are
+ * config-authored lists of the same anchors — imc's footer column happened to
+ * be correct, by hand, which is exactly the guarantee this replaces.
+ *
+ * Announced, never silent. A config that quietly loses a nav item is the same
+ * class of problem as one that quietly keeps a dead one.
+ */
+const announced = new Set<string>();
+
+function dropDeadAnchors(slug: string, design: DesignConfig): DesignConfig {
+  const live = renderedAnchors(design);
+  const dropped: string[] = [];
+
+  const lives = (href: string, label: string): boolean => {
+    const anchor = sectionAnchorOf(href);
+    if (anchor === null || live.has(anchor)) return true;
+    dropped.push(`"${label}" → ${href}`);
+    return false;
+  };
+
+  const nav = design.header.nav.filter((item) => lives(item.href, item.label));
+  const columns = design.sections.footer.columns?.map((column) => ({
+    ...column,
+    links: column.links.filter((link) => lives(link.href, link.text)),
+  }));
+
+  if (dropped.length === 0) return design;
+
+  /*
+   * Once per slug per process. `clients/design/index.ts` is evaluated in more
+   * than one Vite environment per build, and every client's build evaluates
+   * the whole registry — so without this one client's notice is printed
+   * sixteen times across a `build:all` and reads like sixteen findings.
+   */
+  if (!announced.has(slug)) {
+    announced.add(slug);
+    console.log(
+      `  · ${slug}: dropped ${dropped.length} link(s) to section(s) this config does not ` +
+        `render — ${dropped.join(', ')}`,
+    );
+  }
+
+  return {
+    ...design,
+    header: { ...design.header, nav },
+    sections: {
+      ...design.sections,
+      footer: { ...design.sections.footer, ...(columns ? { columns } : {}) },
     },
   };
 }
