@@ -755,9 +755,27 @@ body[data-family] :focus-visible {
   flex-shrink: 0;
 }
 
+/*
+ * The label carries the phone number, and a number broken across two lines is
+ * not a number.
+ *
+ * Measured, not assumed: `check:textfit`'s new single-line assertion found
+ * "Call (555) 010-0177" setting on two lines in 44 of the swept cells — at
+ * 320px in all five families, at 360px in several, and at 1024px in two where
+ * the wider display faces push it over. This is the bar fixed to the bottom of
+ * a phone carrying the most important label on the page, so it is the worst
+ * place in the design for this to happen. It predates the two new families;
+ * they are only how it was found.
+ *
+ * `nowrap` alone would overflow the bar instead, which is not an improvement,
+ * so the size goes fluid with it. The ceiling is the size that shipped, so
+ * nothing changes at 768px and up; the floor is what fits the longest
+ * realistic label at 320px beside the icon, the gap and the secondary button.
+ */
 .d-callbar__label {
   display: block;
-  font-size: 1.0625rem;
+  font-size: clamp(0.875rem, 3.9vw, 1.0625rem);
+  white-space: nowrap;
 }
 
 .d-callbar__note {

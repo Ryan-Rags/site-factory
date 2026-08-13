@@ -26,13 +26,26 @@
  *   never starts. The open/closed badge still runs — it is information, not
  *   decoration, and suppressing it would withhold a fact rather than a motion.
  *
- * - The motion axis is CSS, not script. `data-motion-preset` selects four custom
- *   properties in `design.css`; this file reads the attribute only for the two
- *   things a stylesheet cannot express — painting a counter at its final value
- *   and never starting the carousel's `setInterval`. Both are the `still`
- *   preset, and `still` reuses the reduced-motion path rather than adding a
- *   branch beside it. A delivered build carries no `data-motion-preset`, so nothing
- *   here changes for the eight shipped clients.
+ * - The motion axis is CSS, not script. `data-motion-preset` selects four
+ *   custom properties in `design.css`; this file reads the attribute only for
+ *   the two things a stylesheet cannot express — painting a counter at its
+ *   final value and never starting the carousel's `setInterval`. Both are the
+ *   `still` preset, and `still` reuses the reduced-motion path rather than
+ *   adding a branch beside it, so the CSS, the script and `check-reveal.mjs`
+ *   agree by construction rather than by three authors remembering to.
+ *
+ *   A delivered build carries no `data-motion-preset`, so `stillMotion` is
+ *   exactly `reduced` there and every branch resolves as it did before the
+ *   axis existed. The bytes still move, because this script's text is shared
+ *   with the pitch builds — hence the named `revealMotionAxis` allowance in
+ *   `check-delivered-parity.mjs`.
+ *
+ *   COMMENTS IN THE SCRIPT BELOW ARE SHIPPED BYTES. `is:inline` emits this
+ *   block verbatim into every page of every design client, so an explanation
+ *   written inside the IIFE is downloaded by every visitor to a real shop's
+ *   site. Measured: the first draft of the motion comment added 1.2KB to all
+ *   five pages of all three delivered design clients. Explanations belong up
+ *   here in the frontmatter, which is build-time only and costs nothing.
  *
  * - Elements unobserve themselves on first reveal, so nothing accumulates and
  *   scrolling back up does not re-animate.
@@ -45,21 +58,10 @@
     var reduced =
       window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /*
-     * The motion preset, and the two things CSS cannot express.
-     *
-     * The timing is entirely CSS — four custom properties on `[data-motion-preset]`,
-     * see design.css. What CSS cannot do is stop a `setInterval` or paint a
-     * counter at its final value, so those two read the attribute here.
-     *
-     * A delivered page carries no `data-motion-preset` at all, so this is null and
-     * every branch below takes the same path it took before the axis existed.
-     * `prefers-reduced-motion` collapses to `still` rather than carrying its
-     * own branch — one code path, matching the media query in design.css that
-     * sets the same four properties to still's values.
-     */
-    var motion = reduced ? 'still' : docEl.getAttribute('data-motion-preset');
-    var stillMotion = motion === 'still';
+    /* Motion: CSS owns the timing; this owns the two things it cannot do.
+       See the frontmatter — the explanation does not need to ship. */
+    var stillMotion =
+      reduced || docEl.getAttribute('data-motion-preset') === 'still';
 
     /* ---------------------------------------------------------------- 3 --
      * Open / closed.
