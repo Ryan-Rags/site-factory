@@ -57,6 +57,32 @@ export function sampleCells() {
 
 export const hasCustomizer = (html) => /id=["']d-cust-toggle["']/.test(html);
 
+/**
+ * A navigation that survives the site's allowance running out.
+ *
+ * `Politeness.navigate` throws when a host's budget is gone, and that throw
+ * used to leave `run()` entirely — taking every cell already measured with it,
+ * so twenty-five real results were reported as one opaque "Customizer threw".
+ * Cells that were measured are measurements and must survive; cells that were
+ * not are reported as unmeasured, and never assumed good.
+ *
+ * Recognised by message because `NavigationBudget` throws a plain `Error`.
+ * Anything else is a real fault and is rethrown untouched.
+ */
+const BUDGET_EXHAUSTED = /navigation budget exhausted/i;
+
+/** Named once: the summary excludes it when deciding if the CLIENT is at fault. */
+const ALLOWANCE_LABEL = 'the whole sample fits the site navigation allowance';
+
+async function visitWithinBudget(session, query) {
+  try {
+    return { visit: await session.visit('/', { shot: false, query }), exhausted: false };
+  } catch (err) {
+    if (BUDGET_EXHAUSTED.test(err.message)) return { visit: null, exhausted: true };
+    throw err;
+  }
+}
+
 const readState = () => {
   const doc = document.documentElement;
   const styles = getComputedStyle(doc);
@@ -83,9 +109,18 @@ export async function run(ctx, session) {
     );
   }
 
-  for (const cell of sampleCells()) {
+  const cells = sampleCells();
+  let exhausted = 0;
+
+  for (const [i, cell] of cells.entries()) {
     const query = `?theme=${cell.theme}&scheme=${cell.scheme}&accent=${cell.accent}&font=${cell.font}`;
-    const visit = await session.visit('/', { shot: false, query });
+    const attempt = await visitWithinBudget(session, query);
+    if (attempt.exhausted) {
+      // Everything from here on is unmeasured, including the illegal-URL case.
+      exhausted = cells.length - i + 1;
+      break;
+    }
+    const { visit } = attempt;
     if (visit.status !== 200) {
       assertions.push(assertion(`${query} loads`, false, visit.error || visit.status, 200));
       continue;
@@ -109,8 +144,13 @@ export async function run(ctx, session) {
 
   /* --- the illegal URL ---------------------------------------------------- */
 
-  const illegal = await session.visit('/', { shot: false, query: ILLEGAL_QUERY });
-  if (illegal.status !== 200) {
+  const illegalAttempt = exhausted
+    ? { visit: null, exhausted: true }
+    : await visitWithinBudget(session, ILLEGAL_QUERY);
+  if (illegalAttempt.exhausted) {
+    if (!exhausted) exhausted = 1;
+  } else if (illegalAttempt.visit.status !== 200) {
+    const illegal = illegalAttempt.visit;
     assertions.push(assertion(`${ILLEGAL_QUERY} loads`, false, illegal.error || illegal.status, 200));
   } else {
     const state = await session.page.evaluate(readState);
@@ -143,7 +183,32 @@ export async function run(ctx, session) {
     );
   }
 
-  if (assertions.some((a) => !a.ok)) {
+  /* --- what the allowance did not cover ----------------------------------- */
+  //
+  // Carried as a failed assertion rather than swallowed: an unmeasured cell is
+  // never reported as a good one. The finding is `suite-budget`, not
+  // `customizer`, because what it says is that the suite ran short of its own
+  // allowance — not that this client's shared links are broken.
+  if (exhausted > 0) {
+    assertions.push(
+      assertion(
+        ALLOWANCE_LABEL,
+        false,
+        `${exhausted} of ${cells.length + 1} case(s) unmeasured`,
+        `all ${cells.length + 1} case(s) measured`,
+        'the cells measured before the ceiling are reported above and stand',
+      ),
+    );
+    findings.push(
+      finding(
+        FINDING.SUITE_BUDGET,
+        `${slug}: the customizer sample exhausted the navigations/site allowance with ` +
+          `${exhausted} case(s) unmeasured — the suite's ledger, not this client`,
+      ),
+    );
+  }
+
+  if (assertions.some((a) => !a.ok && a.label !== ALLOWANCE_LABEL)) {
     findings.push(
       finding(
         FINDING.CUSTOMIZER,

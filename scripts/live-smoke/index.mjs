@@ -59,6 +59,14 @@ Options:
  */
 const FIXTURE_PREFIX = 'zz-';
 
+/**
+ * The one route the board does not photograph, so the customizer can afford to
+ * sample every design family. See the ledger in `browser.mjs` and the loop that
+ * reads this. `/about/` is the cheapest shot to lose: it is the only one of the
+ * four carrying neither the form nor the service list.
+ */
+const BOARD_SHOT_SKIP = '/about/';
+
 const rel = (p) => relative(repoRoot, p).split('\\').join('/');
 
 function parseArgs(argv) {
@@ -173,8 +181,16 @@ async function smokeOne(slug, origin, ctxBase) {
     record(await safely('offline', 'Service worker', () => offlineCheck.run(ctx, session)));
     // The remaining board shots. `/` and `/services/` were visited by the
     // service-worker check and are already in `session.shots`.
+    //
+    // `/about/` is deliberately not among them. #44 took the design families
+    // from three to five, so the customizer sample needs six navigations where
+    // the ledger in `browser.mjs` budgeted four — one more than claude.md's ten
+    // per site allows. The board loses the about shot; the customizer keeps
+    // measuring every family it offers, which is the claim worth more. `/about/`
+    // is still fetched and asserted by the routes check, so nothing goes
+    // unchecked — only unphotographed.
     for (const route of ctx.pages.keys()) {
-      if (route === '/' || route === '/services/') continue;
+      if (route === '/' || route === '/services/' || route === BOARD_SHOT_SKIP) continue;
       await session.visit(route);
     }
     record(await safely('lighthouse', 'Lighthouse', () => lighthouseCheck.run(ctx, session, audit)));

@@ -20,15 +20,24 @@
  *
  *     /            1   service-worker registration + board shot
  *     /services/   1   the worker's second load + board shot
- *     /about/      1   board shot
  *     /contact/    1   board shot
  *     lighthouse   1
- *     customizer   4   three legal cells + one illegal (design clients only)
+ *     customizer   6   one legal cell per design family + one illegal
+ *                      (design clients only)
  *                 ---
- *                  9   of 10
+ *                 10   of 10
  *
- * one spare, deliberately: a suite that fails a client because it ran out of
- * budget rather than because the client is broken is reporting on itself.
+ * This ledger is load-bearing and it has already gone stale once: #44 took the
+ * design families from three to five, the customizer's sample grew with them
+ * from four navigations to six, and nothing here moved — so every client
+ * carrying a customizer spent its tenth navigation and threw on the eleventh.
+ * The `/about/` board shot was dropped to pay for the two (PR #48). If a family
+ * is ever added again, this line is the one that has to move with it, and there
+ * is no longer a spare to absorb it.
+ *
+ * The old margin is gone, so the customizer no longer *relies* on this being
+ * right: it stops and reports the cells it measured rather than throwing, which
+ * is what makes a stale ledger a visible finding instead of a lost run.
  */
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';

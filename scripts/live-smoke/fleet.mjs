@@ -279,6 +279,12 @@ export const FINDING = {
   FORM: 'form-path',
   CUSTOMIZER: 'customizer',
   LIGHTHOUSE: 'lighthouse',
+  /**
+   * The suite ran out of its own navigation allowance before it finished
+   * measuring. This is the suite reporting on itself, not a broken client, and
+   * it is a separate class so the two never group together in the report.
+   */
+  SUITE_BUDGET: 'suite-budget',
 };
 
 export const finding = (cls, detail) => ({ class: cls, detail });
