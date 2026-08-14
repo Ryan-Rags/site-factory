@@ -89,39 +89,33 @@ export interface SweepOutcome {
 
 const PAGE_SIZE = 20;
 
-/**
- * Calls a live cell actually costs, measured — not derived.
- *
- * `--pages` sets a *result* target, not a call count: `pages: 1` asks for 20
- * results and `searchTextDetailed` follows `nextPageToken` until it has them.
- * Most Bergen towns return well under 20 per page and still hand back a token,
- * so a cell costs several calls.
- *
- * 250 calls bought 69 completed cells on the live run of 2026-08-14 — 3.6 each.
- * The header used to multiply cells by `pages` and print that as the call
- * count, which underclaimed the real cost by 3.5x, and is how a 250 budget came
- * to be sized for a run that needed ~750. A projection that flatters itself is
- * worse than none, so this one is a range and says it was measured.
- */
-export const MEASURED_CALLS_PER_CELL = 3.6;
-
 export interface Projection {
-  /** Upper estimate, for sizing the budget. */
+  /** Exact ceiling, and now genuinely exact. */
   high: number;
   label: string;
 }
 
+/**
+ * What the run will cost, exactly.
+ *
+ * This used to be a range built on a measured ~3.6 calls per cell. That number
+ * was an artifact: on the 2026-08-14 run, 69 cells cost one call each and a
+ * single cell — `welding and fabrication in Allendale, NJ` — spent 730 of the
+ * 800-call budget in an uncapped paging loop. Averaging the runaway across the
+ * healthy cells produced a plausible constant describing nothing that ever
+ * happened, which is worse than no constant at all, so it is gone.
+ *
+ * With `maxCalls` capping each cell at `pages` requests, `cells × pages` is a
+ * hard ceiling rather than an estimate, and the run cannot exceed it.
+ */
 export function projectCalls(cells: number, pages: number, dryRun: boolean): Projection {
-  // The checked-in fixture returns no `nextPageToken`, so a dry cell is exactly
-  // one call. That is precisely why a dry run cannot catch the live cost.
-  if (dryRun) return { high: cells, label: `${cells} (one per cell — the fixture never paginates)` };
-
-  const high = Math.ceil(cells * MEASURED_CALLS_PER_CELL * pages);
+  const high = cells * pages;
+  const each = pages === 1 ? "one call per cell" : `at most ${pages} calls per cell`;
   return {
     high,
-    label:
-      `${cells}–~${high} — each cell pages until it has ${PAGE_SIZE * pages} result(s), ` +
-      `so the live count varies with how many each town returns (measured ~${MEASURED_CALLS_PER_CELL}/cell)`,
+    label: dryRun
+      ? `${high} (${each} — dry run, zero network)`
+      : `${high} at most (${each}, capped; a cell that runs out of results costs less)`,
   };
 }
 
@@ -190,6 +184,10 @@ export async function sweep(opts: SweepOptions): Promise<SweepOutcome> {
         const outcome = await searchTextDetailed({
           niche: queryFor(niche, town),
           max,
+          // `--pages N` means at most N calls for this cell. Hard, and stated
+          // here rather than inferred from `max`, because the cost of getting
+          // it wrong is measured in money.
+          maxCalls: pages,
           apiKey: opts.apiKey,
           budget: opts.budget,
           mask: DISCOVERY_FIELD_MASK,

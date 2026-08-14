@@ -196,6 +196,19 @@ export interface SearchOptions {
   meter?: UsageMeter | undefined;
   /** Sweep context, recorded on each usage record. */
   town?: string | undefined;
+  /**
+   * Hard ceiling on HTTP calls this search may make. **This is the runaway
+   * guard**, and it binds regardless of what the API keeps offering.
+   *
+   * Defaults to the pages it would take to reach `max` at {@link PAGE_SIZE} a
+   * page, which is the number a caller asking for `max` results is implicitly
+   * budgeting for. Before this existed the loop's only exits were "enough
+   * results" and "no `nextPageToken`", so a query answering with a thin page
+   * and a fresh token every time paged until some other ceiling killed it: on
+   * 2026-08-14 a single live cell spent 730 of an 800-call budget that way
+   * while every other cell cost exactly one.
+   */
+  maxCalls?: number | undefined;
 }
 
 /** The mask a search actually sent, alongside its results. */
@@ -222,11 +235,12 @@ export async function searchTextDetailed(opts: SearchOptions): Promise<SearchOut
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
   const mask = opts.mask ?? FIELD_MASK;
   const max = Math.min(opts.max, MAX_RESULTS);
+  const maxCalls = Math.max(1, opts.maxCalls ?? Math.ceil(max / PAGE_SIZE));
   const out: PlacesPlace[] = [];
   let pageToken: string | undefined;
   let calls = 0;
 
-  while (out.length < max) {
+  while (out.length < max && calls < maxCalls) {
     const body: Record<string, unknown> = {
       textQuery: opts.niche,
       pageSize: Math.min(PAGE_SIZE, max - out.length),

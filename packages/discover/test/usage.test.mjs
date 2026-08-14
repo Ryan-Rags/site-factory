@@ -65,6 +65,84 @@ test('every paging follow-up is counted as its own billable call', async () => {
   assert.equal(meter.spentAtOrAbove('enterprise'), 3);
 });
 
+/*
+ * The runaway.
+ *
+ * `while (out.length < max)` had no request cap: its only exits were "enough
+ * results" and "no nextPageToken". A query that keeps handing back a token with
+ * a thin page therefore pages until something else kills it, and on 2026-08-14
+ * one live cell — `welding and fabrication in Allendale, NJ` — spent 730 of an
+ * 800-call budget on its own while every other cell cost exactly one.
+ *
+ * The fixture below is that shape: two results per page, a token every time,
+ * never reaching `max`.
+ */
+test('a cell cannot outspend its page budget, however many tokens arrive', async () => {
+  const meter = new UsageMeter();
+  let calls = 0;
+  const outcome = await searchTextDetailed({
+    niche: 'welding and fabrication in Allendale, NJ',
+    max: 20,
+    maxCalls: 1,
+    apiKey: 'k',
+    budget: new CallBudget(),
+    mask: DISCOVERY_FIELD_MASK,
+    meter,
+    fetchImpl: async () => {
+      calls += 1;
+      return okResponse([place(`a${calls}`), place(`b${calls}`)], `token-${calls}`);
+    },
+  });
+
+  assert.equal(calls, 1, 'one page requested means one HTTP call, token or not');
+  assert.equal(meter.spent, 1, 'and one billable call');
+  assert.equal(outcome.calls, 1);
+  assert.equal(outcome.places.length, 2, 'it keeps the page it paid for');
+});
+
+test('a higher page budget is honoured exactly, not exceeded', async () => {
+  const meter = new UsageMeter();
+  let calls = 0;
+  await searchTextDetailed({
+    niche: 'q',
+    max: 100,
+    maxCalls: 3,
+    apiKey: 'k',
+    budget: new CallBudget(),
+    mask: DISCOVERY_FIELD_MASK,
+    meter,
+    fetchImpl: async () => {
+      calls += 1;
+      return okResponse([place(`p${calls}`)], `token-${calls}`);
+    },
+  });
+  assert.equal(calls, 3, 'three pages, then stop — the fourth token is ignored');
+  assert.equal(meter.spent, 3);
+});
+
+test('reaching max still stops early, below the page budget', async () => {
+  const meter = new UsageMeter();
+  let calls = 0;
+  await searchTextDetailed({
+    niche: 'q',
+    max: 20,
+    maxCalls: 5,
+    apiKey: 'k',
+    budget: new CallBudget(),
+    mask: DISCOVERY_FIELD_MASK,
+    meter,
+    fetchImpl: async () => {
+      calls += 1;
+      return okResponse(
+        Array.from({ length: 20 }, (_, i) => place(`p${calls}-${i}`)),
+        'more',
+      );
+    },
+  });
+  assert.equal(calls, 1, 'twenty results satisfies max on the first page');
+  assert.equal(meter.spent, 1);
+});
+
 test('the total ceiling throws before the call is made', async () => {
   const meter = new UsageMeter({ total: 2, enterprise: 99 });
   let calls = 0;

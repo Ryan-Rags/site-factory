@@ -43,7 +43,6 @@ export {
 } from "./types.js";
 
 export {
-  MEASURED_CALLS_PER_CELL,
   REGION,
   SweepStopped,
   projectCalls,
@@ -53,6 +52,15 @@ export {
   type SweepOptions,
   type SweepOutcome,
 } from "./sweep.js";
+
+export {
+  DENY_TYPES,
+  NICHE_ACCEPT_TYPES,
+  UNIVERSAL_TYPES,
+  classify,
+  type Conformance,
+  type NicheMatch,
+} from "./conformance.js";
 
 export { unreachableSignals, websiteStatus, type StatusOptions } from "./signals.js";
 
@@ -135,6 +143,7 @@ export { fixtureFetch, fixturePlaces } from "./fixture.js";
 export {
   DEFAULT_TOP,
   USAGE,
+  isOfferable,
   parseArgs as parseShortlistArgs,
   render,
   renderCommand,

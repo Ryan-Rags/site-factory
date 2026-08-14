@@ -3,8 +3,10 @@ import type { Browser } from "playwright";
 import { NavigationBudget, auditOne, scoreSite } from "@site-factory/audit";
 import { emptyLead, slugify } from "@site-factory/discover";
 
+import { classify, type Conformance } from "./conformance.js";
 import type { ExistingFile } from "./csv.js";
 import { loadKnownRecords, resolveIdentity, type ClientPlaceIds } from "./identity.js";
+import { nicheBySlug } from "./niches.js";
 import { rankForAudit } from "./rank.js";
 import { scoreProspect } from "./score.js";
 import { websiteStatus } from "./signals.js";
@@ -139,8 +141,17 @@ export async function assess(opts: AssessOptions): Promise<AssessOutcome> {
     const identity = resolveIdentity(result, known);
     if (identity.warning) warnings.push(identity.warning);
 
+    // What the business IS, read from `places.types` — never inferred from the
+    // query string that found it. `nicheBySlug` cannot miss here: the slug was
+    // written by the sweep from a `Niche` in the first place.
+    const niche = nicheBySlug(result.nicheSlug);
+    const conformance: Conformance = niche
+      ? classify(result.types, niche)
+      : { match: "unknown", matched: [], reason: `unknown niche "${result.nicheSlug}"` };
+
     return {
       result,
+      conformance,
       status,
       neglect,
       audited,
@@ -180,7 +191,18 @@ export function toScoredRow(a: Assessment): ScoredRow {
   row.website = a.result.website;
   row.websiteStatus = a.status.status;
   row.score = String(a.score);
-  row.reasons = a.reasons.join(" · ");
+  row.types = a.result.types.join("|");
+  row.nicheMatch = a.conformance.match;
+  // The niche claim is sourced or it is not made. An accepted row says which
+  // Places type carried it; a rejected one says what it carried instead. Either
+  // way the reader can check the claim rather than trust the query string that
+  // used to be the only thing behind it.
+  row.reasons = [
+    ...a.reasons,
+    a.conformance.match === "match"
+      ? `types: ${a.conformance.matched.join(", ")}`
+      : `NICHE ${a.conformance.match.toUpperCase()} — ${a.conformance.reason}`,
+  ].join(" · ");
   row.copyPack = a.result.copyPack;
   row.status = "NEW";
   return row;
@@ -230,6 +252,12 @@ export function toCheckpointRow(result: SweepResult): ScoredRow {
   row.town = result.town;
   row.phone = result.phone;
   row.website = result.website;
+  // Types and their verdict need no browser — the sweep already paid for them,
+  // so the checkpoint carries them. A crash mid-sweep still leaves a file whose
+  // niche labels can be trusted, which is the whole point of persisting them.
+  row.types = result.types.join("|");
+  const niche = nicheBySlug(result.nicheSlug);
+  row.nicheMatch = niche ? classify(result.types, niche).match : "unknown";
   row.copyPack = result.copyPack;
   row.status = "NEW";
   return row;

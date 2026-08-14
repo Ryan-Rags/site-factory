@@ -19,11 +19,20 @@ export const USAGE = `usage: pnpm shortlist -- [--top <n>] [--niche <slug>] [--s
 Reads data/prospects-scored.csv and prints (does not run) the demo batch
 command for the highest-scoring prospects.
 
+Rows whose Places types do not match the niche that found them are WITHHELD.
+Text Search returns a bakery for "machine shop"; the sweep of 2026-08-14 put a
+bakery, a coffee shop and a smoke shop in its top ten. Those rows stay in the
+CSV as nicheMatch=mismatch — they are real businesses and inventory for another
+pitch — but they are never offered for a demo unless asked for.
+
 options:
   --top <n>        how many. Default ${DEFAULT_TOP}.
   --niche <slug>   filter by niche. ${NICHES.map((n) => n.slug).join(", ")}
   --status <state> filter by the status column. Default NEW.
   --file <path>    input CSV. Default data/prospects-scored.csv
+  --include-mismatches
+                   also list rows whose types contradict the niche, and rows
+                   with no types to judge. Off by default.
   --help
 
 Prints nothing but a command; it never runs it.`;
@@ -33,11 +42,19 @@ export interface Args {
   niche: string;
   status: string;
   file: string;
+  includeMismatches: boolean;
   help: boolean;
 }
 
 export function parseArgs(argv: readonly string[]): Args {
-  const args: Args = { top: DEFAULT_TOP, niche: "", status: "NEW", file: "", help: false };
+  const args: Args = {
+    top: DEFAULT_TOP,
+    niche: "",
+    status: "NEW",
+    file: "",
+    includeMismatches: false,
+    help: false,
+  };
 
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i] as string;
@@ -66,6 +83,9 @@ export function parseArgs(argv: readonly string[]): Args {
       case "--file":
         args.file = takeValue();
         break;
+      case "--include-mismatches":
+        args.includeMismatches = true;
+        break;
       case "--help":
       case "-h":
         args.help = true;
@@ -87,9 +107,24 @@ export interface ShortlistRow {
   reasons: string;
   copyPack: string;
   status: string;
+  /** Places `types`, as stored. Evidence for the niche claim. */
+  types: string;
+  /** `match` | `mismatch` | `unknown`. Empty on a pre-2026-08-14 row. */
+  nicheMatch: string;
+  websiteStatus: string;
   /** The id `pnpm demo` expects: the slug of the business name. */
   demoId: string;
 }
+
+/**
+ * A row is offered for a demo only when its types were checked AND matched.
+ *
+ * An empty `nicheMatch` means the row predates type persistence: it was never
+ * judged, so it is not offered either. Unjudged is not the same as judged good,
+ * and the sweep that produced those rows is exactly the one that put a bakery
+ * at the top of the list.
+ */
+export const isOfferable = (nicheMatch: string): boolean => nicheMatch.trim() === "match";
 
 /**
  * Select and rank. Filtering by niche accepts either the niche slug or the
@@ -99,7 +134,7 @@ export interface ShortlistRow {
  */
 export function select(
   rows: readonly Record<string, string>[],
-  args: { top: number; niche: string; status: string },
+  args: { top: number; niche: string; status: string; includeMismatches?: boolean },
 ): ShortlistRow[] {
   const wantNiche = args.niche.trim().toLowerCase();
   const niche = NICHES.find((n) => n.slug === wantNiche);
@@ -112,6 +147,9 @@ export function select(
       if (args.status && (r["status"] ?? "").trim().toUpperCase() !== args.status.toUpperCase()) {
         return false;
       }
+      // The conformance gate. Withheld, not deleted: the row is still in the
+      // file and `--include-mismatches` shows it.
+      if (!args.includeMismatches && !isOfferable(r["nicheMatch"] ?? "")) return false;
       if (wantNiche === "") return true;
       return acceptable.has((r["niche"] ?? "").trim().toLowerCase());
     })
@@ -125,6 +163,9 @@ export function select(
       reasons: r["reasons"] ?? "",
       copyPack: r["copyPack"] ?? "",
       status: r["status"] ?? "",
+      types: r["types"] ?? "",
+      nicheMatch: r["nicheMatch"] ?? "",
+      websiteStatus: r["websiteStatus"] ?? "",
       demoId: slugify(r["name"] ?? ""),
     }))
     .sort((a, b) => b.score - a.score)
@@ -137,21 +178,34 @@ export function renderCommand(rows: readonly ShortlistRow[]): string {
   return `pnpm demo -- ${rows.map((r) => `--prospect ${r.demoId}`).join(" ")}`;
 }
 
-export function render(rows: readonly ShortlistRow[], args: { niche: string; status: string }): string {
+export function render(
+  rows: readonly ShortlistRow[],
+  args: { niche: string; status: string; includeMismatches?: boolean },
+): string {
   if (rows.length === 0) {
     return (
       `No prospects matched (status=${args.status}${args.niche ? `, niche=${args.niche}` : ""}).\n` +
-      "Run the sweep first: pnpm sweep -- --dry-run"
+      "Rows whose types do not match their niche are withheld — add\n" +
+      "--include-mismatches to see them, or re-run the sweep if the file predates\n" +
+      "type persistence (an empty nicheMatch column means never judged).\n" +
+      "No sweep yet? pnpm sweep -- --dry-run"
     );
   }
 
   const lines: string[] = [];
-  lines.push(`Top ${rows.length}${args.niche ? ` — ${args.niche}` : ""} (status=${args.status})`);
+  lines.push(
+    `Top ${rows.length}${args.niche ? ` — ${args.niche}` : ""} (status=${args.status}` +
+      `${args.includeMismatches ? ", INCLUDING type mismatches" : ""})`,
+  );
   lines.push("");
   rows.forEach((r, i) => {
     lines.push(
       `${String(i + 1).padStart(3)}. [${String(r.score).padStart(3)}] ${r.name} — ${r.town}` +
         `${r.phone ? `  ${r.phone}` : "  (no phone)"}`,
+    );
+    lines.push(
+      `      ${r.niche} · site: ${r.websiteStatus || "unknown"} · ${r.nicheMatch || "unjudged"}` +
+        `${r.types ? ` · types: ${r.types.split("|").join(", ")}` : " · types: none recorded"}`,
     );
     if (r.reasons) lines.push(`      ${r.reasons}`);
   });
