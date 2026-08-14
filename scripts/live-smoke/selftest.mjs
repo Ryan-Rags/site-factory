@@ -280,6 +280,62 @@ async function main() {
       }
     });
   }
+
+  /*
+   * Budget exhaustion mid-sample.
+   *
+   * The realistic thrower, and the one this suite met live: #44 took the design
+   * families from three to five, so the sample needs six navigations where the
+   * ledger in `browser.mjs` had budgeted four. The check ran out on its last
+   * cell and threw — and because the throw left `run()`, every assertion it had
+   * already collected went with it, turning twenty-five measured results into
+   * one opaque "Customizer threw". The cells that WERE measured are real
+   * measurements and must survive; what must not happen is an unmeasured cell
+   * being reported as a good one.
+   *
+   * The fixture is local, so the budget here is set deliberately low rather
+   * than being the real ten — the point is the boundary, not the number.
+   */
+  await withFixture({}, async (site) => {
+    const ctx = await contextFor(site.origin, audit);
+    const cells = customizerCheck.sampleCells().length;
+    // One short of the sample: every cell but the last can navigate.
+    ctx.politeness = new Politeness(audit.NavigationBudget, {
+      probeIntervalMs: 0,
+      navIntervalMs: 0,
+      maxPerHost: cells - 1,
+    });
+    await routesCheck.run(ctx);
+    const session = await openSession({
+      slug: FIXTURE_SLUG,
+      origin: site.origin,
+      politeness: ctx.politeness,
+      chromium,
+      freePort: audit.freePort,
+      shotsDir,
+    });
+    try {
+      let threw = null;
+      let result = null;
+      try {
+        result = await customizerCheck.run(ctx, session);
+      } catch (err) {
+        threw = err;
+      }
+      ok(
+        'running out of budget keeps the cells already measured',
+        threw === null && result !== null && result.assertions.length > 1,
+        threw ? `threw: ${threw.message.split('\n')[0]}` : `assertions=${result?.assertions.length}`,
+      );
+      ok(
+        'running out of budget is reported, never a silent pass',
+        result !== null && result.status !== 'pass',
+        result ? `status=${result.status}` : 'no result',
+      );
+    } finally {
+      await session.close();
+    }
+  });
   rmSync(shotsDir, { recursive: true, force: true });
 
   /* ------------------------------------------------- the known-issue rule */

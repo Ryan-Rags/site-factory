@@ -355,3 +355,51 @@ already exists in one file and is the kind of rule that belongs in one place.
 **Not fixed here:** wrong scope. This stream added the fixture that surfaced
 it; it did not cause it, and changing what a gate script sweeps is a change to
 the batch's contract.
+
+## 8. `--pages 1` is not one Places call per cell, and a budget stop destroys the run
+
+**Status:** open. **Owner:** whoever owns `packages/shortlist` / `packages/discover`.
+**Found by:** the ops session of 2026-08-14, on the first live county sweep.
+**Cost when it fired:** 250 billable Enterprise calls, zero rows written.
+
+Two defects, one run. They compound, which is why they are filed together.
+
+**(a) The projection is wrong.** `cli.ts` prints and budgets
+`niches × towns × pages` — 3 × 70 × 1 = 210 — and `sweep.ts`'s header states
+"with `--pages 1` that is 210 billable calls". Neither is true live. `--pages`
+sets a *result* target, not a call count: `pages: 1` becomes `max = PAGE_SIZE ×
+pages = 20`, and `searchTextDetailed` then loops `while (out.length < max)`,
+following `nextPageToken` until it has twenty results. The live API returns far
+fewer than twenty per page for most Bergen towns but still returns a token, so a
+cell costs **~3.6 calls, not 1**. A full 210-cell sweep needs roughly **750**.
+
+The dry run cannot catch this: the checked-in fixture carries no `nextPageToken`,
+so every fixture cell costs exactly one call and the projection looks exact.
+
+**(b) The stop destroys what was bought.** `sweep()` rethrows on budget
+exhaustion, and `cli.ts` writes `prospects-scored.csv` and the usage JSON only
+*after* `sweep()` returns. So the ceiling — which exists to stop spending —
+also discards every result already paid for. The run below completed all 70
+towns of `machine-shop` and wrote nothing at all.
+
+**Repro.**
+
+```
+pnpm sweep            # defaults: 3 niches × 70 towns, budget 250
+#   → swept 70/210 (machine-shop/Wyckoff)
+#   → Places budget exhausted: 250 calls/run. Nothing further was requested.
+#   → exit 1;  data/prospects-scored.csv absent, data/usage-*.json absent
+```
+
+**Fix sketch.** (b) first and independently, because it is the one that loses
+data: catch the exhaustion in `cli.ts`, write the partial CSV and the usage JSON,
+and report the run as partial — the same rule PR #48 applied to the customizer
+check. For (a), make the cost honest rather than the guess: either cap a cell at
+one page (`max = PAGE_SIZE`, which is what "one call per cell" actually means)
+and let `--pages` mean pages, or keep the result target and project
+`niches × towns × pages × observed-calls-per-page` with the ~3.6 measured here.
+The two are different products — twenty results per town versus one page per
+town — and which one the shortlist wants is a ruling, not a refactor.
+
+**Not fixed here:** outside this stream's granted paths, and (a) needs that
+ruling before any code is right.
