@@ -5,8 +5,10 @@ import { CallBudget, DISCOVERY_FIELD_MASK, UsageMeter } from '@site-factory/disc
 
 import {
   NICHES,
+  SweepStopped,
   criteriaFor,
   nicheBySlug,
+  projectCalls,
   queryFor,
   rankForAudit,
   renderOrdering,
@@ -166,6 +168,111 @@ test('a budget ceiling stops the sweep rather than failing every remaining cell'
       }),
     /budget exhausted/,
   );
+});
+
+/* --- the ceiling must not destroy what the run already paid for ----------- */
+
+test('onCell hands over the results so far after every cell', async () => {
+  const snapshots = [];
+  await sweep({
+    niches: [machineShop],
+    towns: ['Lodi', 'Mahwah'],
+    apiKey: 'k',
+    meter: new UsageMeter(),
+    budget: new CallBudget(),
+    fetchImpl: okFetch({
+      'machine shop in Lodi, NJ': [place('ChIJ_a')],
+      'machine shop in Mahwah, NJ': [place('ChIJ_b')],
+    }),
+    onCell: (results) => {
+      snapshots.push(results.map((r) => r.placeId));
+    },
+  });
+  assert.deepEqual(snapshots, [['ChIJ_a'], ['ChIJ_a', 'ChIJ_b']]);
+});
+
+test('onCell is awaited, so a slow write cannot be overtaken by the next cell', async () => {
+  const order = [];
+  await sweep({
+    niches: [machineShop],
+    towns: ['Lodi', 'Mahwah'],
+    apiKey: 'k',
+    meter: new UsageMeter(),
+    budget: new CallBudget(),
+    fetchImpl: okFetch({}),
+    onCell: async () => {
+      order.push('write:start');
+      await new Promise((r) => setTimeout(r, 5));
+      order.push('write:end');
+    },
+  });
+  assert.deepEqual(order, ['write:start', 'write:end', 'write:start', 'write:end']);
+});
+
+test('the cell that exhausts the budget still hands over what was bought', async () => {
+  const snapshots = [];
+  await assert.rejects(
+    () =>
+      sweep({
+        // Two calls of budget: Lodi succeeds, Mahwah is refused.
+        niches: [machineShop],
+        towns: ['Lodi', 'Mahwah', 'Teterboro'],
+        apiKey: 'k',
+        meter: new UsageMeter({ total: 1, enterprise: 1 }),
+        budget: new CallBudget(),
+        fetchImpl: okFetch({ 'machine shop in Lodi, NJ': [place('ChIJ_paid_for')] }),
+        onCell: (results) => {
+          snapshots.push(results.map((r) => r.placeId));
+        },
+      }),
+    /budget exhausted/,
+  );
+  // Once for Lodi, and again on the stop — the business bought with the one
+  // call that succeeded reaches the caller before the throw propagates.
+  assert.ok(snapshots.length >= 1);
+  assert.deepEqual(snapshots.at(-1), ['ChIJ_paid_for']);
+});
+
+test('the stop carries the partial outcome, not just a message', async () => {
+  const err = await sweep({
+    niches: [machineShop],
+    towns: ['Lodi', 'Mahwah', 'Teterboro'],
+    apiKey: 'k',
+    meter: new UsageMeter({ total: 1, enterprise: 1 }),
+    budget: new CallBudget(),
+    fetchImpl: okFetch({ 'machine shop in Lodi, NJ': [place('ChIJ_paid_for')] }),
+  }).then(
+    () => null,
+    (e) => e,
+  );
+
+  assert.ok(err instanceof SweepStopped, 'a budget stop is a SweepStopped');
+  assert.match(err.message, /budget exhausted/, 'the budget message is preserved');
+  assert.equal(err.outcome.results.length, 1);
+  assert.equal(err.outcome.results[0].placeId, 'ChIJ_paid_for');
+  assert.deepEqual(err.outcome.emittedMasks, [DISCOVERY_FIELD_MASK], 'the mask is still assertable');
+  assert.equal(err.outcome.queries, 1);
+});
+
+/* --- the projection ------------------------------------------------------- */
+
+test('a dry run projects exactly one call per cell — the fixture never paginates', () => {
+  const p = projectCalls(12, 1, true);
+  assert.equal(p.high, 12);
+  assert.match(p.label, /never paginates/);
+});
+
+test('a live run projects a range above one-per-cell, because pages cost calls', () => {
+  const p = projectCalls(210, 1, false);
+  // The old header said 210. Live cost measured 3.6/cell; the projection must
+  // not underclaim it, which is how a 250 budget got sized for a ~750 run.
+  assert.ok(p.high > 210, `expected more than one call per cell, got ${p.high}`);
+  assert.equal(p.high, 756);
+  assert.match(p.label, /210–~756/);
+});
+
+test('more pages per cell projects proportionally more calls', () => {
+  assert.ok(projectCalls(100, 2, false).high > projectCalls(100, 1, false).high);
 });
 
 // --- audit ordering --------------------------------------------------------

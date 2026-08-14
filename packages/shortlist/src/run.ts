@@ -3,6 +3,7 @@ import type { Browser } from "playwright";
 import { NavigationBudget, auditOne, scoreSite } from "@site-factory/audit";
 import { emptyLead, slugify } from "@site-factory/discover";
 
+import type { ExistingFile } from "./csv.js";
 import { loadKnownRecords, resolveIdentity, type ClientPlaceIds } from "./identity.js";
 import { rankForAudit } from "./rank.js";
 import { scoreProspect } from "./score.js";
@@ -181,6 +182,55 @@ export function toScoredRow(a: Assessment): ScoredRow {
   row.score = String(a.score);
   row.reasons = a.reasons.join(" · ");
   row.copyPack = a.result.copyPack;
+  row.status = "NEW";
+  return row;
+}
+
+/**
+ * Project a bare sweep result — discovery only, nothing assessed — onto the
+ * same columns, so the checkpoint can go through the one writer this file has.
+ *
+ * `websiteStatus`, `score` and `reasons` are left **empty**, because they have
+ * not been measured yet: the assess stage needs a browser and has not run. An
+ * empty cell here means unmeasured, exactly as it does everywhere else in this
+ * repo, and never a zero standing in for one.
+ *
+ * That emptiness is why `checkpointRows` in the CLI refuses to overwrite a row
+ * that already carries a score. `mergeScored` refreshes every machine column it
+ * is given, so handing it a blank row for an already-scored business would
+ * erase a real measurement with a placeholder.
+ */
+/**
+ * The sweep results that are safe to checkpoint over what is already on disk.
+ *
+ * This is the guard that lets a mid-run checkpoint share a writer with the
+ * finished run. See `toCheckpointRow` for why a blank row is dangerous.
+ */
+export function checkpointRows(
+  results: readonly SweepResult[],
+  existing: ExistingFile,
+): ScoredRow[] {
+  return results
+    .filter((r) => {
+      const prior = existing.rows.get(r.placeId);
+      // Already scored by some earlier run: leave it entirely alone. A blank
+      // checkpoint row would refresh its score to "" and destroy the
+      // measurement. Unscored, or absent, is safe to (re)write.
+      return prior === undefined || (prior["score"] ?? "").trim() === "";
+    })
+    .map(toCheckpointRow);
+}
+
+export function toCheckpointRow(result: SweepResult): ScoredRow {
+  const row = {} as ScoredRow;
+  for (const column of SCORED_COLUMNS) row[column] = "";
+  row.placeId = result.placeId;
+  row.name = result.name;
+  row.niche = result.nicheLabel;
+  row.town = result.town;
+  row.phone = result.phone;
+  row.website = result.website;
+  row.copyPack = result.copyPack;
   row.status = "NEW";
   return row;
 }

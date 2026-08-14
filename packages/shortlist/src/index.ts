@@ -42,7 +42,17 @@ export {
   type WebsiteStatus,
 } from "./types.js";
 
-export { REGION, queryFor, sweep, type SweepOptions, type SweepOutcome } from "./sweep.js";
+export {
+  MEASURED_CALLS_PER_CELL,
+  REGION,
+  SweepStopped,
+  projectCalls,
+  queryFor,
+  sweep,
+  type Projection,
+  type SweepOptions,
+  type SweepOutcome,
+} from "./sweep.js";
 
 export { unreachableSignals, websiteStatus, type StatusOptions } from "./signals.js";
 
@@ -100,7 +110,14 @@ export {
   type HistogramBand,
 } from "./summary.js";
 
-export { assess, toScoredRow, type AssessOptions, type AssessOutcome } from "./run.js";
+export {
+  assess,
+  checkpointRows,
+  toCheckpointRow,
+  toScoredRow,
+  type AssessOptions,
+  type AssessOutcome,
+} from "./run.js";
 
 // `freePort` is deliberately not re-exported: it is `@site-factory/audit`'s,
 // and importing it from two packages is the duplication this consolidated.
