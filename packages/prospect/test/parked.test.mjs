@@ -158,11 +158,18 @@ test('a site whose only heading is its own domain is live if you can call it', (
 
 test('the design family follows the template, not the old table', () => {
   // `design.ts` in the template: forge is "Machine shops, welding,
-  // fabrication"; precision is "Contractors, HVAC, electrical". The old
-  // NICHE_STYLES had these two swapped.
+  // fabrication". The old NICHE_STYLES had machine shops on precision and
+  // contractors on heritage — the template's assignment for a different trade
+  // in both cases.
   assert.equal(presetFor('machine shop').preset, 'forge');
   assert.equal(presetFor('welding and fabrication').preset, 'forge');
-  assert.equal(presetFor('general contractor').preset, 'precision');
+
+  // #44 added meridian — "roofing, landscaping and the exterior trades, where
+  // the work is photographed outside" — and moved the roof/siding/contractor
+  // row onto it. The plumbing row (plumb, hvac, heating, boiler, drain) was
+  // NOT part of that move: hvac is indoor work and stays on precision, which
+  // is also still the neutral default for a niche we do not recognise.
+  assert.equal(presetFor('general contractor').preset, 'meridian');
   assert.equal(presetFor('hvac').preset, 'precision');
   assert.equal(presetFor(undefined).preset, 'precision');
 });
