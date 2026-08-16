@@ -256,23 +256,30 @@ test('the stop carries the partial outcome, not just a message', async () => {
 
 /* --- the projection ------------------------------------------------------- */
 
-test('a dry run projects exactly one call per cell — the fixture never paginates', () => {
-  const p = projectCalls(12, 1, true);
-  assert.equal(p.high, 12);
-  assert.match(p.label, /never paginates/);
+/*
+ * The projection is exact again, because the cap makes it exact.
+ *
+ * It briefly carried a "measured" ~3.6 calls-per-cell constant. That number was
+ * an artifact of the runaway: 69 cells cost one call each and a single cell
+ * spent 730, so the average described nothing that had ever happened. With each
+ * cell capped at `pages` requests, `cells × pages` is a ceiling the run cannot
+ * exceed rather than an estimate it might.
+ */
+test('a live run projects exactly cells x pages, and that is a hard ceiling', () => {
+  const p = projectCalls(210, 1, false);
+  assert.equal(p.high, 210, 'the original 210 estimate was right all along');
+  assert.match(p.label, /at most/);
 });
 
-test('a live run projects a range above one-per-cell, because pages cost calls', () => {
-  const p = projectCalls(210, 1, false);
-  // The old header said 210. Live cost measured 3.6/cell; the projection must
-  // not underclaim it, which is how a 250 budget got sized for a ~750 run.
-  assert.ok(p.high > 210, `expected more than one call per cell, got ${p.high}`);
-  assert.equal(p.high, 756);
-  assert.match(p.label, /210–~756/);
+test('a dry run projects the same count and says it spends nothing', () => {
+  const p = projectCalls(12, 1, true);
+  assert.equal(p.high, 12);
+  assert.match(p.label, /zero network/);
 });
 
 test('more pages per cell projects proportionally more calls', () => {
-  assert.ok(projectCalls(100, 2, false).high > projectCalls(100, 1, false).high);
+  assert.equal(projectCalls(100, 2, false).high, 200);
+  assert.equal(projectCalls(100, 1, false).high, 100);
 });
 
 // --- audit ordering --------------------------------------------------------

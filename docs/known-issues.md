@@ -358,9 +358,23 @@ the batch's contract.
 
 ## 8. `--pages 1` is not one Places call per cell, and a budget stop destroys the run
 
-**Status:** open. **Owner:** whoever owns `packages/shortlist` / `packages/discover`.
+**Status:** RESOLVED — (b) by PR #49, (a) by PR #50. Kept for the diagnosis,
+because the first explanation was wrong in an instructive way.
 **Found by:** the ops session of 2026-08-14, on the first live county sweep.
-**Cost when it fired:** 250 billable Enterprise calls, zero rows written.
+**Cost when it fired:** 250 billable Enterprise calls and zero rows written;
+then 800 more on the retry, 730 of them spent by a single cell.
+
+**Correction, 2026-08-14 (PR #50).** Part (a) below says a cell costs "~3.6
+calls". That was an average, and it described nothing that ever happened. The
+usage records of the second run settle it: **69 of 70 cells cost exactly one
+call**, and one cell — `welding and fabrication in Allendale, NJ` — spent **730**
+in an uncapped paging loop, because `while (out.length < max)` had no request
+ceiling and that query kept answering with a thin page and a fresh
+`nextPageToken`. The original 210-call projection was right all along; the
+runaway is what made it look wrong. `searchTextDetailed` now takes `maxCalls`,
+defaulted to the pages needed to reach `max`, so `--pages N` means at most N
+calls per cell — hard, and proved by a regression test that keeps handing the
+loop tokens it must ignore.
 
 Two defects, one run. They compound, which is why they are filed together.
 
@@ -403,3 +417,53 @@ town — and which one the shortlist wants is a ruling, not a refactor.
 
 **Not fixed here:** outside this stream's granted paths, and (a) needs that
 ruling before any code is right.
+
+**Fixed in PR #50.** The ruling landed: `--pages N` is a hard call cap, and the
+projection is `cells × pages` exactly. `MEASURED_CALLS_PER_CELL` is deleted.
+
+## 9. Text Search returned a bakery for "machine shop", and the sweep believed it
+
+**Status:** RESOLVED by PR #50. Kept because the failure is not obvious and the
+gate that now prevents it can only be understood against it.
+**Found by:** the ops session of 2026-08-14, reading its own top 25.
+
+Places Text Search is relevance-ranked, not category-filtered. `"machine shop in
+Park Ridge, NJ"` returns a bakery, and the sweep stamped `nicheLabel` from the
+**query string** rather than from the result — so the bakery was written to the
+call list as a machine shop. **Not one of that run's top 25 was a machine shop.**
+Three were a bakery, a coffee shop and a Japanese restaurant:
+
+```
+  3. [100] Maia's Bakery — Park Ridge · none · machine shop
+  4. [ 99] Euphoria smoke shop NJ — Cliffside Park · none · machine shop
+ 10. [ 95] The Dell Coffee Co — Oradell · none · machine shop
+ 25. [ 87] Little Japan USA — Edgewater · dead · machine shop
+```
+
+The scorer compounded it rather than catching it: its strongest signal is "no
+website + many reviews", which is the exact profile of a beloved local bakery.
+The errors did not merely survive the ranking, they *won* it.
+
+`places.types` was in the field mask from the first sweep — fetched, billed at
+Enterprise, stored on `SweepResult`, and read by nothing.
+
+**Repro (pre-fix).**
+
+```
+pnpm sweep -- --niche machine-shop --town "Park Ridge"
+#   → a bakery, in the CSV, with niche="machine shop"
+```
+
+**Fix.** `conformance.ts` classifies each result's `types` against a per-niche
+allowlist built from a live probe (117 results, 6 calls), plus a denylist for
+the food/leisure/retail types that contradict every trade here. `types` and
+`nicheMatch` are persisted as columns, so a call list can be re-filtered without
+buying the data again. A mismatch is **withheld from the shortlist, never
+deleted** — a no-website bakery is a real prospect for a different pitch, and
+`--include-mismatches` lists them.
+
+**Residual, accepted:** welding's allowlist admits bare `service`, which is also
+what a clinic or a restaurant carries, because excluding it would reject
+`ks-welding` — an actual client. The denylist is what keeps that breadth honest,
+and welding rows deserve a glance before a batch. The five non-copy-pack niches
+have unprobed, plausible-only allowlists; nothing rests on them until probed.

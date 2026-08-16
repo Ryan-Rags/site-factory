@@ -15,6 +15,10 @@ const row = (over = {}) => ({
   reasons: 'no website at all · 4.6★ from 128 reviews',
   copyPack: 'machine-shop',
   status: 'NEW',
+  // A row is only offered for a demo once its types back the niche claim.
+  // These fixtures are about the OTHER filters, so they conform by default.
+  types: 'manufacturer|point_of_interest|establishment',
+  nicheMatch: 'match',
   ...over,
 });
 
@@ -43,6 +47,67 @@ test('--niche filters out other niches', () => {
 test('status defaults to NEW, so worked leads drop off the list', () => {
   const rows = [row({ status: 'NEW' }), row({ placeId: 'p2', status: 'CALLED' })];
   assert.equal(select(rows, { top: 10, niche: '', status: 'NEW' }).length, 1);
+});
+
+/* --- the conformance gate ------------------------------------------------ */
+
+/**
+ * The defect this gate exists for. On 2026-08-14 the live sweep's top ten
+ * included a bakery, a coffee shop and a smoke shop, every one of them labelled
+ * "machine shop" because the niche was stamped from the query string. A demo
+ * built from that row would have been pitched to a baker as their machine-shop
+ * website.
+ */
+test('a business whose types contradict the niche is never offered for a demo', () => {
+  const rows = [
+    row({ placeId: 'shop', name: 'Real Machine Co', score: '80', nicheMatch: 'match' }),
+    row({
+      placeId: 'bakery',
+      name: "Maia's Bakery",
+      score: '100',
+      types: 'bakery|store|food|point_of_interest|establishment',
+      nicheMatch: 'mismatch',
+    }),
+  ];
+  const got = select(rows, { top: 10, niche: '', status: 'NEW' });
+  assert.deepEqual(got.map((r) => r.placeId), ['shop'], 'the bakery outscores it and is still withheld');
+});
+
+test('--include-mismatches brings the withheld rows back, highest score first', () => {
+  const rows = [
+    row({ placeId: 'shop', score: '80', nicheMatch: 'match' }),
+    row({ placeId: 'bakery', score: '100', nicheMatch: 'mismatch' }),
+  ];
+  const got = select(rows, { top: 10, niche: '', status: 'NEW', includeMismatches: true });
+  assert.deepEqual(got.map((r) => r.placeId), ['bakery', 'shop']);
+});
+
+/** Unjudged is not judged-good. A pre-persistence row has no evidence either way. */
+test('a row that predates type persistence is withheld, not assumed good', () => {
+  const rows = [row({ placeId: 'old', nicheMatch: '' })];
+  assert.equal(select(rows, { top: 10, niche: '', status: 'NEW' }).length, 0);
+  assert.equal(
+    select(rows, { top: 10, niche: '', status: 'NEW', includeMismatches: true }).length,
+    1,
+  );
+});
+
+test('a row whose types could not be judged is withheld too', () => {
+  const rows = [row({ placeId: 'u', nicheMatch: 'unknown', types: '' })];
+  assert.equal(select(rows, { top: 10, niche: '', status: 'NEW' }).length, 0);
+});
+
+test('the printed row shows the evidence for its niche claim', () => {
+  const rows = select([row()], { top: 1, niche: '', status: 'NEW' });
+  const text = render(rows, { niche: '', status: 'NEW' });
+  assert.match(text, /types: manufacturer/, 'the type that carried the claim is shown');
+  assert.match(text, /site: none/, 'websiteStatus is shown');
+  assert.match(text, /match/);
+});
+
+test('an empty result set points at the gate rather than blaming the sweep', () => {
+  const text = render([], { niche: '', status: 'NEW' });
+  assert.match(text, /--include-mismatches/);
 });
 
 test('the demo id is the name slug, which is what pnpm demo takes', () => {

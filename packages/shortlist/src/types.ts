@@ -1,5 +1,7 @@
 import type { WebsiteStatus } from "@site-factory/prospect";
 
+import type { Conformance } from "./conformance.js";
+
 export type { WebsiteStatus };
 
 /**
@@ -14,6 +16,15 @@ export const SCORED_COLUMNS = [
   "placeId",
   "name",
   "niche",
+  // Places `types`, verbatim, pipe-joined. Persisted since 2026-08-14: it was
+  // fetched and billed at Enterprise from the very first sweep and written
+  // nowhere, so the one piece of evidence about what a business actually *is*
+  // could not be checked after the fact. Without it on disk, a mislabelled call
+  // list cannot even be re-filtered without buying the data a second time.
+  "types",
+  // `match` | `mismatch` | `unknown`, from `conformance.ts`. A mismatch stays
+  // in the file — it is withheld from the shortlist, never deleted.
+  "nicheMatch",
   "town",
   "phone",
   "website",
@@ -80,6 +91,8 @@ export interface CheapSignals {
 /** A business after status, audit and scoring. */
 export interface Assessment {
   result: SweepResult;
+  /** Whether the Places types match the niche whose query returned it. */
+  conformance: Conformance;
   status: StatusOutcome;
   /** 0-1 share of decided audit weight that failed. Undefined when not audited. */
   neglect: number | undefined;

@@ -78,7 +78,7 @@ test('an existing row keeps its status; the pipeline never resets it to NEW', ()
   const file = join(tmp(), 'out.csv');
   writeFileSync(
     file,
-    `${SCORED_COLUMNS.join(',')}\np1,Alpha Machine,machine shop,Lodi,,,none,50,r,machine-shop,CALLED\n`,
+    `${SCORED_COLUMNS.join(',')}\np1,Alpha Machine,machine shop,manufacturer,match,Lodi,,,none,50,r,machine-shop,CALLED\n`,
     'utf8',
   );
   const merged = mergeScored(readScored(file), [row({ status: 'NEW' })]);
@@ -101,8 +101,8 @@ test('rows this run did not see are left entirely alone', () => {
   writeFileSync(
     file,
     `${SCORED_COLUMNS.join(',')}\n` +
-      'p1,Alpha,machine shop,Lodi,,,none,50,r,machine-shop,NEW\n' +
-      'p2,Beta,plumber,Mahwah,,,live,20,r,,NEW\n',
+      'p1,Alpha,machine shop,manufacturer,match,Lodi,,,none,50,r,machine-shop,NEW\n' +
+      'p2,Beta,plumber,plumber,match,Mahwah,,,live,20,r,,NEW\n',
     'utf8',
   );
   const merged = mergeScored(readScored(file), [row({ placeId: 'p1', score: '77' })]);
@@ -144,7 +144,7 @@ test('a row with no placeId is kept rather than dropped', () => {
   const file = join(tmp(), 'out.csv');
   writeFileSync(
     file,
-    `${SCORED_COLUMNS.join(',')}\n,Hand Added Lead,machine shop,Lodi,,,none,0,,machine-shop,NEW\n`,
+    `${SCORED_COLUMNS.join(',')}\n,Hand Added Lead,machine shop,,,Lodi,,,none,0,,machine-shop,NEW\n`,
     'utf8',
   );
   const merged = mergeScored(readScored(file), [row()]);
@@ -222,7 +222,7 @@ test("a checkpoint preserves Ryan's own columns, like any other write", () => {
   const file = join(tmp(), 'out.csv');
   writeFileSync(
     file,
-    `${SCORED_COLUMNS.join(',')},NOTES\np9,Gamma Tool,machine shop,Lodi,,,,,,machine-shop,CALLED,left a voicemail\n`,
+    `${SCORED_COLUMNS.join(',')},NOTES\np9,Gamma Tool,machine shop,,,Lodi,,,,,,machine-shop,CALLED,left a voicemail\n`,
     'utf8',
   );
   const rows = checkpointRows([swept({ placeId: 'p9', name: 'Gamma Tool' })], readScored(file));
