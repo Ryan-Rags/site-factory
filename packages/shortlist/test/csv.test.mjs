@@ -4,7 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { SCORED_COLUMNS, mergeScored, readScored, writeScored } from '../dist/index.js';
+import {
+  SCORED_COLUMNS,
+  checkpointRows,
+  mergeScored,
+  readScored,
+  toCheckpointRow,
+  writeScored,
+} from '../dist/index.js';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'shortlist-csv-'));
 
@@ -144,4 +151,84 @@ test('a row with no placeId is kept rather than dropped', () => {
   writeScored(file, merged.text);
   assert.equal(merged.orphans, 1);
   assert.match(readFileSync(file, 'utf8'), /Hand Added Lead/);
+});
+
+/* --- the mid-sweep checkpoint -------------------------------------------- */
+
+const swept = (over = {}) => ({
+  placeId: 'p1',
+  name: 'Alpha Machine',
+  nicheSlug: 'machine-shop',
+  nicheLabel: 'machine shop',
+  town: 'Lodi',
+  address: '1 Main St',
+  phone: '(201) 555-0100',
+  website: '',
+  types: [],
+  rating: '',
+  reviewCount: '',
+  copyPack: 'machine-shop',
+  seenIn: ['machine-shop/Lodi'],
+  ...over,
+});
+
+test('a checkpoint row carries discovery and leaves every assessed column empty', () => {
+  const r = toCheckpointRow(swept());
+  assert.equal(r.placeId, 'p1');
+  assert.equal(r.name, 'Alpha Machine');
+  assert.equal(r.town, 'Lodi');
+  assert.equal(r.phone, '(201) 555-0100');
+  // Unmeasured is empty — never a zero standing in for a score.
+  assert.equal(r.websiteStatus, '');
+  assert.equal(r.score, '');
+  assert.equal(r.reasons, '');
+});
+
+test('a checkpoint never overwrites a score an earlier run measured', () => {
+  const file = join(tmp(), 'out.csv');
+  writeScored(file, mergeScored(readScored(file), [row({ placeId: 'p1', score: '88' })]).text);
+
+  // The same business turns up again mid-sweep, before this run has assessed it.
+  const rows = checkpointRows([swept({ placeId: 'p1' })], readScored(file));
+  assert.equal(rows.length, 0, 'an already-scored row is left alone');
+
+  writeScored(file, mergeScored(readScored(file), rows).text);
+  assert.equal(readScored(file).rows.get('p1').score, '88', 'the measurement survives');
+});
+
+test('a checkpoint does write a business the file has never seen', () => {
+  const file = join(tmp(), 'out.csv');
+  writeScored(file, mergeScored(readScored(file), [row({ placeId: 'p1' })]).text);
+
+  const rows = checkpointRows([swept({ placeId: 'p2', name: 'Beta Welding' })], readScored(file));
+  assert.equal(rows.length, 1);
+
+  writeScored(file, mergeScored(readScored(file), rows).text);
+  const after = readScored(file);
+  assert.equal(after.rows.get('p2').name, 'Beta Welding');
+  assert.equal(after.rows.get('p2').score, '', 'written as unscored, not as a zero');
+  assert.equal(after.rows.get('p1').score, '88', 'the other row is untouched');
+});
+
+test('a checkpoint refreshes a row an earlier crash left unscored', () => {
+  const file = join(tmp(), 'out.csv');
+  writeScored(file, mergeScored(readScored(file), [toCheckpointRow(swept({ placeId: 'p3' }))]).text);
+
+  const rows = checkpointRows([swept({ placeId: 'p3', phone: '(201) 555-0199' })], readScored(file));
+  assert.equal(rows.length, 1, 'an unscored row is safe to rewrite');
+});
+
+test("a checkpoint preserves Ryan's own columns, like any other write", () => {
+  const file = join(tmp(), 'out.csv');
+  writeFileSync(
+    file,
+    `${SCORED_COLUMNS.join(',')},NOTES\np9,Gamma Tool,machine shop,Lodi,,,,,,machine-shop,CALLED,left a voicemail\n`,
+    'utf8',
+  );
+  const rows = checkpointRows([swept({ placeId: 'p9', name: 'Gamma Tool' })], readScored(file));
+  writeScored(file, mergeScored(readScored(file), rows).text);
+
+  const after = readScored(file).rows.get('p9');
+  assert.equal(after.NOTES, 'left a voicemail');
+  assert.equal(after.status, 'CALLED', 'a checkpoint never resets tracking state');
 });
