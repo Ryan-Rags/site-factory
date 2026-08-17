@@ -50,6 +50,12 @@ export interface Generated extends CopyOutput {
   jsonLd: JsonLdSeed;
   /** Titles and descriptions that overrun their listing budget. */
   seoWarnings: SeoLengthWarning[];
+  /**
+   * SEO decisions the operator should see, chiefly which home-title tier was
+   * used when the full formula would not clear the metadata gate. Empty is the
+   * normal case: the title fitted as written.
+   */
+  seoNotes: string[];
   /** Services with no niche taxonomy entry, which got minimal descriptions. */
   unmappedServices: MarkerReport[];
   /** Facts inherited from the existing mockups rather than sourced afresh. */
@@ -161,6 +167,7 @@ export function generate(record: ProspectRecord): Generated {
     pages,
     seo: seoOut.seo,
     seoWarnings: seoOut.warnings,
+    seoNotes: seoOut.notes,
     jsonLd: jsonLd(ctx, faqOut.items),
     markers: trustOut.markers,
     droppedQuestions: faqOut.dropped,

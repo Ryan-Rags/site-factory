@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { dataDir, readLeads, slugify, type LeadRow } from "@site-factory/discover";
@@ -39,4 +39,108 @@ export function findLeadRow(id: string): LeadRow | null {
     if (hit) return hit;
   }
   return null;
+}
+
+/**
+ * The place id for a slug, from any CSV in `data/` that carries one.
+ *
+ * A second reader beside {@link findLeadRow}, and it exists because the two
+ * shapes are genuinely different files. `readLeads` parses the *discovery*
+ * schema (`name,phone,url,city,niche,place_id`); the shortlist sweep writes its
+ * own (`placeId,name,niche,types,nicheMatch,town,…`), which `readLeads` cannot
+ * read and which is what the 2026-08-16 batch of 50 came from. Teaching
+ * `readLeads` both shapes would put a second schema inside the discovery
+ * package for one column's sake.
+ *
+ * Reads the header, finds a place-id column and a name column under either
+ * spelling, and matches on the slug. **No network call** — this is a file read,
+ * which is the whole point: it backfills the identity of a record ingested
+ * before `placeId` was a field without spending a Places call to re-learn
+ * something we already wrote down.
+ *
+ * Returns null when nothing matches, which is not an error: a prospect nobody
+ * discovered has no row anywhere.
+ */
+export function findPlaceId(id: string): { placeId: string; file: string } | null {
+  if (!existsSync(dataDir)) return null;
+
+  for (const file of readdirSync(dataDir).filter((f) => f.toLowerCase().endsWith(".csv")).sort()) {
+    let text: string;
+    try {
+      text = readFileSync(join(dataDir, file), "utf8");
+    } catch {
+      continue;
+    }
+    const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
+    const header = splitCsvLine(lines[0] ?? "").map((h) => h.trim().toLowerCase());
+    const idAt = header.findIndex((h) => h === "placeid" || h === "place_id");
+    const nameAt = header.indexOf("name");
+    if (idAt === -1 || nameAt === -1) continue;
+
+    for (const line of lines.slice(1)) {
+      const cells = splitCsvLine(line);
+      const name = cells[nameAt];
+      const placeId = cells[idAt];
+      if (name === undefined || !placeId) continue;
+      if (slugsFor(name).includes(id)) return { placeId, file };
+    }
+  }
+  return null;
+}
+
+/**
+ * Every slug a business name could reasonably have been filed under.
+ *
+ * There are two slugification conventions in this repo and they disagree on one
+ * character. `slugify` in `@site-factory/discover` drops `&`, so
+ * `A&A Bergen Home Improvements` becomes `a-a-bergen-home-improvements`. The
+ * 2026-08-16 batch of 50 expanded it, filing the same business as
+ * `a-and-a-bergen-home-improvements` — and 14 of those 50 names carry an
+ * ampersand, so a lookup on `slugify(name)` alone misses exactly those 14.
+ *
+ * Both are matched here rather than one being declared right. This function
+ * *finds* a record; it does not name one. Renaming 14 directories to agree with
+ * `slugify` would move 14 already-deployed `<slug>-preview.pages.dev` URLs that
+ * are printed on a call sheet, which is a far worse outcome than accepting two
+ * spellings on the read path. The divergence itself is recorded in
+ * `docs/known-issues.md` — this is the workaround, not the fix.
+ */
+function slugsFor(name: string): string[] {
+  const dropped = slugify(name);
+  const expanded = slugify(name.replace(/&/g, " and "));
+  return dropped === expanded ? [dropped] : [dropped, expanded];
+}
+
+/**
+ * One CSV line into cells, honouring double quotes.
+ *
+ * Deliberately small rather than a dependency: the only thing read here is one
+ * column of an identifier, and the sweep's own writer quotes fields containing
+ * commas. A row this cannot parse yields a wrong-looking name, fails the slug
+ * comparison, and contributes nothing — the failure mode is "no place id", not
+ * "the wrong place id".
+ */
+function splitCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else quoted = false;
+      } else cell += ch;
+      continue;
+    }
+    if (ch === '"') quoted = true;
+    else if (ch === ",") {
+      cells.push(cell);
+      cell = "";
+    } else cell += ch;
+  }
+  cells.push(cell);
+  return cells;
 }

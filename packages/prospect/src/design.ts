@@ -134,6 +134,167 @@ function schemeOf(
   return tone;
 }
 
+/* --------------------------------------------------------------- variety */
+
+/**
+ * Which tone and which accent this prospect gets, inside the family the niche
+ * already chose.
+ *
+ * ## The problem
+ *
+ * `presetFor` keys on niche and nothing else, which is correct — the family is a
+ * property of the trade. But 44 of the 50 prospects in the 2026-08-16 Bergen
+ * batch are general contractors, so 44 demos came out on `meridian`, in its
+ * default tone, wearing `accents[0]`. Byte-identical design across a whole
+ * morning of calls, which is a pitch problem even though every individual
+ * choice was right. PR #54's Brief item 4; ruled 2026-08-17.
+ *
+ * ## What rotates, and what does not
+ *
+ * The family does not. That mapping is the template's own judgment about what a
+ * trade should look like and this function does not touch it. What rotates is
+ * the two axes underneath it that the customizer already offers a visitor:
+ *
+ *  - **the tone**, across the schemes whose palette a reader can actually read.
+ *    A family where only one tone qualifies keeps its `defaultScheme`, which is
+ *    the previous behaviour.
+ *  - **the accent**, across that tone's swatches that clear
+ *    `designAccentPasses` against the palette actually in play. AA-passing only,
+ *    and never an adjusted colour: `presets.ts` is explicit that a shifted
+ *    colour is a different colour.
+ *
+ * With 8 curated accents per tone and 2 tones, that is up to 16 distinct looks
+ * inside one family — enough that 44 contractors do not read as one template.
+ *
+ * The font pairing deliberately stays at `fonts[0]`. It was not in the ruling,
+ * and a family's first pairing is the one its headline sizes were tuned
+ * against; rotating type is a design decision, not a variety knob.
+ */
+interface Rotation {
+  scheme: SchemeName;
+  accent: string;
+  schemeCount: number;
+  accentCount: number;
+}
+
+/**
+ * The accents of one tone that a reader can read, in `presets.json` order.
+ *
+ * The swatches are curated and measured upstream, so this should never filter
+ * anything — which is exactly why it runs. `check-contrast.mjs --matrix` cannot
+ * see a generated config (it reads `clients/design/*.json`), so this is the only
+ * place a generated demo's accent is checked before it ships. A swatch that
+ * fails here is a retuned palette upstream, and dropping it silently is better
+ * than shipping it and better than crashing the run.
+ */
+function legibleAccents(tone: PresetScheme): AccentSwatch[] {
+  return tone.accents.filter((swatch) =>
+    designAccentPasses(tone.palette, swatch.accent, swatch.onAccent),
+  );
+}
+
+/**
+ * Stable unsigned 32-bit hash of a string. No randomness, so runs repeat exactly.
+ *
+ * FNV-1a in `Math.imul` (which keeps the multiply in 32-bit integer space rather
+ * than overflowing into a float), followed by murmur3's `fmix32` avalanche. Both
+ * halves were paid for by a measurement, and it is worth recording which:
+ *
+ * The rotation draws **two** indices from this — a tone and an accent — and in
+ * FNV-1a, multiplication by an odd prime means the low *k* bits of the output
+ * depend only on the low *k* bits of the input. Two indices taken as `h % 2` and
+ * `h' % 8`, with `h'` the hash of the same key plus a fixed suffix, are
+ * therefore not independent: they are two views of the same low bits. Measured
+ * on these 50 records, that produced a *perfect partition* — each of meridian's
+ * 8 accents appeared under exactly one of its 2 tones, so the 44 contractors
+ * reached 8 of the family's 16 combinations. With the avalanche below they reach
+ * all 16, with 6 the largest repeat. Half the variety was being lost silently,
+ * by a hash that looked perfectly reasonable.
+ *
+ * `fmix32` folds the high bits down into the low ones, which is exactly what
+ * makes a small modulus safe to take twice.
+ *
+ * `niches.ts` keeps its own djb2 for the ±14° hue shift. Not from neglect: that
+ * key selects one value on a continuum where a poor spread is invisible, and
+ * changing it would move the palette of every demo already deployed.
+ */
+function hashKey(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i += 1) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return h >>> 0;
+}
+
+function rotate(preset: PresetFile["presets"][number], key: string): Rotation {
+  const schemes: SchemeName[] = ["light", "dark"];
+  const usable = schemes.filter((name) => {
+    const tone = preset.schemes?.[name];
+    if (!tone?.palette || !tone.accents) return false;
+    // A tone with no legible accent is not a tone this pipeline can offer. That
+    // also covers the palette itself: every pairing in `designPairings` that
+    // does not involve the accent is checked on each candidate, so a tone whose
+    // own body text fails drops out here rather than being caught downstream.
+    return legibleAccents(tone).length > 0;
+  });
+
+  /*
+   * Nothing usable means `presets.json` has changed underneath this package.
+   * Fall back to the declared default and let `schemeOf` raise the real error
+   * with the field path, rather than inventing a tone here.
+   */
+  const candidates = usable.length > 0 ? usable : [preset.defaultScheme];
+
+  // The default tone leads the rotation, so a family with one usable tone keeps
+  // exactly what it shipped with and the hash only ever *adds* variety.
+  const ordered = [
+    preset.defaultScheme,
+    ...candidates.filter((name) => name !== preset.defaultScheme),
+  ].filter((name) => candidates.includes(name));
+
+  const hash = hashKey(key);
+  const scheme = ordered[hash % ordered.length] ?? preset.defaultScheme;
+  const tone = preset.schemes?.[scheme];
+  const accents = tone ? legibleAccents(tone) : [];
+
+  /*
+   * A second, independent index for the accent.
+   *
+   * `hash % 2` for the tone and `hash % 8` for the accent are correlated —
+   * with 8 accents, every prospect on the dark tone would draw from the four
+   * odd-indexed swatches only, halving the variety this exists to create. The
+   * key is re-hashed with a suffix instead, which is cheap and decorrelated.
+   */
+  const accentHash = hashKey(`${key}:accent`);
+  const accent = accents[accentHash % Math.max(accents.length, 1)]?.id ?? accents[0]?.id ?? "";
+
+  return { scheme, accent, schemeCount: ordered.length, accentCount: accents.length };
+}
+
+/**
+ * What the rotation is keyed on, and its name for the run report.
+ *
+ * The place id, per the ruling: it is the only identifier for a business that
+ * survives a change of name, phone number or slug, so a re-run gives the same
+ * business the same design even if their listing has been edited. A record with
+ * no place id falls back to the slug — the key `generatePalette` has always used
+ * — and says so, because "why did this demo change colour" is a question asked
+ * days later by somebody who cannot see this code.
+ */
+function varietyKeyFor(prospect: ProspectConfig): { key: string; label: string } {
+  const placeId = valueOf(prospect.placeId);
+  if (placeId !== undefined && placeId !== "") {
+    return { key: placeId, label: "their place id" };
+  }
+  return { key: prospect.id, label: "the slug (no place id on the record)" };
+}
+
 /* ------------------------------------------------------------------ output */
 
 /**
@@ -209,10 +370,11 @@ export function buildDesign(opts: DesignOptions): DesignResult {
   const { prospect, site, copy, preset } = opts;
   const notes: string[] = [];
   const presetData = presetById(preset);
-  // The family's own tone. A generated demo does not pick one — the preset
-  // ships in the tone its family reads best in, and overriding that from a
-  // pipeline that has never seen the business is a guess, not a decision.
-  const scheme = presetData.defaultScheme;
+
+  // The tone and the accent, rotated within the family. See `rotate()`.
+  const variety = varietyKeyFor(prospect);
+  const rotation = rotate(presetData, variety.key);
+  const scheme = rotation.scheme;
   const tone = schemeOf(presetData, scheme);
 
   const place = [site.business.address.locality, site.business.address.region]
@@ -224,9 +386,15 @@ export function buildDesign(opts: DesignOptions): DesignResult {
   const theme: DesignBlock["theme"] = {
     preset,
     scheme,
-    accent: tone.accents[0]?.id ?? "",
+    accent: rotation.accent,
     fontPairing: presetData.fonts[0]?.id ?? "",
   };
+
+  notes.push(
+    `design: ${preset} in its ${scheme} tone with the "${rotation.accent}" accent — ` +
+      `${rotation.schemeCount} tone(s) × ${rotation.accentCount} AA-passing accent(s) available ` +
+      `in this family, selected on ${variety.label}`,
+  );
 
   const brand = prospect.brand.colors;
   if (prospect.brand.createdByUs) {

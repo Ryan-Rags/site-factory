@@ -1,0 +1,30 @@
+# R4 evidence — /data/* was not ignored
+
+$ git status --short   (before the .gitignore change)
+?? PLAN-batch-2-readiness.md
+?? data/batch-log/
+?? data/roster-50.json
+?? docs/evidence/r4-gitignore-before.txt
+
+$ git check-ignore -v data/roster-50.json data/batch-log/ak-welding-llc.log
+.gitignore:3:*.log	data/batch-log/ak-welding-llc.log
+
+=== AFTER the .gitignore change ===
+
+$ git status --short
+ M .gitignore
+?? PLAN-batch-2-readiness.md
+?? docs/evidence/r4-gitignore-before.txt
+
+$ git check-ignore -v data/roster-50.json data/call-sheet.csv data/prospects-scored.csv data/batch-log/results.tsv data/usage-x.json
+.gitignore:176:/data/*	data/roster-50.json
+.gitignore:176:/data/*	data/call-sheet.csv
+.gitignore:176:/data/*	data/prospects-scored.csv
+.gitignore:176:/data/*	data/batch-log/results.tsv
+.gitignore:176:/data/*	data/usage-x.json
+
+$ git check-ignore -v data/businesses.sample.csv   (must NOT be ignored)
+(not ignored — correct, it stays tracked)
+
+$ git ls-files data/   (still tracked)
+data/businesses.sample.csv

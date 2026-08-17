@@ -139,6 +139,11 @@ export function writeCopy(prospect: ProspectConfig): CopyResult {
       `copy: seo.${warning.field} is ${warning.length} characters against a ${warning.budget} budget — it will be truncated in listings`,
     );
   }
+  // The title-tier decisions. Separate from the warnings above because they are
+  // not overruns: they are the engine narrowing a title on purpose so the
+  // build's metadata gate passes, and the operator should know which of a batch
+  // went out with a shorter title than the formula wanted.
+  notes.push(...generated.seoNotes.map((note) => `copy: ${note}`));
 
   return result;
 }

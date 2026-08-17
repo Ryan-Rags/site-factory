@@ -28,11 +28,28 @@
     // src/lib/http.ts.
     "ALLOWED_ORIGIN_SUFFIXES": "pages.dev",
 
-    // Which prospects may post here. Must match the clients/index.ts registry;
-    // `scripts/check-form-fields.mjs` fails the build when the two drift.
-    // Anything not listed is refused, so this list is what stops a shared
-    // endpoint from being an open relay — and a slug missing here means that
-    // demo's form 422s in front of a prospect.
+    // Which prospects may post here. Anything not listed is refused, so this
+    // list is what stops a shared endpoint from being an open relay — and a slug
+    // missing here means that demo's form 422s in front of a prospect.
+    //
+    // It must equal `clients/index.ts` ∪ `prospects/known.json`, in both
+    // directions; `scripts/check-form-fields.mjs` fails the build when they
+    // drift. Two lists rather than one because a generated prospect demo has no
+    // config under clients/ and never will — its config is built from gitignored
+    // `prospects/` and handed to Astro as SITE_CONFIG_FILE. Registering the 50
+    // generated demos against the clients-only version of that check is what
+    // turned it red with 100 problems in PR #54. Regenerate the second list with
+    // `pnpm demo -- --emit-known`.
+    //
+    // THE 50 GENERATED DEMOS GET NO `PROSPECT_RECIPIENTS` ENTRY, deliberately:
+    // every one of their leads falls back to MAIL_TO, which is our own inbox.
+    // A demo is a pitch, the shop has not agreed to hear from us, and routing
+    // enquiries to an address off a scraped listing would put our pitch traffic
+    // in somebody else's mailbox. Routing changes when they say yes.
+    //
+    // They get no `PROSPECT_FIELDS` entry either: they emit no `forms.fields`
+    // block, so they resolve to the template's defaults, which are byte-for-byte
+    // the defaults in src/lib/fields.ts. Nothing to state, nothing to drift.
     //
     // `zz-fixture-phone-optional` is a TEST FIXTURE, not a prospect. It exists
     // to exercise a non-default field rule server-side, and it is never
@@ -53,7 +70,7 @@
     // deliberately get no PROSPECT_FIELDS entry below, and neither is ever
     // deployed. See clients/zz-fixture-long-name.config.ts and
     // clients/zz-fixture-motion.config.ts.
-    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage,zz-fixture-phone-optional,zz-fixture-go-live,zz-fixture-long-name,zz-fixture-motion",
+    "KNOWN_PROSPECTS": "kh-machine-works,kts-machine-shop,american-machine-specialty,industrial-machine-corp,ks-welding,ks-welding-forge,ks-welding-precision,ks-welding-heritage,zz-fixture-phone-optional,zz-fixture-go-live,zz-fixture-long-name,zz-fixture-motion,a-and-a-bergen-home-improvements,aaa-construction-and-renovations,ak-welding-llc,auto-tig-fab,avishay-contractors-kitchen-and-bath-remodeling,ben-custom-construction-llc,bliss-construction-llc,c3m-of-nj-home-renovation-affordable-handyman,charles-renovations-construction-company,chavez-and-sons-roofing-and-construction,cnr-construction-and-masonry-llc,cornerstone-roofing-and-restoration,dalmatia-roofing,dior-construction,done-by-brandon-llc-home-improvement-and-gc,e-and-e-construction-llc,elite-work-exterior-and-roofing,elvis-construction-llc-masonry,established-construction,euro-pro-construction,fc-and-sons-construction-corporation,fenomenal-iron-works-llc,frank-conforti-contracting,fsg-construction-llc,geotower-construction-llc,gnc-general-construction-llc,grand-nj-construction,hadodo-construction,hdl-construction-llc,hudson-metal-works,iwmi-projects,jersey-railing-and-welding,jes-roofing-and-general-construction-llc,levy-home-remodeling,lt-construction-services-llc,mark-fanella-construction-co,mayfair-remodeling,nj-premium-construction,nuvista-designs-general-contractors-llc,perfect-welder-fabrication-and-repair,pro-build-construction,pro-excellent-construction-llc,r-and-r-building-services-nj,skyline-roof-repairs-and-replacement,top-choice-construction-llc,top-performer-construction-llc,trussty-hand-llc-construction,universal-roofing-and-chimney,work-pro-construction,ztm-construction-llc",
 
     // Who each prospect's leads belong to: `slug=address,slug=address`.
     // A prospect with no entry falls back to MAIL_TO, which is how every demo

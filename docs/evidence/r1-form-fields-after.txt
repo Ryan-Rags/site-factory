@@ -1,0 +1,16 @@
+# R1 evidence — the widened gate still bites, both directions
+
+## a) a registered demo dropped from KNOWN_PROSPECTS
+✗ worker-demo/wrangler.jsonc: KNOWN_PROSPECTS is missing "ztm-construction-llc" (in prospects/known.json) — that demo's form would 422
+1 problem(s) in the form field rules.
+
+## b) a slug the Worker admits that nothing can build
+✗ worker-demo/wrangler.jsonc: KNOWN_PROSPECTS has "retired-demo-nobody-owns", which is neither a client config nor a slug in prospects/known.json. Either it is a typo, or a demo was retired without being de-registered — a slug the Worker admits and nobody can account for.
+1 problem(s) in the form field rules.
+
+## c) a PROSPECT_FIELDS entry for a generated demo
+✗ worker-demo/wrangler.jsonc: PROSPECT_FIELDS has "ztm-construction-llc", a generated demo. Generated demos carry no forms.fields block, so there is no config side to hold this entry to and nothing would catch it going stale. Delete the entry; the defaults already agree.
+1 problem(s) in the form field rules.
+
+## restored
+✓ 12 client(s) + 50 generated demo(s): every form keeps a contact channel, and worker-demo/wrangler.jsonc + worker-demo/wrangler.local.jsonc admit exactly those 62 slug(s).

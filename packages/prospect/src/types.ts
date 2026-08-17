@@ -138,6 +138,21 @@ export interface ProspectConfig {
   /** ISO timestamp of the ingest run that wrote this file. */
   generatedAt: string;
 
+  /**
+   * The Google Places id, when a source gave us one.
+   *
+   * Held for identity, not for display: nothing renders it. It is the one
+   * identifier for a business that does not change when their name, their phone
+   * number or our slug does, which is what makes it the right key for a
+   * decision that has to stay stable across re-runs — see `varietyKeyFor` in
+   * `design.ts`, which rotates a design family's tone and accent on it so that
+   * 44 contractors in one niche do not get 44 identical demos.
+   *
+   * Never used to make a claim: a place id is not evidence of anything about a
+   * business, only of which listing we read.
+   */
+  placeId: Field<string>;
+
   businessName: Field<string>;
   legalName: Field<string>;
   niche: Field<string>;

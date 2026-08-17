@@ -16,11 +16,35 @@
  *    stops asking for a field, the Worker keeps demanding it, and every
  *    submission 422s in front of a customer with the shop none the wiser.
  *
- * It also checks the two lists either side of the same fence: every registered
- * client must be in `KNOWN_PROSPECTS` (a slug missing there gets a 422 in front
- * of a prospect), and every routing entry must name a prospect that exists (a
+ * It also checks the two lists either side of the same fence: every buildable
+ * slug must be in `KNOWN_PROSPECTS` (a slug missing there gets a 422 in front of
+ * a prospect), and every routing entry must name a prospect that exists (a
  * typo'd key silently falls back to `MAIL_TO`, so the lead survives and the
  * routing is a lie).
+ *
+ * ## "Buildable slug" means two lists, not one
+ *
+ * It used to mean `clients/` alone, and that was wrong in a way that cost 33
+ * demos their contact form. A generated prospect demo is built from a config
+ * under gitignored `prospects/` handed to Astro as `SITE_CONFIG_FILE`; it has no
+ * file under `clients/` and never will, because ingested third-party data does
+ * not go in the repo. So when PR #54 registered its 50 generated demos in
+ * `KNOWN_PROSPECTS`, this gate reported 100 problems — 50 slugs × 2 wrangler
+ * files — and every prospect build after the edit failed. The gate was right
+ * about the drift and wrong about the universe.
+ *
+ * The universe is now:
+ *
+ *     KNOWN_PROSPECTS === clients/index.ts ∪ prospects/known.json
+ *
+ * `prospects/known.json` is committed and holds slugs only — see the `note`
+ * inside it. It is regenerated with `pnpm demo -- --emit-known`.
+ *
+ * `PROSPECT_FIELDS` is still compared against `clients/` only, and deliberately.
+ * A generated demo emits no `forms.fields` block, so it resolves to the
+ * template's defaults, which are byte-for-byte the Worker's defaults — there is
+ * nothing to compare and an absent entry is the correct state. An entry naming a
+ * generated slug is still refused: it would be a rule nothing can verify.
  *
  * Same technique as `check-contact-links.mjs`: plain Node cannot import the
  * TypeScript registry, so the configs are read with anchored regexes. The
@@ -38,6 +62,7 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const pkgRoot = join(here, '..');
 const clientsDir = join(pkgRoot, 'clients');
 const workerDir = join(pkgRoot, 'worker-demo');
+const knownProspectsFile = join(pkgRoot, 'prospects', 'known.json');
 
 const FIELD_NAMES = ['name', 'phone', 'email', 'service', 'message', 'file'];
 
@@ -137,6 +162,57 @@ for (const slug of slugs) {
   }
 }
 
+/**
+ * The generated demos: slugs only, from the committed registry.
+ *
+ * A missing file is not an error — a checkout that has never run a batch has no
+ * generated demos — but a malformed one is, because the failure it would
+ * otherwise cause is the gate quietly reverting to clients-only and reporting
+ * every prospect as unknown.
+ */
+function readKnownProspects() {
+  if (!existsSync(knownProspectsFile)) return [];
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(knownProspectsFile, 'utf8'));
+  } catch (err) {
+    fail(`prospects/known.json is not valid JSON: ${err.message}`);
+    return [];
+  }
+  if (!Array.isArray(doc.slugs)) {
+    fail('prospects/known.json has no "slugs" array');
+    return [];
+  }
+  const out = [];
+  for (const slug of doc.slugs) {
+    if (typeof slug !== 'string' || !/^[a-z0-9-]+$/.test(slug)) {
+      fail(`prospects/known.json: "${slug}" is not a slug`);
+      continue;
+    }
+    // The registry is slugs only, on purpose. A value carrying an `@`, a digit
+    // run that looks like a phone number, or a `ChIJ…` place id means somebody
+    // has started keeping client data in a committed file.
+    if (slug.startsWith('chij')) {
+      fail(`prospects/known.json: "${slug}" looks like a place id, not a slug`);
+      continue;
+    }
+    if (clientSlugs.includes(slug)) {
+      fail(
+        `prospects/known.json lists "${slug}", which is also a client config. One slug, one ` +
+          `owner: a generated demo must not shadow a hand-authored client.`,
+      );
+      continue;
+    }
+    out.push(slug);
+  }
+  return out;
+}
+
+const clientSlugs = slugs;
+const prospectSlugs = readKnownProspects();
+/** Every slug this repo can build, and therefore every slug the Worker may admit. */
+const buildable = [...clientSlugs, ...prospectSlugs].sort();
+
 const byClient = new Map();
 for (const slug of slugs) {
   const rules = clientRules(slug);
@@ -199,14 +275,22 @@ function checkWorkerConfig(file) {
   const known = list(varOf(source, 'KNOWN_PROSPECTS'));
   if (known.length === 0) fail(`${label}: KNOWN_PROSPECTS is empty or missing`);
 
-  for (const slug of slugs) {
+  // The bijection, both directions, against every slug this repo can build.
+  for (const slug of buildable) {
     if (!known.includes(slug)) {
-      fail(`${label}: KNOWN_PROSPECTS is missing "${slug}" — that demo's form would 422`);
+      const where = clientSlugs.includes(slug) ? 'clients/index.ts' : 'prospects/known.json';
+      fail(
+        `${label}: KNOWN_PROSPECTS is missing "${slug}" (in ${where}) — that demo's form would 422`,
+      );
     }
   }
   for (const slug of known) {
-    if (!slugs.includes(slug)) {
-      fail(`${label}: KNOWN_PROSPECTS has "${slug}", which is not a client config`);
+    if (!buildable.includes(slug)) {
+      fail(
+        `${label}: KNOWN_PROSPECTS has "${slug}", which is neither a client config nor a slug in ` +
+          `prospects/known.json. Either it is a typo, or a demo was retired without being ` +
+          `de-registered — a slug the Worker admits and nobody can account for.`,
+      );
     }
   }
 
@@ -216,7 +300,13 @@ function checkWorkerConfig(file) {
   const workerFields = parseWorkerFields(varOf(source, 'PROSPECT_FIELDS'));
   for (const [slug, rules] of workerFields) {
     if (!slugs.includes(slug)) {
-      fail(`${label}: PROSPECT_FIELDS has "${slug}", which is not a client config`);
+      fail(
+        prospectSlugs.includes(slug)
+          ? `${label}: PROSPECT_FIELDS has "${slug}", a generated demo. Generated demos carry no ` +
+              `forms.fields block, so there is no config side to hold this entry to and nothing ` +
+              `would catch it going stale. Delete the entry; the defaults already agree.`
+          : `${label}: PROSPECT_FIELDS has "${slug}", which is not a client config`,
+      );
       continue;
     }
     if (!satisfiable(rules)) {
@@ -279,6 +369,7 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `✓ ${slugs.length} client(s): every form keeps a contact channel, and ${checked.join(' + ')} ` +
-    `agree with them.`,
+  `✓ ${clientSlugs.length} client(s) + ${prospectSlugs.length} generated demo(s): every form ` +
+    `keeps a contact channel, and ${checked.join(' + ')} admit exactly those ${buildable.length} ` +
+    `slug(s).`,
 );

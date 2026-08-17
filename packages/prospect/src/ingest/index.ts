@@ -116,6 +116,9 @@ export async function ingestProspect(
     // but it is exactly what the service-area line wants.
     if (lead.city) contribution.serviceArea = known([lead.city], "website", at, "lead CSV city");
     applyContribution(prospect, contribution);
+    if (lead.place_id) {
+      prospect.placeId = known(lead.place_id, "website", at, "lead CSV");
+    }
   } else {
     log.push("lead row: none found in data/*.csv");
     /*
@@ -201,6 +204,10 @@ export async function ingestProspect(
           log.push(`places: ${result.failure}`);
         } else {
           applyContribution(prospect, result.contribution);
+          // The id the details actually came back for, which is the strongest
+          // provenance available: it is the listing we read, not a listing a CSV
+          // said we would read.
+          if (result.placeId) prospect.placeId = known(result.placeId, "places", at, "Places details");
           log.push(`places: details fetched for ${result.placeId}`);
         }
       } catch (err) {

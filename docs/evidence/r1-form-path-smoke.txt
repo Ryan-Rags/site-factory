@@ -1,0 +1,48 @@
+# R1 evidence — form-path smoke on 2 sample prospects
+
+Worker version 2d1aef2c-d0a4-4e60-a968-64e3f520b176, 62 slugs admitted.
+Samples chosen to differ: ztm-construction-llc (meridian, plain slug) and
+jersey-railing-and-welding (forge, one of the 14 slugs where the batch expanded '&' to 'and').
+
+The honeypot check runs BEFORE the KNOWN_PROSPECTS check, so a honeypot POST
+answers 200 for an unregistered slug too and cannot prove admission (known-issues #12).
+Probe 2 is the discriminator: reaching field validation proves the slug cleared the
+registry, and costs no email and no KV lead.
+
+
+## ztm-construction-llc
+  PASS  unknown slug is refused: got 422 unknown_prospect, expected 422 unknown_prospect
+  PASS  registered slug reaches field validation: got 422 validation_failed, expected 422 validation_failed
+        fields reported missing: ["contact","message"]
+  PASS  honeypot submission is absorbed: got 200 true, expected 200 true
+  PASS  customizer JSON is accepted: got 200 true, expected 200 true
+  PASS  customizer JSON from an unknown slug is refused: got 422 unknown_prospect, expected 422 unknown_prospect
+  PASS  https://ztm-construction-llc-preview.pages.dev/contact/ serves: got 200, expected 200
+  PASS  served page has exactly one <form>: got 1, expected 1
+  PASS  served page carries the endpoint: got true, expected true
+  PASS  served page carries its own prospectId: got true, expected true
+
+## jersey-railing-and-welding
+  PASS  unknown slug is refused: got 422 unknown_prospect, expected 422 unknown_prospect
+  PASS  registered slug reaches field validation: got 422 validation_failed, expected 422 validation_failed
+        fields reported missing: ["contact","message"]
+  PASS  honeypot submission is absorbed: got 200 true, expected 200 true
+  PASS  customizer JSON is accepted: got 200 true, expected 200 true
+  PASS  customizer JSON from an unknown slug is refused: got 422 unknown_prospect, expected 422 unknown_prospect
+  PASS  https://jersey-railing-and-welding-preview.pages.dev/contact/ serves: got 200, expected 200
+  PASS  served page has exactly one <form>: got 1, expected 1
+  PASS  served page carries the endpoint: got true, expected true
+  PASS  served page carries its own prospectId: got true, expected true
+
+ALL PROBES PASSED
+
+## KV after the smoke (wrangler kv key list --binding SUBMISSIONS)
+
+  ztm-construction-llc         design: 2   demo(lead): 0   rate: 1
+  jersey-railing-and-welding   design: 1   demo(lead): 0   rate: 1
+
+`design:` keys prove the customizer payload reached KV and was mailed — the path
+that answered 400 before this stream. `demo:` at 0 proves the smoke wrote and
+mailed no lead: probe 2 fails validation before the KV write, and probe 3's
+honeypot exits before the gate. `rate:` proves the shared per-prospect limiter
+counted both kinds.

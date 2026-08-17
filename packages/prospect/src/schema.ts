@@ -26,6 +26,7 @@ export function emptyProspect(id: string, generatedAt: string = new Date().toISO
   return {
     id,
     generatedAt,
+    placeId: none("a Google Places id"),
     businessName: none("a business name"),
     legalName: none("a legal name"),
     niche: none("a niche"),
@@ -56,8 +57,28 @@ export function writeProspect(file: string, prospect: ProspectConfig): void {
   writeFileSync(file, `${JSON.stringify(prospect, null, 2)}\n`, "utf8");
 }
 
+/**
+ * Read a record, tolerating one written before a field existed.
+ *
+ * `prospects/` is gitignored working data with no migration story: the 50
+ * records from the 2026-08-16 batch were written before `placeId` was a field,
+ * and every one of them is re-used with `--skip-ingest` rather than re-ingested,
+ * because re-ingesting under the Places call freeze would blank the reviews,
+ * rating and photos they already carry.
+ *
+ * So a missing field is filled with the same `unavailable` the empty record
+ * would have had, rather than left `undefined` for `valueOf` to trip over. The
+ * absent-field list is deliberately explicit and short: a general "merge over
+ * emptyProspect" would also paper over a record that is genuinely corrupt.
+ */
 export function readProspect(file: string): ProspectConfig {
-  return JSON.parse(readFileSync(file, "utf8")) as ProspectConfig;
+  const parsed = JSON.parse(readFileSync(file, "utf8")) as ProspectConfig;
+  if (parsed.placeId === undefined) {
+    parsed.placeId = unavailable(
+      "this record predates the placeId field, and no source has been re-read since",
+    );
+  }
+  return parsed;
 }
 
 /** Every field that no source could fill, for the run report. */
