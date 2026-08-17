@@ -1,0 +1,61 @@
+---
+/**
+ * The founder footer lists both inboxes plainly — that is the point of it, and
+ * the spec asks for it on the home page.
+ *
+ * The amenity footer cannot. It shows the brand, a labelled CTA and one quiet
+ * line back to the founder site, and it renders no email address as text at
+ * all. Same reason as the header: `check-amenity-wording.mjs` fails the build if
+ * that page's visible text ever contains the amenity mailbox's local part, and a
+ * shared footer that printed the address would trip it on every deploy.
+ */
+import { AMENITY_BRAND, EMAIL_AMENITY, EMAIL_DEV, FULL_NAME, PLACEHOLDERS, REGION } from '../site';
+import Placeholder from './Placeholder.astro';
+
+interface Props {
+  chrome: 'founder' | 'amenity';
+}
+
+const { chrome } = Astro.props;
+const year = 2026;
+---
+
+<footer class="foot">
+  <div class="shell">
+    {
+      chrome === 'amenity' ? (
+        <div class="foot__grid">
+          <div class="stack" style="gap:0.5rem">
+            <p style="color:var(--ink);font-weight:600">{AMENITY_BRAND}</p>
+            <p>Curated smart markets for luxury residential buildings. New Jersey.</p>
+          </div>
+          <div class="stack" style="gap:0.75rem">
+            <a class="btn" href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+            <p style="font-size:0.8125rem">
+              A venture of <a href="/">{FULL_NAME}</a>, {REGION}.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div class="foot__grid">
+          <div class="stack" style="gap:0.5rem">
+            <p style="color:var(--ink);font-weight:600">{FULL_NAME}</p>
+            <p>Full-stack developer &amp; founder · {REGION}</p>
+            <p style="font-size:0.8125rem;opacity:0.7">© {year} {FULL_NAME}</p>
+          </div>
+
+          <dl>
+            <dt>Websites &amp; AI</dt>
+            <dd><a href={`mailto:${EMAIL_DEV}`}>{EMAIL_DEV}</a></dd>
+            <dt>{AMENITY_BRAND}</dt>
+            <dd><a href={`mailto:${EMAIL_AMENITY}`}>{EMAIL_AMENITY}</a></dd>
+            <dt>LinkedIn</dt>
+            <dd>
+              <Placeholder token={PLACEHOLDERS.linkedin} note="Paste the public LinkedIn profile URL here." />
+            </dd>
+          </dl>
+        </div>
+      )
+    }
+  </div>
+</footer>

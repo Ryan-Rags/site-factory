@@ -1,0 +1,118 @@
+---
+/**
+ * The only page with personal content, and the only one written in a
+ * conversational register.
+ *
+ * Everything factual here comes from what Ryan told me: development work at CED
+ * and Prudential, years around competitive gaming and streaming, three sports,
+ * and the three ventures he runs now. What is deliberately ABSENT is every
+ * specific I was not given — tenures, titles, team names, follower counts, times
+ * and placings. Those are the details that make an about page good, and also the
+ * ones that get invented to fill a rhythm, so the prose is shaped to read
+ * naturally without them and Ryan can sharpen it in a pass of his own.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
+---
+
+<BaseLayout page={PAGES.about} ogAlt={`About ${FULL_NAME}`}>
+  <section class="hero">
+    <div class="shell stack">
+      <p class="eyebrow">About</p>
+      <h1 class="h1">The longer version</h1>
+      <p class="lede">
+        The rest of this site is about work. This page is about how I got to it.
+      </p>
+    </div>
+  </section>
+
+  <section class="section section--plain">
+    <div class="shell stack">
+      <h2 class="h2 tick">Enterprise first</h2>
+      <div class="prose">
+        <p>
+          I started in enterprise development — at CED, and then at Prudential. Big systems, long
+          release trains, code that other people's jobs depended on. It is not a glamorous way to
+          learn, but it is a thorough one: you find out quickly that most software problems are
+          really communication problems, and that the person who can explain a tradeoff in plain
+          language is worth more than the person who can only implement it.
+        </p>
+        <p>
+          The other thing that work gave me was a low tolerance for hand-waving. In a large
+          organisation you can ship something that nobody measures and never find out whether it
+          helped. I got tired of that. It is why every site I build now gets a real performance
+          number attached to it, and why I would rather tell a client an agent is not worth
+          building than sell them one.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <h2 class="h2 tick">Before that: an audience</h2>
+      <div class="prose">
+        <p>
+          Earlier on I spent a long stretch in competitive gaming, and a good chunk of it
+          streaming. It reads like an odd line on a founder page until you consider what it
+          actually is: you go live, in real time, with no edit button, and either people stay or
+          they leave. You learn to hold attention, to read a room you cannot see, and to be
+          unbothered when something breaks on camera.
+        </p>
+        <p>
+          I use that more than I expected to. A cold call with a property manager and a
+          three-hour stream have the same underlying problem — you have a very short window to be
+          worth listening to, and no amount of preparation substitutes for being at ease.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell stack">
+      <h2 class="h2 tick">Three sports, one habit</h2>
+      <div class="prose">
+        <p>
+          Track, basketball and soccer. Track taught me the thing I am most grateful for: that
+          progress is mostly boring, and that the work you do on a day you do not feel like it is
+          the work that counts. Basketball and soccer taught the opposite half — that you can be
+          the fittest person on the pitch and still lose because you would not pass.
+        </p>
+        <p>
+          I still train. It is the only reliable way I have found to keep running three things at
+          once without getting brittle about any of them.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <h2 class="h2 tick">What I am building now</h2>
+      <div class="prose">
+        <p>
+          Three things, all out of {REGION}.
+        </p>
+        <p>
+          <strong>site-factory</strong> — fast, honest websites for local businesses. Most of the
+          small-business web near me is either a decade-old page that does not work on a phone or
+          a template on a subscription nobody can cancel. There is a lot of room between those.
+        </p>
+        <p>
+          <strong>AI voice agents</strong> — the practical end of the AI wave. A dental practice
+          that misses calls at 6pm does not need a chatbot on its website; it needs the phone
+          answered. That is a solvable problem now, and it was not two years ago.
+        </p>
+        <p>
+          <strong>{AMENITY_BRAND}</strong> — curated smart markets in luxury residential
+          buildings. This one came from noticing that the amenity floor of a very nice building is
+          often the least considered part of it, and that the fix costs the building nothing.
+        </p>
+        <p>
+          If any of that is useful to you, or you just want to compare notes, I am at{' '}
+          <a href={`mailto:${EMAIL_DEV}`}>{EMAIL_DEV}</a>. I answer my own email.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RR">
+  <!-- apex/dark base and azure accent, same literals as global.css -->
+  <rect width="64" height="64" fill="#08090a" />
+  <rect x="0" y="0" width="64" height="2" fill="#0095fe" />
+  <text
+    x="32"
+    y="44"
+    text-anchor="middle"
+    font-family="Helvetica Neue, Inter, Arial, sans-serif"
+    font-size="34"
+    font-weight="800"
+    letter-spacing="-1.5"
+    fill="#fafafa"
+  >RR</text>
+</svg>

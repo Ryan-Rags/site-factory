@@ -1,0 +1,62 @@
+---
+/**
+ * The only layout. Every inversion from the client-template defaults lives here
+ * or in astro.config.mjs, and every one of them is asserted by a build gate:
+ *
+ *   INDEXED          no robots meta, no noindex; robots.txt allows; sitemap
+ *                    emitted and linked from the head.  → check-indexable.mjs
+ *   NO JSON-LD       this is a person's brochure, not a LocalBusiness. Claiming
+ *                    LocalBusiness for a home office would be a false claim
+ *                    about a real business, which the repo forbids outright.
+ *   NO FORMS         mailto only, so there is no Worker, no KV and no endpoint
+ *                    to leak.  → check-no-forms.mjs
+ *   NO CLIENT JS     nothing is hydrated and no <script> is emitted, which is
+ *                    also why _headers can carry a plain CSP-free header set
+ *                    with no hash machinery.  → check-no-forms.mjs
+ *
+ * `surface` swaps the token block for /amenity. It is an attribute on <html>
+ * rather than a class on a wrapper so the override reaches the document
+ * background too — otherwise a light page sits on a near-black canvas during
+ * overscroll on iOS.
+ */
+import Seo from '../components/Seo.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import type { PageMeta } from '../site';
+import '../styles/global.css';
+
+interface Props {
+  page: PageMeta;
+  ogAlt: string;
+  chrome?: 'founder' | 'amenity';
+  surface?: 'default' | 'amenity';
+}
+
+const { page, ogAlt, chrome = 'founder', surface = 'default' } = Astro.props;
+
+// Matches the two --base values in global.css, so the browser chrome and the
+// overscroll gutter agree with the page instead of flashing the other surface.
+const themeColor = surface === 'amenity' ? '#faf8f5' : '#08090a';
+---
+
+<!doctype html>
+<html lang="en" data-surface={surface === 'amenity' ? 'amenity' : undefined}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content={themeColor} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="generator" content={Astro.generator} />
+    <Seo page={page} ogAlt={ogAlt} />
+  </head>
+
+  <body>
+    <a class="skip" href="#main">Skip to main content</a>
+    <Header chrome={chrome} path={page.path} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer chrome={chrome} />
+  </body>
+</html>

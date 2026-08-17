@@ -1,0 +1,16 @@
+# This package is deliberately its OWN pnpm workspace root.
+#
+# The repo root's pnpm-workspace.yaml enumerates its members explicitly; there
+# is no `packages/*` glob. Adding founder-site there would be an edit to a
+# shared, green-lane-protected file for a package that shares nothing with the
+# pipeline — no workspace deps, no build ordering, no shared toolchain beyond
+# TypeScript. So instead this file terminates pnpm's upward search for a
+# workspace root, and founder-site installs and builds entirely on its own:
+#
+#   cd packages/founder-site && pnpm install && pnpm build
+#
+# The empty `packages:` list is the whole point: this root has exactly one
+# project, itself. Promoting it to a member of the repo-root workspace is a
+# one-line change if that is ever wanted (see the Decision Brief in the PR
+# that added this package) — nothing here depends on staying separate.
+packages: []

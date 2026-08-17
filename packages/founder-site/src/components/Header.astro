@@ -1,0 +1,57 @@
+---
+/**
+ * Two chromes, one component.
+ *
+ * `founder` is the site's own bar: name as wordmark, four links.
+ * `amenity` is deliberately NOT that. /amenity has to read as a separate
+ * company's site to a property manager who arrived from a cold email, so it
+ * gets the brand wordmark and a single CTA — no developer portfolio nav across
+ * the top, and no route back into the founder pages except the discreet line in
+ * that page's footer.
+ *
+ * No hamburger, no disclosure widget, no JavaScript: four short links wrap onto
+ * a second row at 320px, which is a better mobile nav than a button that has to
+ * boot a runtime before it can open.
+ */
+import { AMENITY_BRAND, EMAIL_AMENITY, FULL_NAME, NAV } from '../site';
+
+interface Props {
+  chrome: 'founder' | 'amenity';
+  /** Current path, for aria-current. */
+  path: string;
+}
+
+const { chrome, path } = Astro.props;
+---
+
+<header class="topbar">
+  <div class="shell topbar__inner">
+    {
+      chrome === 'amenity' ? (
+        <>
+          <a class="topbar__mark" href="/amenity">
+            {AMENITY_BRAND}
+          </a>
+          <nav class="topbar__nav" aria-label="Contact">
+            {/* Label, never the address: the local part of this mailbox is a
+                word that must not appear in this page's visible copy. */}
+            <a href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+          </nav>
+        </>
+      ) : (
+        <>
+          <a class="topbar__mark" href="/">
+            {FULL_NAME}
+          </a>
+          <nav class="topbar__nav" aria-label="Sections">
+            {NAV.map((item) => (
+              <a href={item.href} aria-current={item.href === path ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </>
+      )
+    }
+  </div>
+</header>

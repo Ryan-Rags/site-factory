@@ -1,0 +1,123 @@
+---
+/**
+ * Reads as a standalone company page, not as a section of a developer's site.
+ * It wears the `amenity` chrome (brand wordmark, one CTA, no portfolio nav) and
+ * the `amenity` surface (light, softer radii, muted brass instead of electric
+ * azure), because the reader is a luxury-apartment property manager comparing
+ * amenity vendors and nothing about that comparison is helped by looking like a
+ * portfolio.
+ *
+ * HARD COPY RULE: the local part of the contact mailbox — the category word for
+ * this business — must not appear anywhere a human or a crawler will read it:
+ * visible text, <title>, meta description, or OG/Twitter text. The category is
+ * "smart markets" and "curated markets" on this page, always. The address
+ * itself is fine inside a `mailto:` href, which is where it stays.
+ * `scripts/check-amenity-wording.mjs` fails the build if that slips.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AMENITY_BRAND, EMAIL_AMENITY, PAGES } from '../site';
+
+const included = [
+  {
+    title: 'Stocked and serviced by us',
+    body: 'Scheduled restocking, cleaning, and any service call. Your staff never touches the unit and never fields a question about it.',
+  },
+  {
+    title: 'Insured and compliant',
+    body: 'We carry the coverage and the certificates, and we hand your management company the paperwork before install day.',
+  },
+  {
+    title: 'Wrapped to your interiors',
+    body: 'Each cooler is custom-wrapped to match the finishes in your lobby or lounge — not a branded box parked in a corridor.',
+  },
+  {
+    title: 'Zero cost to the building',
+    body: 'No purchase, no lease, no revenue share to negotiate, no line item. We install, we operate, you get the amenity.',
+  },
+];
+
+const assortment = [
+  'Premium grab-and-go — cold-pressed juice, real-fruit smoothies, protein and breakfast',
+  'Rotating local NJ makers, refreshed on a schedule so the shelf is never static',
+  'Late-night and early-morning coverage, because the market is open whenever the lobby is',
+];
+---
+
+<BaseLayout
+  page={PAGES.amenity}
+  ogAlt={`${AMENITY_BRAND} — curated smart markets for luxury residential buildings`}
+  chrome="amenity"
+  surface="amenity"
+>
+  <section class="hero">
+    <div class="shell stack">
+      <p class="eyebrow">{AMENITY_BRAND}</p>
+      <h1 class="h1">Curated smart markets for luxury residential buildings</h1>
+      <p class="lede">
+        Tap-to-open smart coolers stocked with premium grab-and-go and rotating local NJ makers.
+        Zero cost and zero work for the building: we handle stocking, service and insurance, with
+        units custom-wrapped to match your interiors.
+      </p>
+      <a class="btn" href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+    </div>
+  </section>
+
+  <section class="section section--plain">
+    <div class="shell stack">
+      <div>
+        <p class="eyebrow">How it works</p>
+        <h2 class="h2 tick">An amenity, not a machine</h2>
+      </div>
+      <div class="prose">
+        <p>
+          A resident taps a card, the door unlocks, they take what they want and the door closes.
+          No keypad, no coin slot, no spiral to jam and nothing for your front desk to apologise
+          for. The unit reports its own inventory, so restocking happens before a shelf
+          looks empty rather than after someone complains about it.
+        </p>
+      </div>
+      <div class="grid grid--2" style="width:100%">
+        {
+          included.map((item) => (
+            <div class="card">
+              <h3 class="h3">{item.title}</h3>
+              <p class="card__body">{item.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <div>
+        <p class="eyebrow">What is on the shelf</p>
+        <h2 class="h2 tick">Curated, and rotated</h2>
+      </div>
+      <ul class="list">
+        {assortment.map((line) => <li>{line}</li>)}
+      </ul>
+      <div class="prose">
+        <p>
+          The assortment is chosen per building. A lease-up full of young professionals and an
+          established tower with long-term residents do not want the same shelf, and the local
+          makers we rotate in are the part residents actually talk about.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell stack">
+      <h2 class="h2 tick">Bringing one to your building</h2>
+      <div class="prose">
+        <p>
+          Tell us the building, the space you have in mind, and roughly how many units it serves.
+          We will come look at it, propose a placement and an assortment, and handle the rest.
+        </p>
+      </div>
+      <a class="btn" href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+    </div>
+  </section>
+</BaseLayout>
