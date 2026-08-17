@@ -20,11 +20,27 @@ export interface BuildResult {
   distDir: string;
 }
 
-export function buildSite(slug: string, siteConfigFile: string): BuildResult {
+/**
+ * @param formEndpoint the shared demo Worker URL, or `''` for none.
+ *
+ *   Passed explicitly rather than inherited from `process.env`, because it may
+ *   have come from `.env.deploy`, which the spawned build does not read.
+ *   `site.config.ts` reads `DEMO_FORM_ENDPOINT` from its own environment to
+ *   decide whether the form sends a `prospectId`, so a build without it renders
+ *   a form the Worker answers 422 to — a config that says `worker` and a build
+ *   that sends no id are exactly the disagreement `check-form-fields.mjs` was
+ *   written about.
+ */
+export function buildSite(slug: string, siteConfigFile: string, formEndpoint = ""): BuildResult {
   const res = spawnSync("pnpm", ["-C", templateDir, "build"], {
     encoding: "utf8",
     shell: process.platform === "win32",
-    env: { ...process.env, SITE_CLIENT: slug, SITE_CONFIG_FILE: siteConfigFile },
+    env: {
+      ...process.env,
+      SITE_CLIENT: slug,
+      SITE_CONFIG_FILE: siteConfigFile,
+      ...(formEndpoint === "" ? {} : { DEMO_FORM_ENDPOINT: formEndpoint }),
+    },
   });
   return {
     ok: res.status === 0,

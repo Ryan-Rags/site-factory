@@ -1,0 +1,12 @@
+# R1 evidence — the bijection failure PR #54 hit
+
+50 prospect slugs added to KNOWN_PROSPECTS in both wrangler files, gate unmodified:
+
+$ node packages/template/scripts/check-form-fields.mjs
+✗ worker-demo/wrangler.jsonc: KNOWN_PROSPECTS has "a-and-a-bergen-home-improvements", which is not a client config
+✗ worker-demo/wrangler.jsonc: KNOWN_PROSPECTS has "aaa-construction-and-renovations", which is not a client config
+✗ worker-demo/wrangler.jsonc: KNOWN_PROSPECTS has "ak-welding-llc", which is not a client config
+✗ worker-demo/wrangler.jsonc: KNOWN_PROSPECTS has "auto-tig-fab", which is not a client config
+    [...]
+
+100 problem(s) in the form field rules.

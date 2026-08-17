@@ -68,6 +68,11 @@ export interface ProjectOptions {
   seed?: SiteConfig | undefined;
   /** Public paths of any prospect-supplied images, already copied into dist. */
   assetPaths?: { logo?: string; photos: string[] } | undefined;
+  /**
+   * The shared demo Worker endpoint, from `resolveFormEndpoint()`. Empty or
+   * absent means none is configured and the form falls back as it did before.
+   */
+  formEndpoint?: string | undefined;
 }
 
 export interface ProjectionResult {
@@ -177,24 +182,7 @@ export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): P
       noindex: true,
     },
     features: { gallery: false },
-    forms: email
-      ? {
-          mode: "mailto",
-          workerEndpoint: "",
-          maxUploadMB: 10,
-          acceptedFileTypes: ["image/jpeg", "image/png", "image/heic", "image/webp", "application/pdf"],
-          turnstileSiteKey: "",
-        }
-      : {
-          // No confirmed inbox: render the contact page without a form rather
-          // than a form that silently goes nowhere. The template documents
-          // this exact case.
-          mode: "disabled",
-          workerEndpoint: "",
-          maxUploadMB: 10,
-          acceptedFileTypes: [],
-          turnstileSiteKey: "",
-        },
+    forms: formsFor({ email, endpoint: opts.formEndpoint ?? "" }, notes),
   };
 
   if (seed?.updates) site.updates = seed.updates;
@@ -297,6 +285,90 @@ function resolveServices(
 
 function titleCase(text: string): string {
   return text.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Uploads a demo form accepts. Photographs of a job, and a spec sheet. */
+const UPLOAD_TYPES = ["image/jpeg", "image/png", "image/heic", "image/webp", "application/pdf"];
+
+/**
+ * The `forms` block, and the reason a prospect demo now carries a real one.
+ *
+ * ## What was wrong
+ *
+ * The two branches this replaces were `mailto` when a confirmed email address
+ * existed and `disabled` otherwise. `disabled` is the right call for a *mockup*
+ * — a form that posts nowhere is worse than no form, because it promises a reply
+ * from a shop that will never see the message — and it was the wrong call here.
+ * Email coverage on the 2026-08-16 batch was 0 of 50, so all 50 took the
+ * `disabled` branch and 33 live demos went out unable to capture the one thing
+ * they exist to demonstrate. PR #54's Brief item 2, ruled 2026-08-17.
+ *
+ * ## The order, and why
+ *
+ * 1. **A configured demo endpoint wins**, whatever we know about their inbox. A
+ *    demo lead belongs in *our* inbox until the shop says yes — that is what the
+ *    Worker's `MAIL_TO` fallback is, and routing it to a prospect's own address
+ *    off the back of a scraped listing would put our pitch traffic in the inbox
+ *    of somebody who has not agreed to hear from us.
+ * 2. **`mailto`** when there is no endpoint but there is a confirmed address.
+ *    Unchanged, and it is what keeps a real client build from ever inheriting
+ *    the demo endpoint — the standing rule from PR #13.
+ * 3. **`disabled`** when there is neither. Still the honest answer: nothing to
+ *    post to, so nothing that looks like it can be posted.
+ *
+ * No `fields` block is emitted, deliberately. The template's default *is* the
+ * standard demo set — name and message required, phone and email offered as an
+ * either/or pair so no lead can arrive unanswerable, service and file optional —
+ * and it is byte-for-byte the Worker's default too. Writing it out would oblige
+ * a matching `PROSPECT_FIELDS` entry per prospect in `wrangler.jsonc`, and
+ * `check-form-fields.mjs` cannot verify those against a generated config that
+ * exists only under gitignored `prospects/`. Two copies of a rule where only one
+ * can be checked is how they drift.
+ *
+ * `prospectId` needs nothing here: `src/lib/quote-form.ts` sends the build's own
+ * slug whenever a demo endpoint is in play.
+ */
+function formsFor(
+  ctx: { email: string | undefined; endpoint: string },
+  notes: string[],
+): SiteConfig["forms"] {
+  if (ctx.endpoint !== "") {
+    notes.push(
+      `forms: live against the shared demo Worker — leads arrive tagged with this slug and, ` +
+        `with no PROSPECT_RECIPIENTS entry, land in our own inbox rather than the shop's`,
+    );
+    return {
+      mode: "worker",
+      workerEndpoint: ctx.endpoint,
+      maxUploadMB: 10,
+      acceptedFileTypes: UPLOAD_TYPES,
+      turnstileSiteKey: "",
+    };
+  }
+
+  if (ctx.email) {
+    notes.push("forms: mailto — no demo endpoint is configured, so the form opens their inbox");
+    return {
+      mode: "mailto",
+      workerEndpoint: "",
+      maxUploadMB: 10,
+      acceptedFileTypes: UPLOAD_TYPES,
+      turnstileSiteKey: "",
+    };
+  }
+
+  notes.push(
+    "forms: DISABLED — no demo endpoint is configured and no email address was sourced, so the " +
+      "contact page ships without a form rather than with one that goes nowhere. Set " +
+      "DEMO_FORM_ENDPOINT before pitching this demo.",
+  );
+  return {
+    mode: "disabled",
+    workerEndpoint: "",
+    maxUploadMB: 10,
+    acceptedFileTypes: [],
+    turnstileSiteKey: "",
+  };
 }
 
 /** Asserts only what a source gave us: a trade and a place. */

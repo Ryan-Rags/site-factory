@@ -25,7 +25,7 @@ export { niches, nicheFor } from './niches/index.js';
 export type { NichePack, ServiceTemplate, FaqTemplate, CopyContext } from './niches/types.js';
 export { generate, type Generated } from './generate/index.js';
 export { FAQ_TARGET } from './generate/faq.js';
-export { TITLE_BUDGET, DESCRIPTION_BUDGET } from './generate/seo.js';
+export { TITLE_BUDGET, TITLE_MAX, DESCRIPTION_BUDGET, titleLength } from './generate/seo.js';
 export type { JsonLdSeed } from './generate/jsonld.js';
 export type { TrustItem } from './generate/trust.js';
 export type { ServiceConfigEntry, ServiceMarkdown } from './generate/services.js';

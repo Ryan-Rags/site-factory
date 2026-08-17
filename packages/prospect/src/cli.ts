@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { withBrowser } from "./browser.js";
-import { knownProspects, printSummary, runProspect } from "./run.js";
+import { emitKnownProspects, knownProspects, printSummary, runProspect } from "./run.js";
 import { checkSchemaDrift } from "./site-config.js";
 import type { ThemePreset } from "./types.js";
 
@@ -28,6 +28,9 @@ options:
   --skip-website     do not read the prospect's current website
   --skip-deploy      build, shoot and card, but do not touch Cloudflare
   --list             print the known prospect ids and exit
+  --emit-known       rewrite packages/template/prospects/known.json from
+                     prospects/ and exit. The build gate reads that file; run
+                     this after a batch adds or retires demos.
 `.trim();
 
 const PRESETS: ThemePreset[] = ["forge", "precision", "heritage"];
@@ -36,6 +39,7 @@ interface Args {
   ids: string[];
   all: boolean;
   list: boolean;
+  emitKnown: boolean;
   niche?: string;
   preset?: ThemePreset;
   skipIngest: boolean;
@@ -49,6 +53,7 @@ function parseArgs(argv: string[]): Args {
     ids: [],
     all: false,
     list: false,
+    emitKnown: false,
     skipIngest: false,
     skipPlaces: false,
     skipWebsite: false,
@@ -75,6 +80,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--list":
         args.list = true;
+        break;
+      case "--emit-known":
+        args.emitKnown = true;
         break;
       case "--niche":
         args.niche = next();
@@ -116,6 +124,23 @@ async function main(): Promise<void> {
 
   if (args.list) {
     for (const id of knownProspects()) console.log(id);
+    return;
+  }
+
+  if (args.emitKnown) {
+    const result = emitKnownProspects();
+    console.log(`wrote ${result.file}`);
+    for (const slug of result.added) console.log(`  + ${slug}`);
+    for (const slug of result.removed) console.log(`  - ${slug}`);
+    if (result.added.length === 0 && result.removed.length === 0) {
+      console.log("  (no change)");
+    } else {
+      console.log(
+        `
+KNOWN_PROSPECTS in worker-demo/wrangler.jsonc (and wrangler.local.jsonc) must ` +
+          `match. check-form-fields.mjs will fail the build until it does.`,
+      );
+    }
     return;
   }
 

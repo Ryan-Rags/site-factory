@@ -154,17 +154,24 @@ vite.config.ts.timestamp-*
 # generated config built from them. Same category as the two above.
 /prospects/
 
-# Real lead data. Ignore the whole category — every lead CSV, current and
-# future — and re-admit only the tracked fixture. Naming individual files here
-# meant each new lead CSV was tracked by default until someone remembered to
-# add it; this inverts that default.
-/data/*.csv
+# Real lead data, and everything else a run leaves beside it.
+#
+# `/data/*` rather than a rule per file extension. The previous version ignored
+# `/data/*.csv` and `/data/usage-*.json` by name, which is the same mistake it
+# was itself written to fix, one level up: `data/roster-50.json` — names, phones
+# and place ids for 50 real businesses — matched neither pattern and showed as
+# untracked rather than ignored, one `git add data/` away from being committed.
+# See PR #54's Brief item 3 and issue #36.
+#
+# So: ignore the directory's contents, and re-admit the fixtures by name. A new
+# artifact is ignored by default and someone has to argue it onto the allowlist,
+# which is the direction the default should point. Anything re-admitted here
+# must carry no client contact data and no secrets — that is the whole bar.
+#
+# Files this deliberately keeps out of git, all of them per-run rather than
+# per-repo: the scored sweep CSVs, `roster-*.json`, `call-sheet.csv`,
+# `known-prospects.txt`, `batch-log/`, and the `usage-*.json` Places ledgers
+# (which carry no business data, but belong to a run — the one that matters is
+# reconciled against the console and quoted in a PR, not committed).
+/data/*
 !/data/businesses.sample.csv
-
-# Per-run Places usage logs, written beside the CSV by `pnpm sweep`. Same
-# reasoning as the block above: ignore the category, not the file, so next
-# month's run is not tracked by default because nobody remembered. These carry
-# no business data and no secrets — endpoint, field mask, billing tier and call
-# counts — but they belong to a run rather than to the repo. The one that
-# matters is reconciled against the console and quoted in a PR, not committed.
-/data/usage-*.json

@@ -15,6 +15,15 @@ export const templateDistDir: string = join(templateDir, "dist");
 export const templateContentDir: string = join(templateDir, "src", "content");
 export const templateClientsDir: string = join(templateDir, "clients");
 
+/**
+ * The committed slugs-only registry of generated prospect demos.
+ *
+ * Committed, unlike everything else about a prospect, because a build gate has to
+ * read it: `check-form-fields.mjs` asserts the Worker's `KNOWN_PROSPECTS` against
+ * `clients/index.ts` ∪ this file. Slugs and nothing else — see the `note` inside.
+ */
+export const knownProspectsFile: string = join(templateDir, "prospects", "known.json");
+
 /** Where the audit package leaves its "before" screenshots. */
 export const auditOutDir: string = join(repoRoot, "audit", "out");
 
