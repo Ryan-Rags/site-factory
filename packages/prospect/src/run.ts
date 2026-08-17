@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Browser } from "playwright";
@@ -9,8 +9,10 @@ import { ensureContent } from "./content.js";
 import { deploySite, projectNameFor } from "./deploy.js";
 import { ingestProspect, type IngestOptions } from "./ingest/index.js";
 import { readFolder } from "./ingest/folder.js";
+import { findPlaceId } from "./ingest/leads.js";
+import { resolveFormEndpoint } from "./form-endpoint.js";
 import { loadClientConfig } from "./ingest/seed.js";
-import { prospectPaths, prospectsDir, templateClientsDir } from "./paths.js";
+import { knownProspectsFile, prospectPaths, prospectsDir, templateClientsDir } from "./paths.js";
 import { projectToSite } from "./project.js";
 import {
   buildManifest,
@@ -22,7 +24,7 @@ import {
 import { readProspect, today, writeProspect } from "./schema.js";
 import { serveDir } from "./serve.js";
 import { captureAfter, captureBefore } from "./shots.js";
-import { valueOf } from "./types.js";
+import { known, valueOf } from "./types.js";
 
 /**
  * The whole pipeline for one prospect, in the order the steps depend on each
@@ -101,6 +103,31 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
     if (opts.skipIngest && existsSync(paths.configFile)) {
       const reused = readProspect(paths.configFile);
       step(`ingest: reused ${paths.configFile}`);
+      /*
+       * One field is filled even on a reuse: the place id.
+       *
+       * `--skip-ingest` exists so a re-run costs nothing and changes nothing,
+       * and this does not violate that — it is a file read of a CSV already on
+       * disk, not a Places call, and it only ever fills a field that is
+       * `unavailable`. It is here rather than in `ingestProspect` because the
+       * records that need it are precisely the ones that will never be
+       * re-ingested: re-ingesting the 2026-08-16 batch under the call freeze
+       * would blank the reviews, rating and photos they already carry.
+       *
+       * Without it the accent rotation in `design.ts` would silently fall back
+       * to the slug for all 50, which is a worse design than the one that was
+       * ruled on and would look identical in the output.
+       */
+      if (reused.placeId.status !== "known") {
+        const found = findPlaceId(opts.id);
+        if (found) {
+          reused.placeId = known(found.placeId, "website", today(), `backfilled from data/${found.file}`);
+          writeProspect(paths.configFile, reused);
+          step(`ingest: place id backfilled from data/${found.file} (no Places call)`);
+        } else {
+          step(`ingest: no place id in any data/*.csv — design variety keys on the slug instead`);
+        }
+      }
       return reused;
     }
     const result = await ingestProspect(browser, opts);
@@ -122,11 +149,29 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
   const projectName = projectNameFor(opts.id);
   const siteUrl = `https://${projectName}.pages.dev`;
 
+  /*
+   * The demo form endpoint, resolved once per prospect and passed to both the
+   * projection and the build.
+   *
+   * Both, not either. The projection writes it into `forms.workerEndpoint` so
+   * the generated config is an honest record of what the demo does; the build
+   * gets it in the environment because `site.config.ts` reads `demoFormEndpoint`
+   * directly to decide whether to send a `prospectId`, and a config that says
+   * `worker` while the build sends no id would 422 every submission.
+   */
+  const formEndpoint = resolveFormEndpoint();
+  step(
+    formEndpoint.url === ""
+      ? "forms: no DEMO_FORM_ENDPOINT in the environment or .env.deploy"
+      : `forms: demo endpoint from ${formEndpoint.source}`,
+  );
+
   const projection = await timed("project", () =>
     projectToSite(prospect, {
       siteUrl,
       seed: seed ?? undefined,
       assetPaths: assetPlan,
+      formEndpoint: formEndpoint.url,
     }),
   );
   for (const note of projection.notes) step(`project: ${note}`);
@@ -157,7 +202,7 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
 
   const built = await timed("build", () => {
     try {
-      return buildSite(opts.id, paths.siteConfigFile);
+      return buildSite(opts.id, paths.siteConfigFile, formEndpoint.url);
     } finally {
       // Always clean up, including when the build throws: the template package
       // must be left exactly as it was found.
@@ -300,6 +345,42 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
 }
 
 export { printSummary };
+
+/**
+ * Rewrite `packages/template/prospects/known.json` from the folders on disk.
+ *
+ * The registry has to be committed — a build gate reads it — while the records it
+ * names are gitignored, so the two can only be kept in step by regenerating one
+ * from the other. Doing that by hand means 50 lines a batch, which is 50 chances
+ * to leave a slug out; a slug left out is a demo whose form 422s in front of the
+ * prospect it was built for.
+ *
+ * Only slugs are written. Everything else about these businesses stays outside
+ * the repo, and the `note` block explaining that is preserved from the existing
+ * file rather than restated here, so the prose lives in the file a reader opens.
+ */
+export function emitKnownProspects(): { file: string; added: string[]; removed: string[] } {
+  const onDisk = existsSync(prospectsDir)
+    ? readdirSync(prospectsDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort()
+    : [];
+
+  const existing = existsSync(knownProspectsFile)
+    ? (JSON.parse(readFileSync(knownProspectsFile, "utf8")) as { note?: string[]; slugs?: string[] })
+    : {};
+  const before = existing.slugs ?? [];
+
+  const doc = { note: existing.note ?? [], slugs: onDisk };
+  writeFileSync(knownProspectsFile, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+
+  return {
+    file: knownProspectsFile,
+    added: onDisk.filter((slug) => !before.includes(slug)),
+    removed: before.filter((slug) => !onDisk.includes(slug)),
+  };
+}
 
 /**
  * Every prospect this repo knows about: the hand-authored client configs, plus

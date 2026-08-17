@@ -13,7 +13,14 @@
  * door (`../worker/`) stays as it is; that one is what a real client eventually
  * gets, pointed at their own inbox with none of this machinery.
  *
- * Order of operations, cheapest rejection first:
+ * Two payloads arrive here. A lead, as `multipart/form-data` from the contact
+ * form, is what everything below describes. A design selection, as
+ * `application/json` from the customizer panel's "send it to us" button, goes
+ * through the same origin, prospect-id, rate-limit and KV-before-mail gates and
+ * nothing else — see `handleSelections` at the foot of this file and
+ * `lib/selections.ts`.
+ *
+ * Order of operations for a lead, cheapest rejection first:
  *   1. method / origin gate
  *   2. honeypot
  *   3. prospect id — must be one we know, or this is an open relay
@@ -28,7 +35,12 @@
  */
 
 import { confirmationDecision, sendConfirmation } from './lib/confirm';
-import { sendDemoEmail, type DemoSubmission } from './lib/email';
+import { sendDemoEmail, sendViaResend, type DemoSubmission } from './lib/email';
+import {
+  parseSelections,
+  selectionEmail,
+  type SelectionSubmission,
+} from './lib/selections';
 import { rulesFor } from './lib/fields';
 import { corsHeaders, json, parseList, type OriginRules } from './lib/http';
 import { routeFor } from './lib/routing';
@@ -116,6 +128,20 @@ export default {
     // response anyway; rejecting here makes that explicit and cheap.
     if (origin && Object.keys(cors).length === 0) {
       return json({ ok: false, error: 'origin_not_allowed' }, 403, {});
+    }
+
+    /*
+     * Two kinds of POST arrive here, and they are told apart by content type.
+     *
+     * A lead is `multipart/form-data` from the contact form. A design selection
+     * is `application/json` from the customizer panel's "send it to us" button,
+     * which posts to this same endpoint — and used to die on the `formData()`
+     * call below, because that throws on a JSON body and the catch answers 400.
+     * See lib/selections.ts for why that had never been seen in front of anyone
+     * and why turning the prospect forms on is what would have exposed it.
+     */
+    if ((request.headers.get('Content-Type') ?? '').includes('application/json')) {
+      return handleSelections(request, env, cors);
     }
 
     let form: FormData;
@@ -230,3 +256,89 @@ export default {
     return json({ ok: true }, 200, cors);
   },
 } satisfies ExportedHandler<Env>;
+
+/**
+ * The customizer's design selection: same gates, different payload.
+ *
+ * Order matches the lead path deliberately — prospect id, rate limit, KV before
+ * mail — so there is one story about how this endpoint is protected rather than
+ * two. What is *not* here is the honeypot (the panel has no hidden field, and a
+ * bot posting JSON is refused by the prospect-id gate anyway), the field
+ * validator (a selection has no contact details to validate, and see
+ * lib/selections.ts on why sharing that code path would be wrong), and the
+ * visitor receipt (nobody left an address).
+ *
+ * A failed send is reported as a failure, not swallowed: the panel shows the
+ * visitor "That did not go through. Please call us instead.", and showing them a
+ * thank-you for a preference nobody received is the defect this whole function
+ * exists to fix.
+ */
+async function handleSelections(
+  request: Request,
+  env: Env,
+  cors: Record<string, string>,
+): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ ok: false, error: 'bad_request' }, 400, cors);
+  }
+
+  const parsed = parseSelections(body);
+  if (!parsed.ok) return json({ ok: false, error: 'bad_request' }, 400, cors);
+
+  const known = parseList(env.KNOWN_PROSPECTS);
+  if (!PROSPECT_ID_RE.test(parsed.prospectId) || !known.includes(parsed.prospectId)) {
+    return json({ ok: false, error: 'unknown_prospect' }, 422, cors);
+  }
+
+  // Shares the lead counter on purpose. The cap protects one inbox from one
+  // public URL; a per-kind cap would let a found URL spend both.
+  if (!(await withinRateLimit(parsed.prospectId, env))) {
+    return json({ ok: false, error: 'rate_limited' }, 429, cors);
+  }
+
+  const submission: SelectionSubmission = {
+    prospectId: parsed.prospectId,
+    url: parsed.url,
+    selections: parsed.selections,
+    receivedAt: new Date().toISOString(),
+    userAgent: request.headers.get('User-Agent') ?? '',
+    country: request.headers.get('CF-IPCountry') ?? '',
+    origin: request.headers.get('Origin') ?? '',
+  };
+
+  const route = routeFor(parsed.prospectId, env);
+
+  // `design:` rather than `demo:`, so a prefix scan for one prospect's leads
+  // does not return their design preferences mixed in with them.
+  const key = `design:${parsed.prospectId}:${submission.receivedAt}:${crypto.randomUUID()}`;
+  try {
+    await env.SUBMISSIONS.put(key, JSON.stringify({ ...submission, routedTo: route.to }), {
+      expirationTtl: 60 * 60 * 24 * 90,
+    });
+  } catch (error) {
+    console.error('KV write failed', error);
+  }
+
+  if (!env.RESEND_API_KEY) {
+    console.error(`design selection ${key} retained in KV: RESEND_API_KEY is not set`);
+    return json({ ok: false, error: 'delivery_failed' }, 502, cors);
+  }
+  if (!route.to) {
+    console.error(`design selection ${key} retained in KV: no recipient configured`);
+    return json({ ok: false, error: 'delivery_failed' }, 502, cors);
+  }
+
+  const sent = await sendViaResend(selectionEmail(submission, env, route), env.RESEND_API_KEY);
+  if (!sent.ok) {
+    console.error(
+      `Design selection email not sent to ${route.to} (${sent.detail}) — retained in KV at ${key}`,
+    );
+    return json({ ok: false, error: 'delivery_failed' }, 502, cors);
+  }
+
+  console.log(`design ${parsed.prospectId} -> ${route.to} (${route.via}), bcc ${route.bcc.length}`);
+  return json({ ok: true }, 200, cors);
+}
