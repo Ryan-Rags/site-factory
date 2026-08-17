@@ -1,0 +1,34 @@
+# Live fleet evidence - all 50 deployed prospect demos
+
+Each demo fetched at its own manifest liveUrl, not a guessed host: one project name
+collided and deploy.ts substituted a '-rr' suffix, so a guessed URL misses it.
+Title length in characters, the way check-metadata.mjs counts it.
+
+  demos fetched:                 50/50
+  <title> over the 70-char gate: 0      (17 of 50 previously failed to build at all)
+  longest served title:          70 chars
+  /contact/ with exactly 1 form: 50/50   (0 of 50 before this stream)
+  form posting to the Worker:    50/50
+  distinct accent+base pairs:    21     (2 before: one per design family)
+  origin advertised != served:   1      <-- DEFECT, see below
+
+  DEFECT - canonical and og:image cite a host the site is not served from:
+    c3m-of-nj-home-renovation-affordable-handyman
+      served at:  https://c3m-of-nj-home-renovation-affordable-handyman-preview-rr.pages.dev
+      advertises: https://c3m-of-nj-home-renovation-affordable-handyman-preview.pages.dev  (does not resolve)
+
+  Cause: previewOriginFor(slug) assumes the Pages project is always
+  <slug>-preview, but deploy.ts substitutes '-rr' on a name collision, and the
+  build has already run by then. Same class as issue #25.
+
+  the worst case from PR #54, as served:
+    70 chars: Avishay Contractors Kitchen &amp; Bath Remodeling — General contractor
+    was 94 chars, and the build failed rather than deploying
+
+  design spread, most repeated first:
+     6  #677a00#fbf9f5
+     5  #a16500#fbf9f5
+     5  #47b15e#101720
+     4  #037a2f#fbf9f5
+     3  #e19005#101720
+     3  #a64302#fbf9f5

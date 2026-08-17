@@ -467,3 +467,155 @@ what a clinic or a restaurant carries, because excluding it would reject
 `ks-welding` — an actual client. The denylist is what keeps that breadth honest,
 and welding rows deserve a glance before a batch. The five non-copy-pack niches
 have unprobed, plausible-only allowlists; nothing rests on them until probed.
+
+---
+
+## 10. Two slugification rules disagree about `&`, and 14 of the 50 demos are filed under the losing one
+
+**Status:** open, worked around. **Owner:** whoever owns `slugify` in
+`packages/discover`.
+**Found by:** `ops/batch-2-readiness`, PR #56, while keying design variety on the
+place id.
+
+`slugify` in `@site-factory/discover` **drops** `&`. The 2026-08-16 batch of 50
+**expanded** it to `and`. So the same business has two possible slugs:
+
+```
+"A&A Bergen Home Improvements"
+  slugify(name)          -> a-a-bergen-home-improvements
+  the batch's filename   -> a-and-a-bergen-home-improvements
+```
+
+14 of the 50 names carry an ampersand, so any lookup keyed on `slugify(name)`
+misses exactly those 14. That is the second realised form of the slug-collision
+hazard the comments in `packages/prospect/src/ingest/leads.ts` warn about — and it
+is silent, because a miss is indistinguishable from a prospect nobody discovered.
+
+**Repro.**
+
+```
+node -e "import('@site-factory/discover').then(({slugify})=>console.log(slugify('A&A Bergen Home Improvements')))"
+#   → a-a-bergen-home-improvements
+ls prospects/ | grep bergen-home
+#   → a-and-a-bergen-home-improvements
+```
+
+**Workaround in place.** `findPlaceId` matches both spellings, so the backfill
+found 50 of 50. Before that it found 36.
+
+**Why the slugs were not renamed instead:** 33 of these demos are deployed at
+`https://<slug>-preview.pages.dev` and those URLs are printed on the call sheet
+Ryan calls from. Renaming to satisfy `slugify` would move 33 live URLs to fix a
+cosmetic disagreement.
+
+**What a real fix looks like:** one slugifier, chosen deliberately (expanding `&`
+reads better in a URL), applied at the point a prospect record is created, with
+the existing 50 left alone or migrated deliberately with their Pages projects.
+Not this stream's to pick.
+
+---
+
+## 11. `live-smoke` and `check-form-fields` resolve slugs through `clients/index.ts`, so neither can see a prospect demo
+
+**Status:** open. **Owner:** whoever owns `scripts/live-smoke/`.
+**Found by:** PR #54 (Brief item 5, unruled); half fixed by PR #56.
+
+Two tools assumed a client config is the only deployable thing, while
+`pnpm demo` deploys from gitignored `prospects/`.
+
+- `check-form-fields.mjs` — **fixed** in PR #56: its bijection is now
+  `clients/index.ts ∪ prospects/known.json`.
+- `scripts/live-smoke/` — **still open.** It resolves a slug through
+  `clients/index.ts` and throws `Unknown client`, so none of the 50 deployed
+  demos can be smoked by it.
+
+**Repro.**
+
+```
+pnpm smoke -- --client ztm-construction-llc
+#   → Unknown client "ztm-construction-llc"
+```
+
+**Consequence.** The 50 have deploy-time home/services 200 checks and, for two
+samples, the hand-run form-path probes recorded in
+`docs/evidence/r1-form-path-smoke.txt`. They have no LCP, no metadata and no
+contrast verification against the *live* origin — only against `dist/`.
+
+**Fix sketch.** `live-smoke` reads `prospects/known.json` (committed, slugs only)
+for the deployable set and `prospects/<slug>/site.config.json` for anything it
+needs about a demo, the same way the build already does through
+`SITE_CONFIG_FILE`.
+
+---
+
+## 12. The Worker's honeypot check runs before the `KNOWN_PROSPECTS` check, so a honeypot probe cannot prove admission
+
+**Status:** open, low severity. **Owner:** whoever owns `worker-demo/src/index.ts`.
+**Found by:** PR #56, while designing the form-path smoke Ryan asked for.
+
+Order of operations in the lead path is honeypot, *then* prospect id. A POST with
+the `company` field filled therefore answers `200 {ok:true}` for **any** slug,
+registered or not — nothing is stored and nothing is mailed, so there is no
+security consequence, but "the honeypot method" cannot be used to verify that a
+demo's slug is admitted.
+
+**Repro.**
+
+```
+curl -sX POST "$DEMO_FORM_ENDPOINT" -F prospectId=not-a-real-slug -F company=bot
+#   → {"ok":true}
+```
+
+**Workaround in place.** The smoke uses a registered slug with a deliberately
+incomplete payload and asserts `422 validation_failed`: reaching field validation
+proves the slug cleared the registry, and costs no email and no KV lead. See
+`docs/evidence/r1-form-path-smoke.txt`.
+
+**Fix sketch.** Move the honeypot check below the prospect-id gate. Cheap, but it
+makes the endpoint marginally chattier to an unknown caller, which is why it is a
+judgment call rather than an obvious fix.
+
+---
+
+## 13. A substituted Pages project name leaves the demo advertising a host that does not resolve
+
+**Status:** open, measured live on 1 of 50. **Owner:** spans
+`packages/prospect/src/deploy.ts` and `packages/template/src/lib/preview-origin.mjs`.
+**Found by:** `ops/batch-2-readiness`, PR #56, on the live fleet sweep.
+
+`previewOriginFor(slug)` returns `https://<slug>-preview.pages.dev` and the build
+stamps it into `canonical`, `og:url` and `og:image` on every noindex build. But
+`deploy.ts` appends a `-rr` collision suffix when the project name is already
+taken in another account — **after** the build has run, so the built HTML cannot
+know. The demo is then served from one host and advertises another.
+
+Measured on `c3m-of-nj-home-renovation-affordable-handyman`:
+
+```
+served at:  https://c3m-of-nj-home-renovation-affordable-handyman-preview-rr.pages.dev   200
+advertises: https://c3m-of-nj-home-renovation-affordable-handyman-preview.pages.dev      does not resolve
+```
+
+**Consequence.** That demo's link unfurls blank in every messaging app — the exact
+defect [issue #25](https://github.com/Ryan-Rags/site-factory/issues/25) fixed for
+the eight clients, reappearing through a path that fix did not cover. Its
+canonical also points at nothing. The demo itself works: the page serves, the
+contact form posts, and the call sheet carries the correct `-rr` URL because it
+reads the manifest's `liveUrl` rather than deriving it.
+
+**Why `check-metadata.mjs` passed it.** The gate asserts the card origin equals
+`previewOriginFor(slug)`. Build and gate agree with each other and both are wrong
+about where the site ended up — there is nothing in the build that knows about
+substitution.
+
+**Anything deriving a demo URL from a slug is wrong for this one demo.** The
+sweep in `docs/evidence/r1-r2-r3-live-fleet.txt` reads manifests for that reason;
+a first attempt guessed `<slug>-preview.pages.dev` and recorded the site as dead.
+
+**Fix sketch,** three options, and picking between them is a judgment call:
+1. `ensureProject` reserves the name *before* the build, and the resolved project
+   name is passed to the build as the preview origin. Correct, and the largest change.
+2. Never substitute: fail the deploy on a collision and make the operator choose a
+   slug. Loud, cheap, and costs a demo until someone intervenes.
+3. Detect substitution after the fact and rebuild + redeploy that one slug with an
+   origin override. Cheapest to add, and leaves a wrong artifact briefly live.

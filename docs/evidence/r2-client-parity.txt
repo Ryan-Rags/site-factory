@@ -1,0 +1,8 @@
+# R2/R3 evidence — the 8 client sites render byte-identical
+
+Baseline: origin/main @ 30991a5 (pre-change), built in a separate worktree.
+Candidate: this branch, same 'pnpm build:all'.
+
+
+40 pages compared: 40 byte-identical, 0 changed only in panel machinery, 0 regressed.
+✓ No client site changed what it renders.

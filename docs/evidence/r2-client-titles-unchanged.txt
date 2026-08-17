@@ -1,0 +1,13 @@
+# R2 evidence — the 5 hand-authored records that feed clients/from-copy.ts
+
+The title tiers engage ONLY when the tier-1 formula exceeds the gate, so byte-identity
+for existing clients reduces to: does every tier-1 title still fit? Measured escaped,
+the way check-metadata.mjs measures it.
+
+   55 chars  ok    tiers-engaged=0  K-H Machine Works — Precision Machining in North Bergen
+   52 chars  ok    tiers-engaged=0  KTS Machine Shop — General Machining in Elmwood Park
+   60 chars  ok    tiers-engaged=0  American Machine Specialty — Precision Machining in Westwood
+   58 chars  ok    tiers-engaged=0  Industrial Machine Corporation — Machining in Elmwood Park
+   58 chars  ok    tiers-engaged=0  K&S Welding & Fabricating — Welding in Bergenfield
+
+0 of 5 over the 70-char gate, 0 tiers engaged.
