@@ -472,9 +472,9 @@ have unprobed, plausible-only allowlists; nothing rests on them until probed.
 
 ## 10. Two slugification rules disagree about `&`, and 14 of the 50 demos are filed under the losing one
 
-**Status:** open, worked around. **Owner:** whoever owns `slugify` in
-`packages/discover`.
-**Found by:** `ops/batch-2-readiness`, PR #56, while keying design variety on the
+**Status:** open, worked around. **Tracked as** [#57](https://github.com/Ryan-Rags/site-factory/issues/57).
+**Owner:** whoever owns `slugify` in `packages/discover`.
+**Found by:** `ops/batch-2-readiness`, PR #58, while keying design variety on the
 place id.
 
 `slugify` in `@site-factory/discover` **drops** `&`. The 2026-08-16 batch of 50
@@ -517,13 +517,14 @@ Not this stream's to pick.
 
 ## 11. `live-smoke` and `check-form-fields` resolve slugs through `clients/index.ts`, so neither can see a prospect demo
 
-**Status:** open. **Owner:** whoever owns `scripts/live-smoke/`.
-**Found by:** PR #54 (Brief item 5, unruled); half fixed by PR #56.
+**Status:** open. **Tracked as** [#56](https://github.com/Ryan-Rags/site-factory/issues/56).
+**Owner:** whoever owns `scripts/live-smoke/`.
+**Found by:** PR #54 (Brief item 5, unruled); half fixed by PR #58.
 
 Two tools assumed a client config is the only deployable thing, while
 `pnpm demo` deploys from gitignored `prospects/`.
 
-- `check-form-fields.mjs` — **fixed** in PR #56: its bijection is now
+- `check-form-fields.mjs` — **fixed** in PR #58: its bijection is now
   `clients/index.ts ∪ prospects/known.json`.
 - `scripts/live-smoke/` — **still open.** It resolves a slug through
   `clients/index.ts` and throws `Unknown client`, so none of the 50 deployed
@@ -551,7 +552,7 @@ needs about a demo, the same way the build already does through
 ## 12. The Worker's honeypot check runs before the `KNOWN_PROSPECTS` check, so a honeypot probe cannot prove admission
 
 **Status:** open, low severity. **Owner:** whoever owns `worker-demo/src/index.ts`.
-**Found by:** PR #56, while designing the form-path smoke Ryan asked for.
+**Found by:** PR #58, while designing the form-path smoke Ryan asked for.
 
 Order of operations in the lead path is honeypot, *then* prospect id. A POST with
 the `company` field filled therefore answers `200 {ok:true}` for **any** slug,
@@ -581,7 +582,7 @@ judgment call rather than an obvious fix.
 
 **Status:** open, measured live on 1 of 50. **Owner:** spans
 `packages/prospect/src/deploy.ts` and `packages/template/src/lib/preview-origin.mjs`.
-**Found by:** `ops/batch-2-readiness`, PR #56, on the live fleet sweep.
+**Found by:** `ops/batch-2-readiness`, PR #58, on the live fleet sweep.
 
 `previewOriginFor(slug)` returns `https://<slug>-preview.pages.dev` and the build
 stamps it into `canonical`, `og:url` and `og:image` on every noindex build. But
