@@ -467,3 +467,42 @@ what a clinic or a restaurant carries, because excluding it would reject
 `ks-welding` — an actual client. The denylist is what keeps that breadth honest,
 and welding rows deserve a glance before a batch. The five non-copy-pack niches
 have unprobed, plausible-only allowlists; nothing rests on them until probed.
+
+## 10. A Cloudflare Pages alias serves stale redirects after an output-format change
+
+**Status:** operational, self-clearing. Affects verification, not the artifact.
+
+`packages/founder-site` first deployed with Astro's default *directory* output
+(`dist/sites/index.html`), so Pages answered `/sites` with a `308` to `/sites/`.
+The build then moved to `build.format: 'file'` (see `docs/decisions.md`,
+2026-08-17) so that the no-trailing-slash canonical resolves to a document.
+
+After redeploying, the **immutable deployment URL served every route `200`, while
+the production alias kept returning the old `308` for some routes and not
+others** — routes expired from the edge cache independently, so a verification
+run caught `/ai` and `/about` green and `/sites` and `/amenity` still redirecting.
+A cache-busting query string did not help; the redirect is cached per path.
+
+**Repro.**
+
+```
+# deploy with directory output, request a route, then redeploy with file output
+curl -o /dev/null -w "%{http_code}\n" https://raghubans-com.pages.dev/amenity   # 308
+curl -o /dev/null -w "%{http_code}\n" https://<hash>.raghubans-com.pages.dev/amenity  # 200
+```
+
+**Why it matters.** Two of ten requests in the same pass also returned a
+transient `522` on assets that were definitely present. Either symptom read as a
+real defect in the build, and neither was. A post-deploy check that trusts the
+first response from a production alias will report both.
+
+**How it is handled.** `scripts/check-live.mjs` retries 5xx up to three times
+with a backoff, but deliberately does **not** tolerate a `3xx` on a canonical
+route — that is the defect it exists to catch. The correct response to a stale
+`308` is to verify against the immutable deployment URL to confirm the artifact,
+then re-run against the alias once the edge cache expires (it cleared inside a
+few minutes here).
+
+**Residual, accepted:** there is no cache purge in this workflow, because purging
+Pages requires zone-level access and this stream is explicitly barred from
+touching DNS or zones. Waiting is the whole mitigation.

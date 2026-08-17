@@ -1,0 +1,123 @@
+---
+/**
+ * The AI voice page.
+ *
+ * The dental agent is a real build, but nothing quantitative about it is written
+ * here: call volumes, booking rates and hours recovered are exactly the kind of
+ * number that gets invented to fill a case-study shape. Every measurable slot is
+ * a CASE_STUDY placeholder until Ryan drops the measured figures in, and the
+ * surrounding prose is limited to what the agent does rather than how well it
+ * did it.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Placeholder from '../components/Placeholder.astro';
+import { EMAIL_DEV, PAGES, PLACEHOLDERS } from '../site';
+
+const capabilities = [
+  {
+    title: 'Answers every call',
+    body: 'No hold music and no voicemail. The agent picks up on the first ring at 2pm and at 2am, on the number you already advertise.',
+  },
+  {
+    title: 'Books into your calendar',
+    body: 'It checks real availability, takes the appointment, and writes it into the system your front desk already uses.',
+  },
+  {
+    title: 'Triages before it books',
+    body: 'New patient or existing, routine or urgent, insurance in network or not — sorted on the call instead of in a callback queue.',
+  },
+  {
+    title: 'Hands off cleanly',
+    body: 'Anything outside its brief goes to a human with the context already gathered, rather than starting the conversation over.',
+  },
+];
+
+/** Each section of the dental write-up that needs a measured figure. */
+const caseSections = [
+  {
+    heading: 'The problem',
+    note: 'Describe the missed-call situation before the agent: when calls went unanswered and what happened to them.',
+  },
+  {
+    heading: 'What was built',
+    note: 'The agent scope, the telephony path, and which scheduling system it writes to.',
+  },
+  {
+    heading: 'Measured result',
+    note: 'Drop the measured figures in here — calls answered, appointments booked, period covered. Leave this marker until they are measured.',
+  },
+];
+---
+
+<BaseLayout page={PAGES.ai} ogAlt="AI voice agents that answer the calls a small business misses">
+  <section class="hero">
+    <div class="shell stack">
+      <p class="eyebrow">Voice</p>
+      <h1 class="h1">AI voice agents that answer the calls you are missing</h1>
+      <p class="lede">
+        A small business loses more revenue to an unanswered phone than to almost anything else on
+        its books. I build voice agents that pick up, understand what the caller wants, and put a
+        real appointment on the calendar.
+      </p>
+      <a class="btn" href={`mailto:${EMAIL_DEV}`}>Talk through your call flow</a>
+    </div>
+  </section>
+
+  <section class="section section--plain">
+    <div class="shell stack">
+      <div>
+        <p class="eyebrow">Capabilities</p>
+        <h2 class="h2 tick">What the agent does</h2>
+      </div>
+      <div class="grid grid--2" style="width:100%">
+        {
+          capabilities.map((item) => (
+            <div class="card">
+              <h3 class="h3">{item.title}</h3>
+              <p class="card__body">{item.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <div>
+        <p class="eyebrow">Case study</p>
+        <h2 class="h2 tick">Dental practice voice agent</h2>
+      </div>
+      <p class="lede">
+        A front-desk agent handling new-patient intake and appointment booking for a dental
+        practice. The write-up below is filled in from the practice's own numbers — no figure
+        appears here until it has been measured.
+      </p>
+      <div class="stack" style="width:100%;gap:1.5rem">
+        {
+          caseSections.map((section) => (
+            <div style="width:100%">
+              <h3 class="h3" style="margin-bottom:0.75rem">{section.heading}</h3>
+              <Placeholder token={PLACEHOLDERS.caseStudy} note={section.note} shape="tall" />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell stack">
+      <h2 class="h2 tick">Whether it fits your business</h2>
+      <div class="prose">
+        <p>
+          It fits if you take appointments by phone and miss some of them. Tell me how your calls
+          arrive today and what your front desk does with them, and I will tell you honestly
+          whether an agent is worth building — sometimes the answer is that a better phone tree is
+          enough.
+        </p>
+      </div>
+      <a class="btn" href={`mailto:${EMAIL_DEV}`}>Email {EMAIL_DEV}</a>
+    </div>
+  </section>
+</BaseLayout>

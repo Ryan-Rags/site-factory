@@ -1,0 +1,12 @@
+# raghubans.com is a public credibility site and we want it crawled.
+#
+# This is the deliberate inverse of every client mockup this repo builds: those
+# ship `Disallow: /` because they are private pitches. If you are copying a
+# robots.txt between the two, you are copying the wrong one.
+#
+# scripts/check-indexable.mjs fails the build if this file stops allowing, or if
+# the sitemap reference below stops matching what Astro actually emitted.
+User-agent: *
+Allow: /
+
+Sitemap: https://raghubans.com/sitemap-index.xml

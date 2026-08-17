@@ -1,0 +1,30 @@
+---
+/**
+ * A visible, in-page marker for something the operator fills in later.
+ *
+ * Rendered loudly and shipped to the live preview deliberately. The whole
+ * failure mode being designed against is a placeholder that is only visible in
+ * a diff: nobody re-reads the diff before sending the link to a prospect, but
+ * everybody looks at the page.
+ *
+ * The token string is emitted verbatim so `check-placeholders.mjs` can grep the
+ * built HTML for it, which is what makes "did we drop one?" a build failure
+ * instead of a review question.
+ */
+interface Props {
+  /** One of the PLACEHOLDERS values, e.g. `DEMO_LINK`. */
+  token: string;
+  /** What the operator should put here. */
+  note: string;
+  /** Photo slot reserves a 4:5 box; `tall` reserves a block. */
+  shape?: 'inline' | 'photo' | 'tall';
+}
+
+const { token, note, shape = 'inline' } = Astro.props;
+const shapeClass = shape === 'photo' ? ' ph--photo' : shape === 'tall' ? ' ph--tall' : '';
+---
+
+<div class={`ph${shapeClass}`} data-placeholder={token}>
+  <span class="ph__token">{token}</span>
+  <span class="ph__note">{note}</span>
+</div>

@@ -1,0 +1,45 @@
+---
+/**
+ * Per-page head metadata. Every field is required — there is no "inherit from
+ * the site name" fallback, because a fallback is how four of five pages end up
+ * sharing one description.
+ *
+ * This is the indexable inverse of the template's Seo component: no `noindex`,
+ * a real canonical on every page, and `og:image` pointed at a per-page card.
+ * `scripts/check-metadata.mjs` re-reads all of it out of the built HTML.
+ */
+import { SITE_URL, type PageMeta } from '../site';
+
+interface Props {
+  page: PageMeta;
+  /** OG card alt text. Written per page; crawlers and screen readers both use it. */
+  ogAlt: string;
+}
+
+const { page, ogAlt } = Astro.props;
+
+// Built from SITE_URL rather than Astro.url so a preview on pages.dev still
+// advertises the production canonical — which is the point of a canonical.
+const canonical = new URL(page.path, SITE_URL).href;
+const ogImage = new URL(`/og/${page.ogImage}`, SITE_URL).href;
+---
+
+<title>{page.title}</title>
+<meta name="description" content={page.description} />
+<link rel="canonical" href={canonical} />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="raghubans.com" />
+<meta property="og:title" content={page.title} />
+<meta property="og:description" content={page.description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={ogAlt} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={page.title} />
+<meta name="twitter:description" content={page.description} />
+<meta name="twitter:image" content={ogImage} />
+<meta name="twitter:image:alt" content={ogAlt} />

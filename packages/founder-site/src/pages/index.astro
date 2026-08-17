@@ -1,0 +1,107 @@
+---
+/**
+ * The credibility page. A property manager who got a cold email arrives here
+ * to answer one question — "is this a real operator or a guy with a mailbox?" —
+ * so the job of this page is to look like a founder with three shipping
+ * ventures, not to sell any one of them. The selling happens on the child
+ * pages.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Placeholder from '../components/Placeholder.astro';
+import { AMENITY_BRAND, FULL_NAME, PAGES, PLACEHOLDERS, REGION } from '../site';
+
+const ventures = [
+  {
+    href: '/sites',
+    eyebrow: 'site-factory',
+    title: 'Websites for local business',
+    body: 'Fast, mobile-first sites for Bergen County businesses — measured on a real phone before they ship, not signed off on a desktop mockup.',
+  },
+  {
+    href: '/ai',
+    eyebrow: 'Voice',
+    title: 'AI voice agents',
+    body: 'Agents that answer the calls a small business misses — booking, triage and after-hours reception, on the phone number they already have.',
+  },
+  {
+    href: '/amenity',
+    eyebrow: 'Amenity',
+    title: AMENITY_BRAND,
+    body: 'Curated smart markets for luxury residential buildings. Zero cost and zero work for the property.',
+  },
+];
+---
+
+<BaseLayout page={PAGES.home} ogAlt={`${FULL_NAME} — full-stack developer and founder in ${REGION}`}>
+  <section class="hero">
+    <div class="shell">
+      <div style="display:flex;flex-direction:column;gap:2rem">
+        <div>
+          {/* The separators are present in the DOM text and hidden visually —
+              see `.vh` in global.css for why. */}
+          <h1 class="h1">
+            <span class="hero__name">{FULL_NAME}</span>
+            <span class="vh"> — </span>
+            <span class="hero__role">Full-Stack Developer &amp; Founder</span>
+            <span class="vh"> · </span>
+            <span class="hero__region">{REGION}</span>
+          </h1>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:2rem;align-items:flex-start">
+          <Placeholder
+            token={PLACEHOLDERS.photo}
+            note="Drop a headshot here — 4:5 portrait, shot at 800×1000 or larger."
+            shape="photo"
+          />
+          <div class="prose" style="flex:1 1 18rem">
+            <p>
+              I build software for people who need it to work on the first call. Enterprise
+              development at CED and Prudential turned into three ventures I now run out of
+              {' '}{REGION}: a web studio, an AI voice practice, and an amenity company placing
+              curated smart markets in luxury residential buildings.
+            </p>
+            <p>
+              If you found this page from an email I sent you, the short version is that I
+              answer my own inbox and I ship my own work.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--plain">
+    <div class="shell stack">
+      <div>
+        <p class="eyebrow">What I run</p>
+        <h2 class="h2 tick">Three ventures</h2>
+      </div>
+      <div class="grid grid--3" style="width:100%">
+        {
+          ventures.map((v) => (
+            <a class="card card--link" href={v.href}>
+              <p class="eyebrow">{v.eyebrow}</p>
+              <h3 class="h3">{v.title}</h3>
+              <p class="card__body">{v.body}</p>
+              <span class="card__more">Read more →</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <h2 class="h2 tick">Where I work</h2>
+      <div class="prose">
+        <p>
+          Everything runs from {REGION}. As a <strong>Bergen County web developer</strong> I
+          would rather drive to a first meeting than take it over video, and the buildings and
+          businesses I work with are close enough that I can.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

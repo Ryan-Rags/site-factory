@@ -1,0 +1,20 @@
+# Cloudflare Pages response headers.
+#
+# Minimal on purpose. This site is a static brochure: no forms, no cookies, no
+# client JavaScript, no third-party embeds. A full CSP with per-page script
+# hashes would be machinery guarding a surface that does not exist, and
+# machinery that is not exercised is machinery that rots — so the CSP here
+# carries `frame-ancestors` only, which is the one directive that protects
+# something real (clickjacking a mailto CTA).
+#
+# If a <script> is ever introduced on any page, this file needs a real CSP with
+# that script's hash, and check-no-forms.mjs is the gate that will notice the
+# script and fail first.
+#
+# Verified by scripts/check-headers.mjs, which asserts this file reaches dist
+# with all four directives intact.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Frame-Options: DENY
