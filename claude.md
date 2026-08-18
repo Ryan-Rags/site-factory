@@ -23,6 +23,10 @@
   STOP, commit "WIP: foreign writes detected", ask Ryan. git stash is banned.
 - Cold start: copy .env and gitignored data/*.csv fixtures from the main
   checkout into your worktree. They are inputs, never commits.
+- prospects/<slug>/ records are gitignored but canonical at
+  D:\site-factory\prospects\; worktrees copy IN at cold-start and copy BACK any
+  records they create or refresh before the stream ends. A worktree is never the
+  only holder of a real-business record.
 - Ownership is granted per task prompt, by path. No grant = not yours. An edit
   outside granted paths must be necessary for acceptance, minimal, and listed
   in the PR under "Cross-boundary edits" — its presence HOLDs the PR.
