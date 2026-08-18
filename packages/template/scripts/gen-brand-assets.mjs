@@ -178,13 +178,34 @@ const manifest = (info) => ({
 
 /* --------------------------------------------------------------------- run */
 
+/**
+ * Test fixtures are registered clients, so the no-arg sweep would render a brand
+ * kit for each and invite it into a commit. `deploy-mockups.mjs` excludes the
+ * same `zz-` prefix for the same reason.
+ *
+ * Only the sweep is filtered. An explicit slug still renders one, which is how
+ * `zz-fixture-go-live` got the PNG card it needs to prove `check-go-live.mjs`
+ * rejects an SVG `og:image` — a deliberate, argument-driven run.
+ */
+const FIXTURE_PREFIX = 'zz-';
+
 const requested = process.argv[2];
-const slugs = requested
+const registered = requested
   ? [requested]
   : readFileSync(join(pkgRoot, 'clients', 'index.ts'), 'utf8')
       .split('\n')
       .map((line) => /^\s*'([a-z0-9-]+)':/.exec(line)?.[1])
       .filter(Boolean);
+
+// Announced, never silent: the same reasoning as the deploy script's skip notice.
+const fixtures = requested ? [] : registered.filter((s) => s.startsWith(FIXTURE_PREFIX));
+if (fixtures.length > 0) {
+  console.log(
+    `skipping ${fixtures.length} test fixture(s): ${fixtures.join(', ')}` +
+      ' — pass a slug to render one deliberately.',
+  );
+}
+const slugs = registered.filter((s) => !fixtures.includes(s));
 
 const browser = await chromium.launch();
 let made = 0;
