@@ -278,6 +278,16 @@ p {
   margin-top: 0.875rem;
 }
 
+/* The duality line: day job and founder work in one sentence, directly under
+ * the name. Sized between the role line and body copy so it reads as a caption
+ * to the heading rather than as the start of the prose. */
+.hero__now {
+  margin-top: 1.25rem;
+  max-width: 34rem;
+  font-size: clamp(0.9375rem, 2.4vw, 1.0625rem);
+  color: var(--ink-muted);
+}
+
 @media (min-width: 48rem) {
   .hero {
     padding-block: 5.5rem var(--section-y);
@@ -398,6 +408,45 @@ p {
 .topbar__nav a:hover,
 .topbar__nav a[aria-current='page'] {
   color: var(--ink);
+}
+
+/* The amenity bar's one action. Sized off the same accent tokens as `.btn` but
+ * smaller, so it reads as chrome rather than as the page's primary CTA — that
+ * one is still in the hero. `min-height` keeps it a legal tap target even at
+ * this size, which is the reason it is not simply a text link. */
+.topbar__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.4375rem 0.9375rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-btn);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: var(--btn-tracking);
+  text-transform: var(--btn-transform);
+  text-decoration: none;
+}
+
+.topbar__cta:hover {
+  filter: brightness(1.08);
+}
+
+/* --- hero photo ------------------------------------------------------------
+ *
+ * Occupies exactly the box `.ph--photo` reserves, so the day `public/ryan.jpg`
+ * appears the layout does not move: same 4:5, same max-width, same flex basis.
+ * That equivalence is the whole reason the placeholder was given an
+ * `aspect-ratio` in the first place. */
+.headshot {
+  width: 100%;
+  max-width: 15rem;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
 }
 
 .foot {

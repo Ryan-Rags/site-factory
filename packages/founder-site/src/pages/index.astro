@@ -8,7 +8,15 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Placeholder from '../components/Placeholder.astro';
-import { AMENITY_BRAND, FULL_NAME, PAGES, PLACEHOLDERS, REGION } from '../site';
+import {
+  AMENITY_BRAND,
+  FULL_NAME,
+  HEADSHOT_SRC,
+  PAGES,
+  PLACEHOLDERS,
+  REGION,
+} from '../site';
+import { HAS_HEADSHOT, HEADSHOT_H, HEADSHOT_W } from '../assets';
 
 const ventures = [
   {
@@ -46,20 +54,45 @@ const ventures = [
             <span class="vh"> · </span>
             <span class="hero__region">{REGION}</span>
           </h1>
+          {/* The one line that grounds the duality. Deliberately OUTSIDE the
+              <h1>: check-textfit.mjs asserts that heading's exact string, and
+              the heading is the SEO asset — this is context, not a title. */}
+          <p class="hero__now">
+            Full-stack developer at CED by day, building internal
+            warehouse-operations software. Founder the rest of the time.
+          </p>
         </div>
 
         <div style="display:flex;flex-wrap:wrap;gap:2rem;align-items:flex-start">
-          <Placeholder
-            token={PLACEHOLDERS.photo}
-            note="Drop a headshot here — 4:5 portrait, shot at 800×1000 or larger."
-            shape="photo"
-          />
+          {
+            /* Wired, not waiting: the day `public/ryan.jpg` exists the next
+               build renders it here and drops the placeholder, with no edit to
+               this file. Same 4:5 box either way, so the swap cannot shift the
+               page. See src/assets.ts. */
+            HAS_HEADSHOT ? (
+              <img
+                class="headshot"
+                src={HEADSHOT_SRC}
+                width={HEADSHOT_W}
+                height={HEADSHOT_H}
+                alt={`${FULL_NAME}, full-stack developer and founder in ${REGION}`}
+                fetchpriority="high"
+              />
+            ) : (
+              <Placeholder
+                token={PLACEHOLDERS.photo}
+                note="Drop a headshot here — 4:5 portrait, shot at 800×1000 or larger."
+                shape="photo"
+              />
+            )
+          }
           <div class="prose" style="flex:1 1 18rem">
             <p>
-              I build software for people who need it to work on the first call. Enterprise
-              development at CED and Prudential turned into three ventures I now run out of
-              {' '}{REGION}: a web studio, an AI voice practice, and an amenity company placing
-              curated smart markets in luxury residential buildings.
+              I build software for people who need it to work on the first call. That is the
+              day job — internal warehouse-operations software at CED, in React, TypeScript and
+              C#/.NET — and it is what I do with the ventures I run out of {REGION}: a web
+              studio, an AI voice practice, and an amenity company placing curated smart markets
+              in luxury residential buildings.
             </p>
             <p>
               If you found this page from an email I sent you, the short version is that I
@@ -75,7 +108,7 @@ const ventures = [
     <div class="shell stack">
       <div>
         <p class="eyebrow">What I run</p>
-        <h2 class="h2 tick">Three ventures</h2>
+        <h2 class="h2 tick">The ventures</h2>
       </div>
       <div class="grid grid--3" style="width:100%">
         {
@@ -97,9 +130,10 @@ const ventures = [
       <h2 class="h2 tick">Where I work</h2>
       <div class="prose">
         <p>
-          Everything runs from {REGION}. As a <strong>Bergen County web developer</strong> I
-          would rather drive to a first meeting than take it over video, and the buildings and
-          businesses I work with are close enough that I can.
+          Everything runs from {REGION}. When a local business needs a
+          {' '}<strong>Bergen County web developer</strong>, that is what site-factory is for —
+          and the buildings and businesses I work with are close enough that I would rather
+          drive to a first meeting than take it over video.
         </p>
       </div>
     </div>
