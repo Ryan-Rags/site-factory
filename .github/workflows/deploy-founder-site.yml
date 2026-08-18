@@ -1,0 +1,121 @@
+name: Deploy founder site
+
+# "Merged" should mean "live". Everything the README's Deploy section documents
+# runs here, in the same order, so a push to main that touches this package
+# republishes raghubans.com without anyone remembering to.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/founder-site/**'
+      - '.github/workflows/deploy-founder-site.yml'
+  # For republishing without a code change — a reverted zone setting, a Pages
+  # rollback, an alias that needs re-pointing.
+  workflow_dispatch:
+
+# One deploy at a time, and never cancel one mid-flight: a cancelled
+# `wrangler pages deploy` can leave the production alias pointing at a
+# partially uploaded deployment.
+concurrency:
+  group: deploy-founder-site
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # The alias, not the apex. This gate's job is to verify the artifact we just
+  # shipped; www.raghubans.com adds zone behaviour this workflow does not
+  # control. The apex is checked separately, advisory-only, at the end.
+  DEPLOY_ALIAS: https://raghubans-com.pages.dev
+  # Pinned deliberately. A deploy tool that floats is a deploy that can change
+  # behaviour with no commit to point at. Bump it in a PR like any other dep.
+  WRANGLER_VERSION: '4.124.0'
+
+defaults:
+  run:
+    # packages/founder-site is its own pnpm workspace root — the repo root's
+    # pnpm-workspace.yaml enumerates members and has no `packages/*` glob, so it
+    # is not a member. Every `run` step below executes from inside it, exactly
+    # as the README instructs a human to.
+    working-directory: packages/founder-site
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` input on purpose — action-setup reads `packageManager`
+      # from the repo root's package.json, so CI tracks the repo's pnpm pin
+      # instead of carrying a second copy of it that can drift.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          # Relative to the repo root, not to working-directory.
+          cache-dependency-path: packages/founder-site/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # check-textfit is the only gate here that drives a browser. --with-deps
+      # pulls the shared libraries Chromium needs on a bare runner; without it
+      # the launch fails with a missing-.so error rather than a gate failure.
+      - name: Install Chromium for the browser gate
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # astro build, then the seven dist/ gates in package.json's build script:
+      # indexable, metadata, amenity-wording, placeholders, no-forms, motion,
+      # headers. Each exits non-zero on failure, so a red gate stops the job
+      # before anything is uploaded.
+      - name: Gates - build (7 gates)
+        run: pnpm build
+
+      - name: Gate - check-textfit (320px and 390px)
+        run: node scripts/check-textfit.mjs
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes "wrangler@${WRANGLER_VERSION}" pages deploy dist \
+            --project-name raghubans-com \
+            --branch main
+
+      # Post-deploy, and blocking: a green build that published a broken page is
+      # the failure mode this whole workflow exists to catch. The production
+      # alias can lag the upload by a few seconds, so retry — then run once more
+      # unguarded so a genuine failure prints its own problem list and the job
+      # exits non-zero on it.
+      - name: Gate - check-live (post-deploy)
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if node scripts/check-live.mjs "$DEPLOY_ALIAS"; then
+              exit 0
+            fi
+            echo "::notice::check-live attempt ${attempt} did not pass; waiting 10s for the alias to pick up the new deployment"
+            sleep 10
+          done
+          echo "::error::check-live failed 5 times on ${DEPLOY_ALIAS} - the deploy is published but UNVERIFIED"
+          node scripts/check-live.mjs "$DEPLOY_ALIAS"
+
+      # Advisory, not blocking, and that is a measured decision rather than a
+      # shrug. The apex sits behind a Cloudflare zone whose Scrape Shield
+      # "Email Address Obfuscation" rewrites every mailto: CTA into
+      # /cdn-cgi/l/email-protection and injects a decoder <script>, so check-live
+      # reports 0 CTAs resolved on www.raghubans.com while the same deployment
+      # reports 17 on the alias. That is zone configuration, not this artifact,
+      # and zones are out of scope for this package - so failing every deploy on
+      # it would only teach us to ignore a red X.
+      # See docs/known-issues.md. Turn the setting off and make this blocking.
+      - name: Gate - check-live on the apex (advisory)
+        continue-on-error: true
+        run: node scripts/check-live.mjs https://www.raghubans.com
