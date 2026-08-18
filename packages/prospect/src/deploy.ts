@@ -30,7 +30,52 @@ function wrangler(args: string[]): { code: number | null; out: string } {
   return { code: res.status, out: `${res.stdout ?? ""}${res.stderr ?? ""}` };
 }
 
+/**
+ * The project named by `PREVIEW_ORIGIN`, when the operator set one.
+ *
+ * An override that moves the build's stamp but not the deploy's target is not
+ * an override, it is a new way to produce the same defect — and it produced it:
+ * the first rebuild of c3m stamped the `-rr` host and `ensureProject` published
+ * it to the derived `-preview` one, so the gate went red on our own fix. The
+ * variable names where this demo lives; both halves have to read it.
+ *
+ * Only a `*.pages.dev` origin yields a project name. Anything else is left to
+ * the derivation, because a Pages project name is the subdomain and there is
+ * nothing to extract from a custom domain.
+ */
+function overrideProjectName(): string | null {
+  const raw = (process.env["PREVIEW_ORIGIN"] ?? "").trim();
+  if (raw === "") return null;
+  let host: string;
+  try {
+    host = new URL(raw).hostname;
+  } catch {
+    return null;
+  }
+  return host.endsWith(".pages.dev") ? (host.split(".")[0] ?? null) : null;
+}
+
 function ensureProject(slug: string): { name: string; substituted: boolean } {
+  const override = overrideProjectName();
+  if (override !== null) {
+    // Create it if it is not there, accept it if it is, and do NOT fall back to
+    // another name: the operator named this one, and silently publishing
+    // somewhere else is the whole failure being fixed.
+    const res = wrangler([
+      "pages",
+      "project",
+      "create",
+      override,
+      `--production-branch=${PRODUCTION_BRANCH}`,
+    ]);
+    if (res.code === 0 || /already exists/i.test(res.out)) {
+      return { name: override, substituted: override !== projectNameFor(slug) };
+    }
+    throw new Error(
+      `PREVIEW_ORIGIN names the Pages project "${override}", which could not be used:\n${res.out}`,
+    );
+  }
+
   const name = projectNameFor(slug);
   let res = wrangler(["pages", "project", "create", name, `--production-branch=${PRODUCTION_BRANCH}`]);
   if (res.code === 0) return { name, substituted: false };

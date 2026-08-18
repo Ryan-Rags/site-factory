@@ -218,7 +218,24 @@ function checkClient(slug) {
               if (v.includes(marker)) say(`${path}.${k} carries the marker ${marker}`);
             }
           }
-          // Anything that is meant to be a URL must be one, and must be ours.
+          /*
+           * Anything meant to be a URL must be one, and must be ours — but
+           * "ours" is two different origins, and conflating them is what issue
+           * #35 was about.
+           *
+           * `url` and `@id` are identity claims and belong on the canonical
+           * origin, which is this site's own address. `image` and `logo` are
+           * fetched by a crawler on another machine, so on a `noindex` build
+           * they belong at the origin serving that build — which for a mockup
+           * is a Pages host and NOT the canonical origin. Requiring all four to
+           * match the canonical was the rule that kept the graph's two fetched
+           * URLs pointed at `example.invalid`, a host that resolves nowhere,
+           * on five of the eight clients.
+           *
+           * On a delivered build `cardOrigin` is empty, `previewOriginFor` is
+           * not consulted, and all four are compared against the canonical
+           * exactly as before.
+           */
           if (['url', '@id', 'image', 'logo'].includes(k)) {
             let u;
             try {
@@ -227,8 +244,16 @@ function checkClient(slug) {
               say(`${path}.${k} is not an absolute URL: ${v}`);
               continue;
             }
-            if (origin && u.origin !== origin) {
-              say(`${path}.${k} points at ${u.origin}, not this site's ${origin}`);
+            const fetched = k === 'image' || k === 'logo';
+            const want = fetched && noindex ? previewOriginFor(slug) : origin;
+            if (want && u.origin !== want) {
+              say(
+                `${path}.${k} points at ${u.origin}, not ${want}` +
+                  (fetched && noindex
+                    ? ' — the origin this preview is served from. A crawler fetches this URL, ' +
+                      'so it has to name a host that serves the file (issue #35).'
+                    : " — this site's own address."),
+              );
             }
           }
         }
@@ -246,45 +271,24 @@ function checkClient(slug) {
       }
 
       if (graph['@type'] === 'LocalBusiness') {
-        /* --- the graph's two fetched fields, on a preview build ---------- */
+        /* --- the graph's two fetched fields must be present at all ------- */
         /*
-         * `image` and `logo` are URLs a crawler goes and gets. Everything else
-         * in this file is settled by reading `dist/`; these two cannot be,
-         * because the file was always correct and it was the host in front of
-         * the path that was wrong — the same blindness `check-metadata.mjs`
-         * describes for the card, at the second location issue #35 records.
+         * Their ORIGIN is checked in the per-key loop above, which knows the
+         * asset/identity split. What that loop cannot see is a field that is
+         * absent — it iterates the keys the graph actually has.
          *
-         * On a `noindex` build they must sit at the origin that build is
-         * served from. `@id` and `url` are deliberately NOT checked here: they
-         * are identity claims that keep `seo.siteUrl`, which on a hand-authored
-         * mockup is the prospect's own domain and on a generated demo is the
-         * Pages origin, and reading the config to tell those apart is exactly
-         * what this gate does not do.
-         *
-         * `noindex` is read off the built HTML rather than the config, the way
-         * `check-metadata.mjs` reads it, so the build and the gate cannot
-         * quietly disagree about which kind of build this is.
+         * Fail-closed on a preview, per the ruling of 2026-08-12: a graph with
+         * no `image` is a graph whose card origin nobody checked, and the whole
+         * defect behind issue #35 was a check that looked at a mockup and found
+         * nothing to say.
          */
-        if (/<meta[^>]+name=["']robots["'][^>]+content=["']noindex/i.test(html)) {
-          const want = previewOriginFor(slug);
+        if (noindex) {
           for (const field of ['image', 'logo']) {
             const value = graph[field];
             if (typeof value !== 'string' || value === '') {
-              say(`LocalBusiness.${field} is missing on a noindex build, so its origin cannot be checked against ${want}`);
-              continue;
-            }
-            let got = null;
-            try {
-              got = new URL(value).origin;
-            } catch {
-              /* Reported just below; `got` stays null. */
-            }
-            if (got === null) {
-              say(`LocalBusiness.${field} is not an absolute URL, so its origin cannot be resolved: ${value}`);
-            } else if (got !== want) {
               say(
-                `LocalBusiness.${field} is rooted at ${got}, but this preview is served from ` +
-                  `${want} — the structured data cites a host that cannot serve the file (issue #35)`,
+                `LocalBusiness.${field} is missing on a noindex build, so nothing checks that ` +
+                  `the graph cites a host that serves the file (issue #35)`,
               );
             }
           }
