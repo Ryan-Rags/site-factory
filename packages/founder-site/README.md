@@ -143,10 +143,36 @@ into the PNG), rebuild.
 
 ## Performance
 
-Lighthouse **mobile**, all four categories, measured against the deployed site —
-`100 / 100 / 100 / 100` on all five routes; LCP 0.8–1.0 s, CLS 0, TBT 0 ms. The
-Lighthouse run is also this package's contrast check (it caught a 3.02:1 footer
-CTA), so treat 90+ across all categories as a release gate, not a nice-to-have.
+Lighthouse **mobile**, all four categories. The Lighthouse run is also this
+package's contrast check (it caught a 3.02:1 footer CTA), so treat 90+ across
+all categories as a release gate, not a nice-to-have.
+
+**Which origin you measure changes the score, and only one of the three is the
+site.** Measured 2026-08-18, same artifact on all three:
+
+| Origin | perf | a11y | best-practices | SEO | LCP |
+| --- | --- | --- | --- | --- | --- |
+| `raghubans.com` (production) | 99–100 | 100 | 100 | **92** | 1.5 s |
+| `raghubans-com.pages.dev` (alias) | 100 | 100 | 100 | 100 | 0.8 s |
+| `<hash>.raghubans-com.pages.dev` (immutable) | 100 | 100 | 100 | **66** | 0.8 s |
+
+Both outliers are the platform, not the build:
+
+- **SEO 92 on the apex** is one audit, `robots-txt`, one error: `Unknown
+  directive` on the `Content-Signal:` line that **Cloudflare's managed
+  robots.txt prepends at the zone**. Our `robots.txt` is byte-identical on all
+  three origins and passes on the other two. Not fixable from this package —
+  zones are out of scope here. See `docs/known-issues.md`.
+- **SEO 66 on an immutable deployment URL** is `is-crawlable`: Cloudflare serves
+  preview deployments with `x-robots-tag: noindex`. Expected, and the reason a
+  preview URL is a fine place to verify the *artifact* and a useless place to
+  measure SEO.
+- **LCP 1.5 s on the apex vs 0.8 s on pages.dev** is the apex's network path
+  (FCP moves with it); CLS 0 and TBT 0 ms everywhere.
+
+So: verify the artifact on the immutable URL, measure performance and SEO on the
+alias, and read the apex's SEO score knowing one point of it belongs to the
+zone.
 
 No webfonts, no client JS, one inlined stylesheet per page.
 
