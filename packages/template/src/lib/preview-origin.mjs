@@ -80,6 +80,30 @@ function override() {
 }
 
 /**
+ * A demonstration build is its own Pages project, so it takes no suffix.
+ *
+ * `PREVIEW_SUFFIX` encodes one deploy's rule — `deploy-mockups.mjs` names a
+ * prospect's project `<slug>-preview`. The five `portfolio-` builds do not go
+ * through that script at all: each is its own project named for the slug, and
+ * raghubans.com/sites links `https://portfolio-<name>.pages.dev` publicly
+ * (`check-placeholders.mjs` allows that host and only that host).
+ *
+ * Appending `-preview` to one of them stamps every absolute URL — the social
+ * card above all — with a host nobody deployed. That is issue #25's defect and
+ * c3m's defect a third time: the build and the gate agree with each other and
+ * are both wrong, because they share a derivation instead of checking a fact.
+ * Measured before this branch: `og:image` cited
+ * `portfolio-ironvale-fabrication-preview.pages.dev` while the canonical, the
+ * deploy and the public link all said `portfolio-ironvale-fabrication.pages.dev`.
+ *
+ * Fixed here rather than by setting `PREVIEW_ORIGIN` at deploy time: the
+ * override exists for a substituted project name, which is an accident nobody
+ * can predict, and this is a permanent property of what a `portfolio-` slug
+ * IS. A rule the code knows cannot be forgotten on the fifth redeploy.
+ */
+const DEMONSTRATION_PREFIX = 'portfolio-';
+
+/**
  * The origin a preview build of `slug` is served from.
  *
  * Derived from the slug alone unless `PREVIEW_ORIGIN` says otherwise, so
@@ -94,5 +118,6 @@ function override() {
  * `check-stamped-origins.mjs` takes the origin as an input instead.
  */
 export function previewOriginFor(slug) {
+  if (slug.startsWith(DEMONSTRATION_PREFIX)) return override() || `https://${slug}.pages.dev`;
   return override() || `https://${slug}${PREVIEW_SUFFIX}.pages.dev`;
 }

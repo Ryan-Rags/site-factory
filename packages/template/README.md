@@ -479,6 +479,38 @@ worker-demo/                the shared demo endpoint behind every prospect demo
 
 ---
 
+## Deploying a `portfolio-` demonstration build
+
+The five `portfolio-*` clients are invented businesses, one per design family.
+Each is **its own Cloudflare Pages project named for the slug**, and
+raghubans.com/sites links them publicly at `https://portfolio-<name>.pages.dev`.
+They are not part of the mockup fleet: `build-all.mjs` keeps them out of
+`dist/` during a batch, because `scripts/deploy/deploy-mockups.mjs` publishes
+every directory it finds there.
+
+```sh
+SITE_CLIENT=portfolio-ironvale-fabrication pnpm build     # the FULL chain — see below
+ls dist/portfolio-ironvale-fabrication/_headers            # must exist before you deploy
+npx wrangler pages deploy dist/portfolio-ironvale-fabrication \
+  --project-name portfolio-ironvale-fabrication --branch main
+curl -sI https://portfolio-ironvale-fabrication.pages.dev/og/portfolio-ironvale-fabrication.png
+#   → 200, content-type: image/png   (the card a share actually unfurls)
+rm -rf dist/portfolio-ironvale-fabrication                 # before any batch build
+```
+
+**`pnpm build`, never `pnpm exec astro build`.** The bare Astro command skips
+`gen-headers.mjs` along with seven other gates, and the first deploy of these
+five went out with no `_headers` and no CSP because of it. There is no longer
+a reason to reach for it: `check-fabrication.mjs` used to refuse a build with
+no prospect record — taking the rest of the `&&` chain with it — and now scans
+a `portfolio-` build against an empty allowance list instead.
+
+**The card origin has no `-preview` suffix.** These are not prospect demos;
+`previewOriginFor()` knows the prefix, so `og:image` is stamped with the same
+host the site is served from. Do not set `PREVIEW_ORIGIN` for them.
+
+---
+
 ## Design families
 
 Three config-driven looks for local service businesses, sharing one set of

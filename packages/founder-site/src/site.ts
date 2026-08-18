@@ -101,12 +101,19 @@ export const CODING_SINCE = 2018;
 export const YEARS_PROFESSIONAL = 4;
 
 /**
- * Ruling (d). Sites built by the pipeline. Ryan's figure, and it reconciles
- * against what this repo can see: the 50-demo batch plus the nine earlier demo
- * hosts named in docs/evidence/. It is NOT independently measurable from a
- * clean checkout — `prospects/` and `data/` are gitignored — which is stated on
- * the PR rather than papered over.
-
+ * Ruling (d). Sites built by the pipeline, and **Ryan's number to maintain** —
+ * a session may correct the source note below, never the figure.
+ *
+ * 59 = 50 + 9, and the 50 are measured rather than remembered:
+ * `docs/evidence/r1-r2-r3-live-fleet.txt`, the live-fleet sweep of
+ * **2026-08-17**, fetched all fifty deployed demos at their own manifest URLs
+ * and reported `demos fetched: 50/50`. The remaining nine are the earlier demo
+ * hosts named in that same directory.
+ *
+ * It is NOT independently measurable from a clean checkout — `prospects/` and
+ * `data/` are gitignored — so the evidence file is the citation, and it is
+ * pinned to a date because the fleet grows. When it does, this constant and
+ * that date move together or the number is no longer sourced.
  *
  * WHAT THE NUMBER IS, IN THE COPY ITSELF: builds generated, deployed and
  * tested by the pipeline — NOT signed clients. `/sites` says so in the same
@@ -115,6 +122,8 @@ export const YEARS_PROFESSIONAL = 4;
  * `portfolio-*` demonstrations. The other fifty-odd are private, unsigned
  * prospect pitches. `/` avoids the bare figure entirely and points at the five
  * a reader can open.
+ *
+ * Ruled 2026-08-18 on PR #66's Brief, item 5.
  */
 export const SITES_BUILT = 59;
 

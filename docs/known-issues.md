@@ -738,16 +738,22 @@ is barred from touching zones. Raised as a Brief item on PR feat/founder-site-v2
 **Not a code defect.** `check-live.mjs` was narrowed to assert only the
 `User-agent: *` group, which is the claim the gate exists to make.
 
-## Every deployed demo ships all nine hand-authored clients' social cards
+## Every deployed demo ships all fourteen committed social cards
 
 **Status:** open. **Surface:** every build — the 8 client mockups and all 50
 generated demos.
 
 `packages/template/public/` is copied wholesale into every `dist/`, and
-`public/og/` holds nine committed client cards. So a prospect's demo serves
+`public/og/` holds fourteen committed cards. So a prospect's demo serves
 `ks-welding.png`, `kh-machine-works.png` and seven more, each a 1200x630 image
 carrying another business's name and town. Nothing links to them and no gate
 looks at them.
+
+**Widened 2026-08-18 by `fix/portfolio-build-gates`**, which committed the five
+`portfolio-*.png` cards that issue #67 required. Those five are invented
+businesses, so they leak no client data — the nine that do are unchanged, and
+the mechanism and the fix sketch below are the same. Counted here rather than
+left to be rediscovered.
 
 **Repro** (after any demo build):
 
@@ -782,35 +788,35 @@ too. The cleanup is idempotent and runs on the throw path, so this needs an
 actual process kill; the recovery is `git status` in
 `packages/template/public/og/` and deleting anything untracked.
 
-## The five portfolio demonstration builds are outside `check-fabrication`
+## founder-site: the scroll reveal never animates in Firefox — accepted, do not "fix" it
 
-**Status:** open. **Surface:** `packages/template/clients/portfolio-*.config.ts`.
+**Status:** accepted, not a defect. **Surface:** `packages/founder-site`.
 
-`check-fabrication.mjs` resolves every claim on a page against a prospect
-record — an ingested `prospects/<slug>/prospect.json` or a TypeScript record in
-`@site-factory/copy`. The five portfolio builds are invented businesses and have
-neither, so the gate exits before it checks anything:
+Firefox has no scroll-driven animations, so it renders every page complete and
+simply does not animate the reveal. Nothing is ever pre-hidden, so nothing is
+lost — the base `.reveal` rule is the final state.
 
-```
-$ SITE_CLIENT=portfolio-ironvale-fabrication node scripts/check-fabrication.mjs portfolio-ironvale-fabrication
-✗ portfolio-ironvale-fabrication: no prospect record, so nothing here can be checked against a source.
-  No prospect record for "portfolio-ironvale-fabrication".
-```
+**Do not add a script to close this gap.** `packages/founder-site` fails its
+build on any `<script>` and ships no `script-src` CSP; a zero-script page is
+the thing the site is demonstrating, and decoration is not worth widening that
+surface permanently. Ruled 2026-08-18 on PR #66's Brief; the reasoning and the
+measured accessibility cost of the alternative are in `docs/decisions.md`.
 
-This is the same position `zz-fixture-long-name` and `zz-fixture-motion` are in,
-and for the same reason — both build with `astro build` rather than `pnpm build`.
-Every other gate does run on all five and is green: markers, contact-links,
-metadata, schema, go-live, form-fields, textfit (725 checks each), plus
-contrast, links and injection repo-wide.
+## A byte-identical check across two worktrees always fails on any page with a React island
 
-**What was done instead of nothing:** the gate's own claim patterns were run
-directly against all five builds' HTML. That found one real defect — "cheap", in
-the dental service copy — which was fixed; the five are now at 0 findings. That
-is a one-off script, not a standing gate, which is why this entry exists.
+**Status:** open, cosmetic — a verification trap rather than a shipped defect.
+**Surface:** any parity check spanning two checkouts.
 
-**Fix sketch:** give the five real `ProspectRecord`s in
-`packages/copy/src/prospects/`, with `fact(value, 'invented for a demonstration
-build')` as the provenance. The gate would then run normally and would catch a
-future stray claim — an unsourced string still would not appear in the
-allowances. It is a third package for this stream, so it was raised as a Brief
-item rather than done unasked.
+Astro's `<astro-island uid="…">` is derived from the repo's **absolute path**,
+so the same commit built at two paths produces different bytes on every page
+carrying the contact form. It is not per-run randomness: rebuilding in the same
+worktree reproduces the hash exactly.
+
+**Repro:** build one client on `main` in two worktrees at different paths and
+compare `dist/kh-machine-works/index.html`. Measured three values across three
+paths, two of them the same commit — `docs/evidence/client-parity-island-uid.md`.
+
+**Working around it:** normalise `uid="…"` and `prefix="…"` before hashing, or
+compare within one worktree. A naive cross-worktree diff will report eight
+changed files and every one of them is innocent, which is the dangerous part —
+it invites either a false alarm or the habit of ignoring the check.

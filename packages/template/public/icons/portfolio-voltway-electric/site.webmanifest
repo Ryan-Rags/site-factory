@@ -1,0 +1,20 @@
+{
+  "name": "Voltway Electric",
+  "short_name": "Voltway Elec",
+  "icons": [
+    {
+      "src": "/icons/portfolio-voltway-electric/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/portfolio-voltway-electric/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#101214",
+  "background_color": "#08090a",
+  "display": "standalone",
+  "start_url": "/"
+}

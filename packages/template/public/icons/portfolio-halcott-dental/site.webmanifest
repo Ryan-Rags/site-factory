@@ -1,0 +1,20 @@
+{
+  "name": "Halcott Dental Studio",
+  "short_name": "Halcott Dent",
+  "icons": [
+    {
+      "src": "/icons/portfolio-halcott-dental/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/portfolio-halcott-dental/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#24352c",
+  "background_color": "#fbf9f5",
+  "display": "standalone",
+  "start_url": "/"
+}

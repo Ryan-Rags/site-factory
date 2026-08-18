@@ -1,0 +1,32 @@
+# The five portfolio demos: live card verification
+
+Run after deploying all five from this branch. Issue #67 asked for a real PNG
+card; the origin defect found alongside it is why the og:image host is checked
+against the served host rather than assumed.
+
+slug                             page   card   type         og:image host == page host
+----                             ----   ----   ----         --------------------------
+portfolio-elderbrook-masonry     200    200    image/png    yes
+portfolio-halcott-dental         200    200    image/png    yes
+portfolio-ironvale-fabrication   200    200    image/png    yes
+portfolio-northmark-hvac         200    200    image/png    yes
+portfolio-voltway-electric       200    200    image/png    yes
+
+Security headers on the same five, live — the other half of this branch. Before
+it, these sites had none, because the deploy came from a bare `astro build`
+that never ran `gen-headers.mjs`:
+
+slug                             CSP  X-Content-Type-Options  Referrer-Policy  Permissions-Policy
+----                             ---  ----------------------  ---------------  ------------------
+portfolio-elderbrook-masonry     yes  yes                     yes              yes
+portfolio-halcott-dental         yes  yes                     yes              yes
+portfolio-ironvale-fabrication   yes  yes                     yes              yes
+portfolio-northmark-hvac         yes  yes                     yes              yes
+portfolio-voltway-electric       yes  yes                     yes              yes
+
+Propagation, as previously ruled: on the first pass immediately after deploy,
+portfolio-voltway-electric's card answered 404 with an 83 KB HTML body — the
+project alias still serving the previous deployment, which did not have that
+path. It answered 200 image/png on the next attempt, with no redeploy. This is
+the behaviour docs/decisions.md records for check-stamped-origins on 2026-08-18;
+a non-200 on a just-published asset is retried before it is believed.
