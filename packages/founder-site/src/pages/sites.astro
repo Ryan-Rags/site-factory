@@ -1,26 +1,90 @@
 ---
 /**
- * The web-studio page.
+ * The web-studio page, and the only page that tells the engineering story.
  *
- * The demo grid is built ENTIRELY from DEMO_LINK placeholder cards and links
- * nowhere. That is a hard rule, not a stub: the real demos are prospect mockups
- * built for businesses that have not signed, they are deliberately noindex, and
- * linking one from an indexed page would both expose a private pitch and drag it
- * into a crawler's view. Ryan fills a card in when a client signs and the site
- * is theirs to show. `check-placeholders.mjs` asserts five DEMO_LINK cards are
- * still here, so the grid cannot be quietly wired to live URLs.
+ * TWO GRIDS, TWO DIFFERENT CLAIMS, AND THEY MUST NOT BE CONFLATED:
+ *
+ *   PORTFOLIO   Five demonstration builds of INVENTED businesses, one per
+ *               design family. They are real deployments of the real pipeline,
+ *               so they prove the system renders; they prove nothing about a
+ *               client, because there is no client. Every one of them says so
+ *               on its own page, in its own footer, on every route.
+ *   CLIENT WORK One `DEMO_LINK` slot, filled when a real business signs and the
+ *               site is theirs to show.
+ *
+ * The rule that has not moved: this page links NO client or prospect demo.
+ * Those are private, noindex pitches built for businesses that have not signed,
+ * and linking one from an indexed page would both expose the pitch and drag it
+ * into a crawl. `check-placeholders.mjs` enforces that by host — it refuses
+ * every `*.pages.dev` link except the `portfolio-` prefix, which is the one
+ * family of builds that describes nobody.
+ *
+ * The five slots that used to sit here became one. Five dashed placeholders
+ * beside five finished demonstrations read as five things that went wrong, and
+ * the "here is what the work looks like" job they were holding is now done by
+ * builds you can open.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Placeholder from '../components/Placeholder.astro';
-import { EMAIL_DEV, PAGES, PLACEHOLDERS, REGION } from '../site';
+import {
+  EMAIL_DEV,
+  PAGES,
+  PLACEHOLDERS,
+  REGION,
+  SITES_BUILT,
+  SUBJECT_SITES,
+  mailto,
+} from '../site';
 
-/** Five slots. The labels describe the trade, not a named business. */
-const demoSlots = [
-  'Trades — welding, HVAC, electrical',
-  'Auto — body shop, detailing, tires',
-  'Home services — landscaping, roofing',
-  'Food — restaurant, bakery, catering',
-  'Professional — clinic, studio, office',
+/**
+ * The five showcase builds.
+ *
+ * `family` is the design family the site was generated in — the same five the
+ * pipeline picks from for a real prospect — and `trade` is the trade its copy
+ * was written for. Both are labels on the card because the point of the grid is
+ * that one system produced five sites that do not look like each other.
+ *
+ * EVERY BUSINESS HERE IS INVENTED. That is stated on the section, in the card
+ * grid's own lede, and on the demo itself. See
+ * `packages/template/clients/portfolio-*.config.ts` for the fabrication
+ * discipline they are built under.
+ */
+const portfolio = [
+  {
+    family: 'Forge',
+    trade: 'Metal fabrication',
+    name: 'Ironvale Welding & Fabrication',
+    note: 'Dark industrial: near-black carbon, condensed caps, a hot accent.',
+    url: 'https://portfolio-ironvale-fabrication.pages.dev',
+  },
+  {
+    family: 'Precision',
+    trade: 'HVAC',
+    name: 'Northmark Heating & Air',
+    note: 'Clean and technical. The one that reads as an engineering firm.',
+    url: 'https://portfolio-northmark-hvac.pages.dev',
+  },
+  {
+    family: 'Heritage',
+    trade: 'Masonry & hardscape',
+    name: 'Elderbrook Masonry',
+    note: 'Warm and established, for a trade that sells craft rather than speed.',
+    url: 'https://portfolio-elderbrook-masonry.pages.dev',
+  },
+  {
+    family: 'Meridian',
+    trade: 'Dental practice',
+    name: 'Halcott Dental Studio',
+    note: 'Calm and clinical — a professional practice, not a job site.',
+    url: 'https://portfolio-halcott-dental.pages.dev',
+  },
+  {
+    family: 'Apex',
+    trade: 'Electrical contracting',
+    name: 'Voltway Electric',
+    note: 'Sharp and modern, hairline rules and an electric accent.',
+    url: 'https://portfolio-voltway-electric.pages.dev',
+  },
 ];
 
 const included = [
@@ -41,6 +105,13 @@ const included = [
     body: 'Copy is written for your trade and your area. Nothing on your site is a claim I cannot back up about your business.',
   },
 ];
+
+/** The gates a build has to clear before it is allowed to exist. */
+const gates = [
+  'Nothing unsourced ships. A claim with no evidence behind it fails the build rather than reaching your page.',
+  'Every contact link is resolved and clicked before deploy — a phone number that does not dial is a build failure.',
+  'Contrast, mobile fit at 320px and metadata are all checked on the built bytes, not on the source.',
+];
 ---
 
 <BaseLayout
@@ -57,41 +128,99 @@ const included = [
         businesses — sites that load fast on a phone, say something true about the business, and
         do not need a subscription to keep working.
       </p>
-      <a class="btn" href={`mailto:${EMAIL_DEV}`}>Start a conversation</a>
+      <a class="btn" href={mailto(EMAIL_DEV, SUBJECT_SITES)}>Start a conversation</a>
     </div>
   </section>
 
   <section class="section section--plain">
     <div class="shell stack">
-      <div>
-        <p class="eyebrow">Recent work</p>
-        <h2 class="h2 tick">Demos</h2>
+      <div class="reveal">
+        <p class="eyebrow">How this actually works</p>
+        <h2 class="h2 tick">I didn&rsquo;t just build websites. I built the factory.</h2>
       </div>
+      <div class="prose reveal">
+        <p>
+          Most people in this business build one site at a time, by hand. I spent the last
+          stretch building the thing that builds them, because the interesting problem was never
+          the HTML — it was everything around it.
+        </p>
+        <p>
+          The system runs county-wide business discovery through the official Places API, scores
+          every result for whether that business is actually underserved by its current site,
+          and generates a complete, personalised build for the ones worth approaching: copy,
+          design family, colour, structure. Then it puts the result through a wall of quality
+          gates that fail the build rather than let something sloppy or unsourced through.
+        </p>
+        <p>
+          <strong>{SITES_BUILT} live sites</strong> have come out of it, scoring 100s across
+          Google&rsquo;s own audits. The five below are what the families look like.
+        </p>
+      </div>
+      <ul class="list reveal">
+        {gates.map((line) => <li>{line}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <div class="reveal">
+        <p class="eyebrow">Demonstration builds</p>
+        <h2 class="h2 tick">Built with the same system behind every client site</h2>
+      </div>
+      {
+        /* The honesty line, and it is not fine print. These are real
+           deployments of the real pipeline; the businesses on them are not
+           real, and a reader must not be able to leave this section thinking
+           otherwise. */
+      }
       <p class="lede">
-        Live examples go here as clients sign off on showing them. Each slot below becomes one
-        card linking to that site.
+        Five families, five trades, one system. <strong style="color:var(--ink)">The businesses
+        on these five sites are invented</strong> — they exist so the design families can be
+        shown without putting a client&rsquo;s site, or a prospect&rsquo;s private pitch, on a
+        public page. Every build is otherwise exactly what a real one is.
       </p>
-      <div class="grid grid--3" style="width:100%">
+      <div class="grid grid--3 reveal reveal--stagger" style="width:100%">
         {
-          demoSlots.map((slot) => (
-            <div class="card">
-              <h3 class="h3" style="font-size:1rem">{slot}</h3>
-              <Placeholder
-                token={PLACEHOLDERS.demoLink}
-                note="Replace with the live client URL, business name and a one-line result."
-                shape="tall"
-              />
-            </div>
+          portfolio.map((demo) => (
+            <a class="card card--link" href={demo.url} rel="nofollow">
+              <p class="eyebrow">
+                {demo.family} · {demo.trade}
+              </p>
+              <h3 class="h3">{demo.name}</h3>
+              <p class="card__body">{demo.note}</p>
+              <span class="card__more">Open the demo →</span>
+            </a>
           ))
         }
       </div>
     </div>
   </section>
 
+  <section class="section">
+    <div class="shell stack">
+      <div class="reveal">
+        <p class="eyebrow">Client work</p>
+        <h2 class="h2 tick">Signed clients</h2>
+      </div>
+      <p class="lede">
+        A client&rsquo;s site goes here once it is live and they are happy to be shown. Until
+        then this slot stays empty rather than being filled with somebody else&rsquo;s work.
+      </p>
+      <div class="card reveal" style="max-width:34rem">
+        <Placeholder
+          token={PLACEHOLDERS.demoLink}
+          note="Replace with the live client URL, business name and a one-line result."
+          shape="tall"
+        />
+      </div>
+    </div>
+  </section>
+
   <section class="section section--alt">
     <div class="shell stack">
-      <h2 class="h2 tick">What you get</h2>
-      <div class="grid grid--2" style="width:100%">
+      <h2 class="h2 tick reveal">What you get</h2>
+      <div class="grid grid--2 reveal reveal--stagger" style="width:100%">
         {
           included.map((item) => (
             <div class="card">
@@ -106,15 +235,15 @@ const included = [
 
   <section class="section">
     <div class="shell stack">
-      <h2 class="h2 tick">Getting started</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Getting started</h2>
+      <div class="prose reveal">
         <p>
           Send me the name of your business and your current site if you have one. I will look at
           it, tell you plainly what is costing you calls, and quote the work. No retainer, no
           discovery phase you pay for.
         </p>
       </div>
-      <a class="btn" href={`mailto:${EMAIL_DEV}`}>Email {EMAIL_DEV}</a>
+      <a class="btn reveal" href={mailto(EMAIL_DEV, SUBJECT_SITES)}>Email {EMAIL_DEV}</a>
     </div>
   </section>
 </BaseLayout>

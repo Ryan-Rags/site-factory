@@ -10,11 +10,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Placeholder from '../components/Placeholder.astro';
 import {
   AMENITY_BRAND,
+  CODING_SINCE,
   FULL_NAME,
   HEADSHOT_SRC,
   PAGES,
   PLACEHOLDERS,
   REGION,
+  SITES_BUILT,
+  YEARS_PROFESSIONAL,
 } from '../site';
 import { HAS_HEADSHOT, HEADSHOT_H, HEADSHOT_W } from '../assets';
 
@@ -23,7 +26,7 @@ const ventures = [
     href: '/sites',
     eyebrow: 'site-factory',
     title: 'Websites for local business',
-    body: 'Fast, mobile-first sites for Bergen County businesses — measured on a real phone before they ship, not signed off on a desktop mockup.',
+    body: `Fast, mobile-first sites for Bergen County businesses — ${SITES_BUILT} of them built by a system I wrote, each one measured on a real phone before it ships.`,
   },
   {
     href: '/ai',
@@ -57,9 +60,14 @@ const ventures = [
           {/* The one line that grounds the duality. Deliberately OUTSIDE the
               <h1>: check-textfit.mjs asserts that heading's exact string, and
               the heading is the SEO asset — this is context, not a title. */}
+          {/* "Remote at CED, based here" — not "CED is here". The previous
+              wording read as though the employer ran out of Bergen County,
+              which is a false statement about a real company. Ruling (a):
+              CED is named. */}
           <p class="hero__now">
-            Full-stack developer at CED by day, building internal
-            warehouse-operations software. Founder the rest of the time.
+            Remote full-stack developer at <strong>CED</strong>, building internal
+            warehouse-operations software. Based in {REGION}; the job is remote.
+            Founder the rest of the time.
           </p>
         </div>
 
@@ -90,13 +98,14 @@ const ventures = [
             <p>
               I build software for people who need it to work on the first call. That is the
               day job — internal warehouse-operations software at CED, in React, TypeScript and
-              C#/.NET — and it is what I do with the ventures I run out of {REGION}: a web
-              studio, an AI voice practice, and an amenity company placing curated smart markets
-              in luxury residential buildings.
+              C#/.NET, remote — and it is what I do with the ventures I run out of {REGION}: a
+              web studio, an AI voice practice, an amenity company placing curated smart markets
+              in luxury residential buildings, and a consumer AI app for fashion and styling.
             </p>
             <p>
-              If you found this page from an email I sent you, the short version is that I
-              answer my own inbox and I ship my own work.
+              Writing code since {CODING_SINCE}, {YEARS_PROFESSIONAL} of those years
+              professionally. If you found this page from an email I sent you, the short version
+              is that I answer my own inbox and I ship my own work.
             </p>
           </div>
         </div>
@@ -106,11 +115,11 @@ const ventures = [
 
   <section class="section section--plain">
     <div class="shell stack">
-      <div>
+      <div class="reveal">
         <p class="eyebrow">What I run</p>
         <h2 class="h2 tick">The ventures</h2>
       </div>
-      <div class="grid grid--3" style="width:100%">
+      <div class="grid grid--3 reveal reveal--stagger" style="width:100%">
         {
           ventures.map((v) => (
             <a class="card card--link" href={v.href}>
@@ -127,13 +136,17 @@ const ventures = [
 
   <section class="section section--alt">
     <div class="shell stack">
-      <h2 class="h2 tick">Where I work</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Where I work</h2>
+      <div class="prose reveal">
         <p>
-          Everything runs from {REGION}. When a local business needs a
-          {' '}<strong>Bergen County web developer</strong>, that is what site-factory is for —
-          and the buildings and businesses I work with are close enough that I would rather
-          drive to a first meeting than take it over video.
+          I am in {REGION}, and the ventures run from here. The day job does not — CED is a
+          national electrical distributor and I work with its teams remotely, which is exactly
+          why the evenings belong to my own work.
+        </p>
+        <p>
+          When a local business needs a {' '}<strong>Bergen County web developer</strong>, that
+          is what site-factory is for — and the buildings and businesses I work with are close
+          enough that I would rather drive to a first meeting than take it over video.
         </p>
       </div>
     </div>

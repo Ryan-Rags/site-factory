@@ -8,12 +8,17 @@
  *              an empty demo grid that reads as "no work to show".
  *   Escaped  — a placeholder token leaks onto a page that should not have one.
  *
- * The DEMO_LINK count is exact (five) because the spec says five cards, and a
- * grid that quietly became four is exactly the kind of drift nobody notices.
+ * The DEMO_LINK count is exact (ONE) because /sites now holds a single signed-
+ * client slot, and a slot that quietly became zero is exactly the kind of drift
+ * nobody notices. It was five until v3: five dashed placeholders sat where the
+ * portfolio grid now sits, holding the "here is what the work looks like" job
+ * that five openable demonstration builds now do properly. What is left is the
+ * one claim a demonstration build cannot make — that a real business hired him.
  *
- * This gate also enforces the rule that /sites links NO live client or prospect
- * demo. Those builds are private, noindex pitches; an indexed page linking one
- * would both expose the pitch and pull it into a crawl.
+ * This gate also enforces the rule that /sites links no live CLIENT or PROSPECT
+ * demo. Those builds are private, noindex pitches about real, named businesses;
+ * an indexed page linking one would both expose the pitch and pull it into a
+ * crawl. See `PORTFOLIO_HOST` below for the one exception and why it is safe.
  */
 import { escapeRe, headshot, htmlPages, linkedinUrl, problem, report, requireDist } from './lib.mjs';
 
@@ -43,7 +48,7 @@ const linkedinSlots = linkedin ? 0 : 1;
 /** route → token → exact expected count. */
 const EXPECTED = {
   '/': { PHOTO_HERE: photoSlots, LINKEDIN_URL: linkedinSlots },
-  '/sites': { DEMO_LINK: 5, LINKEDIN_URL: linkedinSlots },
+  '/sites': { DEMO_LINK: 1, LINKEDIN_URL: linkedinSlots },
   '/ai': { CASE_STUDY: 3, LINKEDIN_URL: linkedinSlots },
   '/about': { LINKEDIN_URL: linkedinSlots },
   // Amenity wears its own chrome, so it carries no founder-footer placeholder.
@@ -108,17 +113,48 @@ if (linkedin) {
   }
 }
 
-// No live demo links from the indexed site. pages.dev is where every prospect
-// mockup in this repo is published, so it is the specific host to refuse.
+/**
+ * No live CLIENT or PROSPECT demo links from the indexed site.
+ *
+ * `pages.dev` is where every mockup in this repo is published, so it stays the
+ * host to refuse — with exactly one prefix carved out of it.
+ *
+ * WHY `portfolio-` IS SAFE AND `<slug>-preview` IS NOT, stated as the property
+ * that actually differs rather than as a naming convention:
+ *
+ *   `<slug>-preview.pages.dev` is a pitch built FOR A NAMED REAL BUSINESS that
+ *   has not signed. Linking it publishes a private pitch and drags a page about
+ *   somebody else's company into a crawl. That is the harm, and it is unchanged.
+ *
+ *   `portfolio-*.pages.dev` describes NOBODY. Those five builds are invented
+ *   businesses — see packages/template/clients/portfolio-*.config.ts — so there
+ *   is no pitch to expose and no real party to misrepresent. They exist
+ *   precisely so /sites can show the design families without linking one.
+ *
+ * The prefix is anchored to the START of the hostname. `evil-portfolio-x` and
+ * `portfolio-of-kh-machine-works.pages.dev.attacker.tld` both fail it: the test
+ * is on `URL.hostname`, not on the href, so a path or a suffix cannot smuggle
+ * the prefix in.
+ */
+const PORTFOLIO_HOST = /^portfolio-[a-z0-9-]+\.pages\.dev$/i;
+
 for (const page of pages) {
   for (const m of page.html.matchAll(/href=["'](https?:\/\/[^"']+)["']/gi)) {
     const url = m[1];
-    if (/\.pages\.dev/i.test(url)) {
-      problem(
-        `${page.route}: links ${url} — prospect/client demos are private noindex builds and ` +
-          'must not be linked from an indexed page.',
-      );
+    let host;
+    try {
+      host = new URL(url).hostname;
+    } catch {
+      problem(`${page.route}: href ${url} does not parse as a URL.`);
+      continue;
     }
+    if (!/\.pages\.dev$/i.test(host)) continue;
+    if (PORTFOLIO_HOST.test(host)) continue;
+    problem(
+      `${page.route}: links ${url} — prospect/client demos are private noindex builds about ` +
+        'real named businesses and must not be linked from an indexed page. Only ' +
+        'portfolio-*.pages.dev (invented businesses) may be linked.',
+    );
   }
 }
 

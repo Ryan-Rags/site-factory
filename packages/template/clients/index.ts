@@ -14,6 +14,11 @@ import zzFixturePhoneOptional from './zz-fixture-phone-optional.config';
 import zzFixtureGoLive from './zz-fixture-go-live.config';
 import zzFixtureLongName from './zz-fixture-long-name.config';
 import zzFixtureMotion from './zz-fixture-motion.config';
+import portfolioIronvale from './portfolio-ironvale-fabrication.config';
+import portfolioNorthmark from './portfolio-northmark-hvac.config';
+import portfolioElderbrook from './portfolio-elderbrook-masonry.config';
+import portfolioHalcott from './portfolio-halcott-dental.config';
+import portfolioVoltway from './portfolio-voltway-electric.config';
 
 /**
  * Every buildable client, keyed by slug.
@@ -68,6 +73,31 @@ export const clients = {
   // things CSS cannot express — are actually measured. `build-all.mjs` skips
   // it and it is never deployed. See its config header.
   'zz-fixture-motion': zzFixtureMotion,
+
+  /*
+   * THE PORTFOLIO SHOWCASE: five INVENTED businesses, one per design family,
+   * linked publicly from raghubans.com/sites.
+   *
+   * Not prospects, not clients, and not fixtures either — a fixture proves a
+   * behaviour to a gate, and these prove a design to a reader. They exist
+   * because /sites needed to show the families without linking a client's site
+   * or a prospect's private pitch, and the founder site's own
+   * `check-placeholders.mjs` allows the `portfolio-` prefix and nothing else on
+   * `pages.dev`.
+   *
+   * Every one is `noindex`, carries "(demonstration site)" in `legalName` so
+   * the footer says so on every route, and uses a 555-01xx number and an
+   * `example.invalid` address. See any one of the configs for the full
+   * fabrication discipline.
+   *
+   * `build-all.mjs` skips them along with the fixtures: they are deployed to
+   * their own `portfolio-*` Pages projects, never into the mockup fleet.
+   */
+  'portfolio-ironvale-fabrication': portfolioIronvale,
+  'portfolio-northmark-hvac': portfolioNorthmark,
+  'portfolio-elderbrook-masonry': portfolioElderbrook,
+  'portfolio-halcott-dental': portfolioHalcott,
+  'portfolio-voltway-electric': portfolioVoltway,
 } satisfies Record<string, SiteConfig>;
 
 export type ClientSlug = keyof typeof clients;

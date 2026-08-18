@@ -67,7 +67,20 @@
   --accent: #7a5c2e;
   --on-accent: #ffffff;
 
-  --font-display: 'Century Gothic', 'Futura', 'Avenir Next', ui-sans-serif, system-ui, sans-serif;
+  /* THE DISPLAY FONT IS DELIBERATELY *NOT* OVERRIDDEN.
+   *
+   * It used to be — Century Gothic / Futura / Avenir Next — and that single
+   * declaration was most of why this page read as a different website rather
+   * than as a lighter room in this one. A reader who taps from /about to
+   * /amenity should recognise the typography and notice only that the lights
+   * came on. Palette, accent and radius still diverge, which is the amount of
+   * separation that earns its keep; the letterforms are not.
+   *
+   * `--section-y` is likewise inherited rather than restated. It used to be
+   * 4.5rem here, which the `min-width: 40rem` block then overrode back to 5rem
+   * anyway — equal specificity, later rule wins — so the page had one rhythm on
+   * a phone and the site's rhythm on a laptop, for no reason anybody chose.
+   */
   --display-weight: 700;
   --display-tracking: -0.01em;
 
@@ -75,7 +88,6 @@
   --radius-btn: 999px;
   --btn-transform: none;
   --btn-tracking: 0.01em;
-  --section-y: 4.5rem;
 }
 
 *,
@@ -640,10 +652,143 @@ p {
   outline-offset: 3px;
 }
 
+/* --- scroll reveal, calm register ------------------------------------------
+ *
+ * A PORT OF THE DESIGN SYSTEM'S TREATMENT, NOT OF ITS MECHANISM.
+ *
+ * `packages/template` reveals with a ~700-byte inline IntersectionObserver that
+ * sets `.is-revealed`. That is the right answer over there and the wrong one
+ * here: `check-no-forms.mjs` fails this package's build on ANY `<script>`, and
+ * `public/_headers` deliberately ships no `script-src` CSP because there has
+ * never been a script to protect. Relaxing both — permanently, on the one page
+ * that exists to prove competence — to buy a decoration is a bad trade.
+ *
+ * So the register is ported and the mechanism is not. These are the `calm`
+ * preset's own values, copied as literals from
+ * `packages/template/src/design/presets.json`:
+ *
+ *   travel   0.5rem                          (calm.reveal.travel)
+ *   easing   cubic-bezier(0.33, 1, 0.68, 1)  (calm.reveal.easing)
+ *   stagger  1.5                             (calm.reveal.stagger — expressed
+ *                                             here as a range offset per item,
+ *                                             because a scroll timeline has no
+ *                                             delay to multiply)
+ *
+ * `calm.reveal.duration` (900ms) has no analogue: a scroll-driven animation is
+ * paced by distance travelled, not by time, so the range length plays that part.
+ *
+ * THE OPACITY HALF OF THE REVEAL IS DELIBERATELY GONE, AND THAT IS MEASURED.
+ *
+ * The template's reveal fades AND rises, which is safe there because a
+ * JavaScript observer holds every un-revealed element at exactly `opacity: 0` —
+ * and axe skips a fully transparent element. A SCROLL-LINKED animation has no
+ * such discrete states: at rest, an element straddling the fold sits at
+ * whatever fraction of the range its position implies, so its text renders at a
+ * blended colour. Lighthouse audits the whole DOM at scroll 0 and priced it
+ * exactly:
+ *
+ *   /sites    3 × `.prose > p` at 3.35:1 — #616468 on #08090a, needs 4.5:1
+ *   /amenity  1 × `.prose > p` at 3.59:1 — #87827a on #faf8f5, needs 4.5:1
+ *   accessibility 100 → 95 on both pages
+ *
+ * Neither a shorter range nor a steeper easing fixes that; they only move the
+ * window in which an element is caught mid-fade, and a gate that passes because
+ * the unlucky element happened to be elsewhere is not a gate. `transform` is
+ * compositor-only and cannot change a computed colour, so a rise-only reveal is
+ * the version of `calm` that cannot cost a reader contrast. Visually it loses
+ * almost nothing: at 0.5rem the fade was never the part you noticed.
+ *
+ * `check-motion.mjs` asserts the reveal animates no opacity, so this cannot be
+ * "improved" back into a contrast regression.
+ *
+ * NOTHING IS EVER PRE-HIDDEN. Three independent reasons, and all three have to
+ * fail before a reader sees a blank block:
+ *
+ *   1. The base `.reveal` rule is the FINAL state. There is no `opacity: 0`
+ *      anywhere outside the `@supports` block, so a browser without
+ *      scroll-driven animations (Firefox, today) renders the complete page and
+ *      simply does not animate. That is `still`, arrived at by doing nothing.
+ *   2. `animation-fill-mode: both` plus a range that ENDS early means an
+ *      element already on the first screen is past its range at load and
+ *      resolves to the final state without a frame of animation. No hero
+ *      element carries `.reveal` in any case — `check-motion.mjs` asserts it,
+ *      because the hero holds the LCP element and starting it transparent
+ *      would trade a Lighthouse number for a fade nobody asked for.
+ *   3. `prefers-reduced-motion: reduce` never enters the block at all.
+ *
+ * The range is written `entry 0% cover N%` rather than `entry 0% entry N%` on
+ * purpose. `entry` ends when an element is FULLY in view, which never happens
+ * for a block taller than the viewport — a long `.prose` at 320px — and the
+ * reveal would then never complete. `cover` is measured against the whole
+ * intersection and resolves for an element of any height.
+ * ------------------------------------------------------------------------- */
+
+@keyframes reveal-calm {
+  from {
+    transform: translateY(0.5rem);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation-name: reveal-calm;
+      animation-duration: auto;
+      animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+
+    /* The container hands the motion to its children and keeps none: animating
+       both would compound two rises onto the same pixels. */
+    .reveal--stagger {
+      animation-name: none;
+    }
+
+    .reveal--stagger > * {
+      animation-name: reveal-calm;
+      animation-duration: auto;
+      animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+
+    /* calm's 1.5 stagger, as range offsets. Capped at the fourth child: past
+       that the last card in a row would still be settling while the reader has
+       moved on, which is the failure mode a stagger is supposed to avoid. */
+    .reveal--stagger > *:nth-child(2) {
+      animation-range: cover 6% cover 28%;
+    }
+
+    .reveal--stagger > *:nth-child(3) {
+      animation-range: cover 12% cover 34%;
+    }
+
+    .reveal--stagger > *:nth-child(n + 4) {
+      animation-range: cover 18% cover 40%;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+  }
+
+  /* Belt and braces. The reveal is already unreachable — it lives inside
+   * `prefers-reduced-motion: no-preference` — but the reveal is not the only
+   * thing a future edit might add, and `still` should be the floor of this
+   * sheet rather than a property of one block's nesting. */
+  .reveal,
+  .reveal--stagger > * {
+    animation: none !important;
+    transform: none !important;
   }
 }

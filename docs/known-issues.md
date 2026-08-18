@@ -781,3 +781,36 @@ for every client and this stream's grant did not cover it:
 too. The cleanup is idempotent and runs on the throw path, so this needs an
 actual process kill; the recovery is `git status` in
 `packages/template/public/og/` and deleting anything untracked.
+
+## The five portfolio demonstration builds are outside `check-fabrication`
+
+**Status:** open. **Surface:** `packages/template/clients/portfolio-*.config.ts`.
+
+`check-fabrication.mjs` resolves every claim on a page against a prospect
+record — an ingested `prospects/<slug>/prospect.json` or a TypeScript record in
+`@site-factory/copy`. The five portfolio builds are invented businesses and have
+neither, so the gate exits before it checks anything:
+
+```
+$ SITE_CLIENT=portfolio-ironvale-fabrication node scripts/check-fabrication.mjs portfolio-ironvale-fabrication
+✗ portfolio-ironvale-fabrication: no prospect record, so nothing here can be checked against a source.
+  No prospect record for "portfolio-ironvale-fabrication".
+```
+
+This is the same position `zz-fixture-long-name` and `zz-fixture-motion` are in,
+and for the same reason — both build with `astro build` rather than `pnpm build`.
+Every other gate does run on all five and is green: markers, contact-links,
+metadata, schema, go-live, form-fields, textfit (725 checks each), plus
+contrast, links and injection repo-wide.
+
+**What was done instead of nothing:** the gate's own claim patterns were run
+directly against all five builds' HTML. That found one real defect — "cheap", in
+the dental service copy — which was fixed; the five are now at 0 findings. That
+is a one-off script, not a standing gate, which is why this entry exists.
+
+**Fix sketch:** give the five real `ProspectRecord`s in
+`packages/copy/src/prospects/`, with `fact(value, 'invented for a demonstration
+build')` as the provenance. The gate would then run normally and would catch a
+future stray claim — an unsourced string still would not appear in the
+allowances. It is a third package for this stream, so it was raised as a Brief
+item rather than done unasked.

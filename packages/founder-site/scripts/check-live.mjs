@@ -15,7 +15,15 @@
  *
  * Read-only GETs, one request at a time, well inside the repo's audit budget.
  */
-import { escapeRe, headshot, linkedinUrl, problem, report } from './lib.mjs';
+import {
+  decodeEntities,
+  emails,
+  escapeRe,
+  headshot,
+  linkedinUrl,
+  problem,
+  report,
+} from './lib.mjs';
 
 const base = process.argv[2];
 if (!base) {
@@ -40,6 +48,104 @@ const ASSET_ROUTES = [
 
 /** Pages wearing the founder footer, and therefore the LinkedIn slot. */
 const FOUNDER_ROUTES = ['/', '/sites', '/ai', '/about'];
+
+/**
+ * CTA RESOLUTION — the mailbox each route is allowed to address.
+ *
+ * Every CTA on this site is a `mailto:`. There is no form, no Worker and no
+ * endpoint, so the href IS the product: if it does not parse, the button does
+ * nothing, and it does nothing SILENTLY — a malformed `mailto:` opens a blank
+ * compose window or is ignored outright, and neither shows up as an error
+ * anywhere a person would look. That is the failure this asserts against.
+ *
+ * Three claims, and each one has been wrong at some point in a shipped site:
+ *
+ *   IT PARSES.        A raw space or an unencoded `&` in the query truncates
+ *                     the subject or invalidates the URL. Checked with the
+ *                     platform's own parser rather than a regex — `new URL()`
+ *                     is the thing whose opinion actually matters.
+ *   IT CARRIES A SUBJECT. An inbox that receives "(no subject)" from a property
+ *                     manager cannot be triaged, and the subject is the only
+ *                     part of the resulting email we get to write.
+ *   IT ADDRESSES THE RIGHT MAILBOX. `/amenity` must reach the amenity inbox and
+ *                     nothing else. A founder-page CTA quietly pointing at the
+ *                     amenity mailbox reads as completely fine in review and
+ *                     sends every website enquiry to the wrong place.
+ *
+ * The addresses come from `src/site.ts` via `emails()`, so a rename moves the
+ * expectation with the site rather than leaving this asserting the old one.
+ */
+const { dev: EMAIL_DEV, amenity: EMAIL_AMENITY } = emails();
+
+const ALLOWED_MAILBOXES = {
+  '/': [EMAIL_DEV, EMAIL_AMENITY],
+  '/sites': [EMAIL_DEV, EMAIL_AMENITY],
+  '/ai': [EMAIL_DEV, EMAIL_AMENITY],
+  '/about': [EMAIL_DEV, EMAIL_AMENITY],
+  // The amenity chrome renders no founder address at all — see Footer.astro.
+  '/amenity': [EMAIL_AMENITY],
+};
+
+/**
+ * Every `mailto:` the served page links, as the browser would see it.
+ *
+ * Entity-decoded first: Astro emits `&#38;` for a literal `&` in an attribute,
+ * so the raw bytes of a two-parameter query do not parse until they are decoded
+ * — and decoding is exactly what a browser does before handing the URL to the
+ * mail client. Checking the undecoded string would report a defect that no
+ * reader can experience.
+ */
+function mailtoLinks(html) {
+  return [...html.matchAll(/<a\b[^>]*\shref=["'](mailto:[^"']+)["'][^>]*>/gi)].map((m) =>
+    decodeEntities(m[1]),
+  );
+}
+
+function checkCtas(route, html) {
+  const allowed = ALLOWED_MAILBOXES[route];
+  if (!allowed) {
+    problem(`${route}: no mailbox expectation declared — add one to ALLOWED_MAILBOXES.`);
+    return;
+  }
+
+  const links = mailtoLinks(html);
+  if (links.length === 0) {
+    problem(`${route}: no mailto: CTA at all. Every page on this site ends in one.`);
+    return;
+  }
+
+  for (const href of links) {
+    if (/\s/.test(href)) {
+      problem(`${route}: mailto href contains a raw space, which is not a valid URL: ${href}`);
+      continue;
+    }
+
+    let url;
+    try {
+      url = new URL(href);
+    } catch {
+      problem(`${route}: mailto href does not parse: ${href}`);
+      continue;
+    }
+
+    const address = decodeURIComponent(url.pathname);
+    if (!allowed.includes(address)) {
+      problem(
+        `${route}: CTA addresses ${address}, which this page may not use. ` +
+          `Allowed here: ${allowed.join(', ')}.`,
+      );
+    }
+
+    const subject = new URLSearchParams(url.search).get('subject');
+    if (subject === null) {
+      problem(`${route}: mailto to ${address} carries no subject — it would arrive untriageable.`);
+    } else if (subject.trim() === '') {
+      problem(`${route}: mailto to ${address} has an empty subject.`);
+    }
+  }
+
+  return links.length;
+}
 
 const linkedin = linkedinUrl();
 const photo = headshot();
@@ -116,6 +222,9 @@ console.log(`      verifying ${origin}`);
 /** route → the set of document routes it links. Filled by the loop below. */
 const linkGraph = new Map();
 
+/** Total CTAs resolved, for the summary line. */
+let ctasChecked = 0;
+
 for (const route of DOCUMENT_ROUTES) {
   const res = await get(`${origin}${route}`);
   if (res.status !== 200) {
@@ -137,6 +246,8 @@ for (const route of DOCUMENT_ROUTES) {
   const html = await res.text();
   const canonical = /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i.exec(html);
   if (!canonical) problem(`${route}: no canonical in the served HTML.`);
+
+  ctasChecked += checkCtas(route, html) ?? 0;
 
   /*
    * The two wired slots, checked against what is actually being SERVED.
@@ -252,6 +363,7 @@ if (robots.status === 200) {
 }
 
 console.log(
-  `      ${DOCUMENT_ROUTES.length} document route(s) + ${ASSET_ROUTES.length} asset(s) checked`,
+  `      ${DOCUMENT_ROUTES.length} document route(s) + ${ASSET_ROUTES.length} asset(s) checked, ` +
+    `${ctasChecked} mailto CTA(s) resolved`,
 );
 report('check-live');

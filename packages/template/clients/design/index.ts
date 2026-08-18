@@ -28,6 +28,11 @@ import amsBrief from './american-machine-specialty.brief.json';
 import imcBrief from './industrial-machine-corp.brief.json';
 import longNameBrief from './zz-fixture-long-name.brief.json';
 import motionBrief from './zz-fixture-motion.brief.json';
+import portfolioIronvaleBrief from './portfolio-ironvale-fabrication.brief.json';
+import portfolioNorthmarkBrief from './portfolio-northmark-hvac.brief.json';
+import portfolioElderbrookBrief from './portfolio-elderbrook-masonry.brief.json';
+import portfolioHalcottBrief from './portfolio-halcott-dental.brief.json';
+import portfolioVoltwayBrief from './portfolio-voltway-electric.brief.json';
 
 /** The full-payload reference. Every field stated; nothing derived. */
 export const ksWeldingDesign = parseDesign('ks-welding', ksWeldingRaw);
@@ -56,6 +61,14 @@ const briefs: Record<string, DesignBrief> = {
   // an autoplaying reviews rail, and the only one on `apex`. See
   // `clients/zz-fixture-motion.config.ts`.
   'zz-fixture-motion': motionBrief as unknown as DesignBrief,
+
+  // The portfolio showcase: five invented businesses, one per family, published
+  // as the design grid on raghubans.com/sites. See clients/index.ts.
+  'portfolio-ironvale-fabrication': portfolioIronvaleBrief as unknown as DesignBrief,
+  'portfolio-northmark-hvac': portfolioNorthmarkBrief as unknown as DesignBrief,
+  'portfolio-elderbrook-masonry': portfolioElderbrookBrief as unknown as DesignBrief,
+  'portfolio-halcott-dental': portfolioHalcottBrief as unknown as DesignBrief,
+  'portfolio-voltway-electric': portfolioVoltwayBrief as unknown as DesignBrief,
 };
 
 export function designFor(slug: string, site: SiteConfig): DesignConfig {

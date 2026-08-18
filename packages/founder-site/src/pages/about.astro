@@ -20,7 +20,18 @@
  * came before it.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
+import {
+  AMENITY_BRAND,
+  CODING_SINCE,
+  EMAIL_DEV,
+  FULL_NAME,
+  PAGES,
+  REGION,
+  SUBJECT_GENERAL,
+  TIKTOK_FOLLOWERS,
+  YEARS_PROFESSIONAL,
+  mailto,
+} from '../site';
 
 /**
  * ---- EDIT THE CAPTIONS HERE. This is the only place they live. ----
@@ -91,12 +102,14 @@ const OFF_THE_CLOCK_H = 600;
 
   <section class="section section--plain">
     <div class="shell stack">
-      <h2 class="h2 tick">The day job</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">The day job</h2>
+      <div class="prose reveal">
         <p>
-          I am a full-stack developer at <strong>CED</strong> — Consolidated Electrical
-          Distributors — where I build internal software for warehouse operations. React and
-          TypeScript on the front, C# and .NET behind it.
+          I am a <strong>remote</strong> full-stack developer at <strong>CED</strong> —
+          Consolidated Electrical Distributors — where I build internal software for warehouse
+          operations. React and TypeScript on the front, C# and .NET behind it. CED is a
+          national company; I work with its teams from {REGION}, which is where I have always
+          been.
         </p>
         <p>
           Warehouse software is a good teacher because the people using it are not impressed by
@@ -112,8 +125,8 @@ const OFF_THE_CLOCK_H = 600;
 
   <section class="section section--alt">
     <div class="shell stack">
-      <h2 class="h2 tick">Before that</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Before that</h2>
+      <div class="prose reveal">
         <p>
           I studied at <strong>Rowan University</strong>, and did software development at
           <strong>Prudential</strong> before CED. Big systems, long release trains, code that
@@ -121,6 +134,11 @@ const OFF_THE_CLOCK_H = 600;
           thorough one: you find out quickly that most software problems are really
           communication problems, and that the person who can explain a tradeoff in plain
           language is worth more than the person who can only implement it.
+        </p>
+        <p>
+          I have been writing code since {CODING_SINCE} and working professionally for
+          {' '}{YEARS_PROFESSIONAL} years — the first of those on the IT side, keeping other
+          people&rsquo;s systems running before I was paid to build any.
         </p>
         <p>
           For a stretch I also taught STEM part-time at <strong>Mad Science</strong>. If you want
@@ -135,11 +153,13 @@ const OFF_THE_CLOCK_H = 600;
 
   <section class="section">
     <div class="shell stack">
-      <h2 class="h2 tick">Before that: an audience</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Before that: an audience</h2>
+      <div class="prose reveal">
         <p>
           Earlier on I spent a long stretch in competitive gaming, and a good chunk of it
-          streaming and making content. It reads like an odd line on a founder page until you
+          streaming and making content — {TIKTOK_FOLLOWERS} people on TikTok, which is a larger
+          room than most of the ones I have pitched in since. It reads like an odd line on a
+          founder page until you
           consider what it actually is: you go live, in real time, with no edit button, and
           either people stay or they leave. You learn to hold attention, to read a room you
           cannot see, and to be unbothered when something breaks on camera.
@@ -155,17 +175,21 @@ const OFF_THE_CLOCK_H = 600;
 
   <section class="section section--alt">
     <div class="shell stack">
-      <h2 class="h2 tick">Three sports, one habit</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Sport, and the habit it left</h2>
+      <div class="prose reveal">
         <p>
-          Track and field, basketball and soccer. Track taught me the thing I am most grateful
-          for: that progress is mostly boring, and that the work you do on a day you do not feel
-          like it is the work that counts. Basketball and soccer taught the opposite half — that
-          you can be the fittest person on the pitch and still lose because you would not pass.
+          Track and cross country in high school. Distance running taught me the thing I am most
+          grateful for: that progress is mostly boring, and that the work you do on a day you do
+          not feel like it is the work that counts.
         </p>
         <p>
-          I still train. It is the only reliable way I have found to keep several things running
-          at once without getting brittle about any of them.
+          I still play soccer and basketball — recreationally now — and they teach the opposite
+          half, which distance running never could: that you can be the fittest person on the
+          pitch and still lose because you would not pass.
+        </p>
+        <p>
+          Either way I am still training. It is the only reliable way I have found to keep
+          several things running at once without getting brittle about any of them.
         </p>
       </div>
     </div>
@@ -173,8 +197,8 @@ const OFF_THE_CLOCK_H = 600;
 
   <section class="section section--alt">
     <div class="shell stack">
-      <h2 class="h2 tick">Off the clock</h2>
-      <ul class="offclock" role="list">
+      <h2 class="h2 tick reveal">Off the clock</h2>
+      <ul class="offclock reveal reveal--stagger" role="list">
         {
           OFF_THE_CLOCK.map((shot) => (
             <li>
@@ -199,10 +223,10 @@ const OFF_THE_CLOCK_H = 600;
 
   <section class="section">
     <div class="shell stack">
-      <h2 class="h2 tick">What I am building now</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">What I am building now</h2>
+      <div class="prose reveal">
         <p>
-          Four things, all out of {REGION}, all outside the day job.
+          One LLC, several things under it, all out of {REGION} and all outside the day job.
         </p>
         <p>
           <strong>site-factory</strong> — fast, honest websites for local businesses. Most of the
@@ -220,14 +244,24 @@ const OFF_THE_CLOCK_H = 600;
           often the least considered part of it, and that the fix costs the building nothing.
         </p>
         <p>
-          <strong>Styled by Alhambra</strong> — an AI-powered personal styling app, built in
-          React Native and Expo, and the closest of the four to launch. It is the one that is
-          least like the others: consumer rather than local, a product rather than a service, and
-          a much harder problem than it looks from the outside.
+          <strong>Styled by Alhambra</strong> — a consumer AI app for fashion and styling, built
+          in React Native and Expo, and the closest of these to launch. It is the one least like
+          the others: consumer rather than local, a product rather than a service, and a much
+          harder problem than it looks from the outside.
+        </p>
+        <p>
+          {/* Ruling (f): the operator angle is IN. No unit count, no location and
+              no dates appear, because Ryan supplied none — the angle is the fact
+              he gave, and the specifics are exactly what would get invented to
+              round the paragraph out. */}
+          <strong>A rental property</strong> — the one item here with no software in it. It is a
+          small business with real obligations, real money and one customer who has your phone
+          number, and it is a useful corrective to spending every other hour of the week on
+          problems that can be solved by thinking harder.
         </p>
         <p>
           If any of that is useful to you, or you just want to compare notes, I am at{' '}
-          <a href={`mailto:${EMAIL_DEV}`}>{EMAIL_DEV}</a>. I answer my own email.
+          <a href={mailto(EMAIL_DEV, SUBJECT_GENERAL)}>{EMAIL_DEV}</a>. I answer my own email.
         </p>
       </div>
     </div>

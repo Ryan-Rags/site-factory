@@ -44,7 +44,7 @@ wrong is not safe as a comment.
 
 ## Gates
 
-`pnpm build` runs six gates against `dist/` — never against the `.astro`
+`pnpm build` runs seven gates against `dist/` — never against the `.astro`
 sources, because "the source says canonical" and "the deployed page carries a
 canonical" are different claims:
 
@@ -55,14 +55,15 @@ canonical" are different claims:
 | `check-amenity-wording` | the amenity category word never reaches readable text or metadata |
 | `check-placeholders` | placeholder counts per route **for the current slot state**, the filled artifact when a slot is filled; no `*.pages.dev` demo links |
 | `check-no-forms` | no forms, no controls, no `<script>`, no inline handlers, no third-party hosts |
+| `check-motion` | no reveal on any hero (the LCP element), nothing pre-hidden outside the `@supports` guard, the reveal keyframes animate no opacity, reduced motion collapses to still, motion stays CSS |
 | `check-headers` | `_headers` reaches `dist/` with all four directives intact |
 
 Two more need a browser, so they are **not** in `pnpm build` (it must run on a
 machine with no Chromium) — run them before deploying:
 
 ```sh
-node scripts/check-textfit.mjs                      # 320px fit; serves its own dist/
-node scripts/check-live.mjs https://<origin>        # post-deploy: 200s, headers, no redirect hops, one-tap nav
+node scripts/check-textfit.mjs                      # 320px AND 390px fit; serves its own dist/
+node scripts/check-live.mjs https://<origin>        # post-deploy: 200s, headers, no redirect hops, one-tap nav, CTA resolution
 ```
 
 Every gate was landed failure-first; the transcript is in
@@ -85,7 +86,7 @@ so a slot cannot be silently dropped instead of filled.
 | --- | --- | --- | --- |
 | `PHOTO_HERE` | `/` hero | headshot, 4:5 portrait, ≥800×1000 | **wired** — drop the file at `public/ryan.jpg` |
 | `LINKEDIN_URL` | footer, all founder pages | public LinkedIn profile URL | **wired** — set `LINKEDIN_URL` in `src/site.ts` |
-| `DEMO_LINK` | `/sites`, ×5 | live client URL + name + one-line result, as clients sign off | edit `sites.astro` |
+| `DEMO_LINK` | `/sites`, ×1 | the first signed client's live URL, name and a one-line result | edit `sites.astro` |
 | `CASE_STUDY` | `/ai`, ×3 | dental voice-agent problem / build / **measured** result | edit `ai.astro` |
 
 The two **wired** slots need no code change. Drop `public/ryan.jpg` in, or set
@@ -134,6 +135,54 @@ links.
 
 > Known gap: this is a post-deploy gate, so a nav regression is caught after
 > publish rather than at build. See `docs/known-issues.md`.
+
+## Motion: the calm register, and no JavaScript
+
+The reveal is **CSS-only scroll-driven animation** — `animation-timeline: view()`
+inside `@supports`, at the `calm` preset's own literals (0.5rem travel,
+`cubic-bezier(0.33, 1, 0.68, 1)`, stagger as a per-item range offset).
+
+It is a port of the design system's **treatment**, deliberately not of its
+**mechanism**. `packages/template` reveals with a ~700-byte inline
+IntersectionObserver; here `check-no-forms.mjs` fails the build on any
+`<script>` and `_headers` ships no `script-src` CSP because there has never been
+a script to protect. Relaxing both, permanently, to buy a decoration is a bad
+trade on the page that exists to prove competence.
+
+**The reveal animates `transform` only, and that is measured.** A scroll-linked
+fade has no discrete states: at rest an element straddling the fold sits at
+whatever fraction of its range its position implies, so its text renders at a
+blended colour. Lighthouse priced the fade exactly:
+
+| Page | Element | Contrast | Needs |
+| --- | --- | --- | --- |
+| `/sites` | 3 × `.prose > p` | 3.35:1 (`#616468` on `#08090a`) | 4.5:1 |
+| `/amenity` | 1 × `.prose > p` | 3.59:1 (`#87827a` on `#faf8f5`) | 4.5:1 |
+
+Accessibility 100 → 95 on both. A shorter range does not fix that, it only moves
+which element gets caught mid-fade. `transform` cannot change a computed colour,
+so the rise survived and the fade did not — and `check-motion.mjs` asserts the
+keyframes stay opacity-free so it cannot drift back.
+
+Nothing is ever pre-hidden, for three independent reasons: the base `.reveal`
+rule is the final state (so a browser without scroll-driven animations — Firefox
+today — renders the complete page and simply does not animate), no hero element
+carries `.reveal`, and `prefers-reduced-motion: reduce` never enters the block.
+
+## The /sites portfolio grid
+
+`/sites` links five **demonstration builds of invented businesses**, one per
+design family, at `portfolio-*.pages.dev`. They exist because the page needed to
+show the families without linking a client's site or a prospect's private pitch.
+
+`check-placeholders.mjs` enforces that distinction by host: every
+`*.pages.dev` link is refused **except** the `portfolio-` prefix, tested against
+`URL.hostname` so neither a path nor a suffix can smuggle it in. A
+`<slug>-preview.pages.dev` link still fails, because that is a pitch about a
+named real business that has not signed.
+
+See `packages/template/clients/portfolio-*.config.ts` for the fabrication
+discipline those five are built under.
 
 ## Renaming the amenity venture
 

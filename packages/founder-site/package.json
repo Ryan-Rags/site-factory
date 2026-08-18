@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/check-indexable.mjs && node scripts/check-metadata.mjs && node scripts/check-amenity-wording.mjs && node scripts/check-placeholders.mjs && node scripts/check-no-forms.mjs && node scripts/check-headers.mjs",
+    "build": "astro build && node scripts/check-indexable.mjs && node scripts/check-metadata.mjs && node scripts/check-amenity-wording.mjs && node scripts/check-placeholders.mjs && node scripts/check-no-forms.mjs && node scripts/check-motion.mjs && node scripts/check-headers.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
     "check:indexable": "node scripts/check-indexable.mjs",
@@ -17,6 +17,7 @@
     "check:amenity-wording": "node scripts/check-amenity-wording.mjs",
     "check:placeholders": "node scripts/check-placeholders.mjs",
     "check:no-forms": "node scripts/check-no-forms.mjs",
+    "check:motion": "node scripts/check-motion.mjs",
     "check:headers": "node scripts/check-headers.mjs",
     "check:textfit": "node scripts/check-textfit.mjs",
     "gen:og": "node scripts/gen-og.mjs",

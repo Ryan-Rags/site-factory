@@ -8,9 +8,17 @@
  *
  *   node scripts/check-textfit.mjs
  *
- * Three assertions:
+ * TWO WIDTHS, not one. 320px is the narrow bound — the smallest viewport worth
+ * supporting, and the one that breaks first. 390px is the one most people
+ * actually hold: it is the logical width of every iPhone from the 12 to the
+ * current Pro, so a defect that only appears there is a defect almost every
+ * real reader sees and no gate was looking at. They are different tests rather
+ * than a redundant pair, because the layout has breakpoints between them in
+ * `.grid` and in the two-row nav wrap.
  *
- *   1. No page scrolls horizontally at 320px. A sideways-scrolling page is the
+ * Three assertions, at each width:
+ *
+ *   1. No page scrolls horizontally. A sideways-scrolling page is the
  *      clearest possible signal of "amateur" to someone opening a link on a
  *      phone, which is the exact impression this site exists to avoid.
  *   2. "Ryan Raghubans" renders untruncated and inside the viewport. It is the
@@ -31,7 +39,7 @@ import { distDir, problem, report, requireDist } from './lib.mjs';
 
 requireDist();
 
-const WIDTH = 320;
+const WIDTHS = [320, 390];
 const HEIGHT = 720;
 const ROUTES = ['/', '/sites', '/ai', '/amenity', '/about'];
 
@@ -81,6 +89,8 @@ const origin = `http://127.0.0.1:${port}`;
 console.log(`      serving own dist/ at ${origin}`);
 
 const browser = await chromium.launch();
+
+for (const WIDTH of WIDTHS) {
 const page = await browser.newPage({
   viewport: { width: WIDTH, height: HEIGHT },
   deviceScaleFactor: 3,
@@ -91,7 +101,7 @@ const page = await browser.newPage({
 for (const route of ROUTES) {
   const res = await page.goto(`${origin}${route}`, { waitUntil: 'load' });
   if (!res || res.status() !== 200) {
-    problem(`${route}: served ${res ? res.status() : 'no response'} from our own dist/.`);
+    problem(`${route} @${WIDTH}px: served ${res ? res.status() : 'no response'} from our own dist/.`);
     continue;
   }
 
@@ -114,7 +124,7 @@ for (const route of ROUTES) {
 
   if (overflow.scrollWidth > WIDTH) {
     problem(
-      `${route}: scrolls horizontally at ${WIDTH}px (scrollWidth ${overflow.scrollWidth}). ` +
+      `${route} @${WIDTH}px: scrolls horizontally (scrollWidth ${overflow.scrollWidth}). ` +
         `Offenders: ${overflow.offenders.join('; ') || 'none isolated'}`,
     );
   }
@@ -136,31 +146,36 @@ for (const route of ROUTES) {
     });
 
     if (!hero) {
-      problem('/: could not find .hero__name / h1 — the fit assertion is blind.');
+      problem(`/ @${WIDTH}px: could not find .hero__name / h1 — the fit assertion is blind.`);
     } else {
       if (hero.nameText !== 'Ryan Raghubans') {
-        problem(`/: .hero__name reads "${hero.nameText}", expected "Ryan Raghubans".`);
+        problem(`/ @${WIDTH}px: .hero__name reads "${hero.nameText}", expected "Ryan Raghubans".`);
       }
       if (hero.clipped) {
-        problem(`/: "${hero.nameText}" is truncated at ${WIDTH}px (scrollWidth > clientWidth).`);
+        problem(`/ @${WIDTH}px: "${hero.nameText}" is truncated (scrollWidth > clientWidth).`);
       }
       if (hero.right > WIDTH + 1 || hero.left < -1) {
         problem(
-          `/: "${hero.nameText}" sits outside the ${WIDTH}px viewport (left=${Math.round(hero.left)}, right=${Math.round(hero.right)}).`,
+          `/ @${WIDTH}px: "${hero.nameText}" sits outside the viewport (left=${Math.round(hero.left)}, right=${Math.round(hero.right)}).`,
         );
       }
       if (hero.overflowStyle === 'ellipsis') {
-        problem('/: .hero__name has text-overflow:ellipsis — the name must never be abbreviated.');
+        problem(`/ @${WIDTH}px: .hero__name has text-overflow:ellipsis — the name must never be abbreviated.`);
       }
       if (hero.text !== EXPECTED_H1) {
-        problem(`/: h1 text is "${hero.text}", expected "${EXPECTED_H1}".`);
+        problem(`/ @${WIDTH}px: h1 text is "${hero.text}", expected "${EXPECTED_H1}".`);
       }
     }
   }
 }
 
+await page.close();
+}
+
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
 
-console.log(`      ${ROUTES.length} route(s) fit ${WIDTH}px with no horizontal scroll`);
+console.log(
+  `      ${ROUTES.length} route(s) fit ${WIDTHS.join('px and ')}px with no horizontal scroll`,
+);
 report('check-textfit');

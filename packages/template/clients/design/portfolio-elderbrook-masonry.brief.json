@@ -1,0 +1,178 @@
+{
+  "theme": {
+    "preset": "heritage",
+    "scheme": "light",
+    "accent": "brick",
+    "fontPairing": "old-serif"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": [
+    "stats",
+    "services",
+    "reviews",
+    "serviceArea",
+    "faq"
+  ],
+  "sections": {
+    "hero": {
+      "variant": "split",
+      "eyebrow": "Elderbrook, New Jersey",
+      "badges": [
+        "Demonstration build",
+        "An invented business"
+      ]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Mon-Sat",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Three things, done properly",
+      "intro": "The work that comes through here, and how we approach it.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "Nobody said any of this",
+      "intro": "Invented quotations on a demonstration build. They exist so the reviews section renders; no customer said them.",
+      "sourceLabel": "Invented for a demonstration build - not a customer, and not a quotation",
+      "variant": "grid"
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 5,
+          "label": "Masons",
+          "note": "No subcontracted crews"
+        },
+        {
+          "value": 3,
+          "label": "Mortar mixes kept",
+          "note": "Matched to the wall"
+        },
+        {
+          "value": 1,
+          "label": "Job at a time",
+          "note": "Per crew, start to finish"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions we get asked",
+      "items": [
+        {
+          "q": "Is this a real business?",
+          "a": "No. Elderbrook Masonry is invented. This build is a demonstration of a design family, published so the design can be shown without linking a real client's site or a prospect's private pitch."
+        },
+        {
+          "q": "Why does my new pointing look wrong?",
+          "a": "Usually because a hard modern mortar was used on a soft old wall. It traps moisture and the brick face spalls. It can be cut out and done again."
+        },
+        {
+          "q": "Do you match existing stone?",
+          "a": "We source to match and cut on site. An exact match is not always possible, and we will tell you before starting rather than after."
+        },
+        {
+          "q": "How long before I can walk on a new patio?",
+          "a": "It depends on the material and the weather, and we will give you a straight answer for your job rather than a number from a brochure."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": false,
+      "eyebrow": "Our work",
+      "heading": "Recent jobs",
+      "intro": "Not rendered on this build.",
+      "items": []
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Elderbrook and the towns around it",
+      "intro": "Every place named here is invented, like the business.",
+      "areas": [],
+      "note": "Invented service area on a demonstration build."
+    },
+    "beforeAfter": {
+      "enabled": false,
+      "heading": "Before and after",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder image.",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder image.",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "This is a demonstration build. Elderbrook Masonry is an invented business created to show a design family \u2014 no such company exists, and nothing here describes anybody\u2019s real work.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Demonstration build. Elderbrook Masonry is an invented business and no such company exists."
+    }
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "theme": {
+    "preset": "apex",
+    "scheme": "dark",
+    "accent": "azure",
+    "fontPairing": "grotesk"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": [
+    "stats",
+    "services",
+    "reviews",
+    "serviceArea",
+    "faq"
+  ],
+  "sections": {
+    "hero": {
+      "variant": "full-bleed",
+      "eyebrow": "Voltway, New Jersey",
+      "badges": [
+        "Demonstration build",
+        "An invented business"
+      ]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Mon-Sat",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Three things, done properly",
+      "intro": "The work that comes through here, and how we approach it.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "Nobody said any of this",
+      "intro": "Invented quotations on a demonstration build. They exist so the reviews section renders; no customer said them.",
+      "sourceLabel": "Invented for a demonstration build - not a customer, and not a quotation",
+      "variant": "grid"
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 8,
+          "label": "Electricians",
+          "note": "On our own payroll"
+        },
+        {
+          "value": 300,
+          "label": "Panels upgraded",
+          "note": "Homes and small commercial"
+        },
+        {
+          "value": 5,
+          "label": "Vans",
+          "note": "Stocked for the common faults"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions we get asked",
+      "items": [
+        {
+          "q": "Is this a real business?",
+          "a": "No. Voltway Electric is invented. This build is a demonstration of a design family, published so the design can be shown without linking a real client's site or a prospect's private pitch."
+        },
+        {
+          "q": "Do I need a panel upgrade for an EV charger?",
+          "a": "Sometimes. It depends on what the building already draws. We check the capacity before quoting the charger, not after."
+        },
+        {
+          "q": "Do you pull permits?",
+          "a": "Yes, and we close them out. An open permit is a problem that surfaces when you sell the building."
+        },
+        {
+          "q": "Can you find out what a circuit does?",
+          "a": "Yes. Circuit tracing and labelling is a normal part of the work on older installations."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": false,
+      "eyebrow": "Our work",
+      "heading": "Recent jobs",
+      "intro": "Not rendered on this build.",
+      "items": []
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Voltway and the towns around it",
+      "intro": "Every place named here is invented, like the business.",
+      "areas": [],
+      "note": "Invented service area on a demonstration build."
+    },
+    "beforeAfter": {
+      "enabled": false,
+      "heading": "Before and after",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder image.",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder image.",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "This is a demonstration build. Voltway Electric is an invented business created to show a design family \u2014 no such company exists, and nothing here describes anybody\u2019s real work.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Demonstration build. Voltway Electric is an invented business and no such company exists."
+    }
+  }
+}

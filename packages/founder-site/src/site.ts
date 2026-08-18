@@ -48,6 +48,72 @@ export const EMAIL_AMENITY = 'vending@raghubans.com';
 export const AMENITY_SHORT = AMENITY_BRAND.split(' ')[0] ?? AMENITY_BRAND;
 
 /**
+ * A `mailto:` with a subject line already written.
+ *
+ * Every CTA on this site opens a mail client, so the subject is the only part
+ * of the resulting email we control — and an inbox that receives "(no subject)"
+ * from a property manager cannot be triaged. `encodeURIComponent` is what makes
+ * it a well-formed URL rather than a string that happens to contain spaces: a
+ * raw space in an href is not valid, and the em dash in these subjects is three
+ * bytes that must be percent-encoded before a mail client will parse the query.
+ *
+ * `check-live.mjs` re-parses every `mailto:` on the SERVED pages with `new
+ * URL()` and asserts the subject survived encoding, because "it looked right in
+ * the source" and "the deployed href parses" are different claims.
+ */
+export function mailto(address: string, subject: string): string {
+  return `mailto:${address}?subject=${encodeURIComponent(subject)}`;
+}
+
+/**
+ * Subject lines, per venture rather than per button.
+ *
+ * Two CTAs on the same page share a subject deliberately: the subject names
+ * what the mail is ABOUT, and a reader who clicked the header rather than the
+ * footer has not told us anything different about their intent.
+ */
+export const SUBJECT_AMENITY = `${AMENITY_BRAND} — proposal request`;
+export const SUBJECT_SITES = 'site-factory — website enquiry';
+export const SUBJECT_AI = 'AI voice agents — call flow';
+/** The footer's plain contact listings, which are actions too. */
+export const SUBJECT_GENERAL = 'Hello from raghubans.com';
+
+/**
+ * ---- FACTS RYAN SUPPLIED AND STANDS BEHIND. ----
+ *
+ * Held as constants rather than typed into prose because each one is a claim
+ * about a real person on an indexed page, and a number that appears in three
+ * files is a number that goes stale in two of them.
+ *
+ * SOURCING, per the repo's fabrication rule: every value here traces to a
+ * ruling Ryan gave in the founder-site-v3 task dialogs. Nothing is rounded up,
+ * inferred, or extended. If a value stops being true it is edited HERE.
+ */
+
+/** Ruling (b): "coding since 2018", and four PROFESSIONAL years. */
+export const CODING_SINCE = 2018;
+
+/**
+ * Four years of professional work, the first of which was an IT role rather
+ * than a software one. The copy therefore says "professional" and never "four
+ * years building software" — the narrower claim is the one that is true.
+ */
+export const YEARS_PROFESSIONAL = 4;
+
+/**
+ * Ruling (d). Sites built by the pipeline. Ryan's figure, and it reconciles
+ * against what this repo can see: the 50-demo batch plus the nine earlier demo
+ * hosts named in docs/evidence/. It is NOT independently measurable from a
+ * clean checkout — `prospects/` and `data/` are gitignored — which is stated on
+ * the PR rather than papered over.
+ */
+export const SITES_BUILT = 59;
+
+/** Ruling (d). Audience built as a gaming content creator. */
+export const TIKTOK_FOLLOWERS = '23.2K';
+
+
+/**
  * Ryan's public LinkedIn profile. `null` is a shipping state, not a broken one:
  * the footer renders the `LINKEDIN_URL` placeholder while it is null and a real
  * anchor the moment it is a string.
@@ -147,7 +213,7 @@ export const PAGES = {
   },
   sites: {
     title: `Bergen County Web Developer for Small Business — ${FULL_NAME}`,
-    description: `site-factory is Bergen County web developer work for local businesses — fast, mobile-first sites, measured on a real phone before they ship.`,
+    description: `site-factory is Bergen County web developer work for local businesses — built by a system that has shipped ${SITES_BUILT} live sites, each measured on a real phone.`,
     path: '/sites',
     ogImage: 'sites.png',
   },
@@ -165,7 +231,7 @@ export const PAGES = {
   },
   about: {
     title: `About ${FULL_NAME} — Developer, Founder, ${REGION}`,
-    description: `How ${FULL_NAME} got here: warehouse software at CED by day, Prudential before it, a stretch in competitive gaming, and four ventures now.`,
+    description: `How ${FULL_NAME} got here: remote warehouse software at CED, Prudential before it, a stretch in competitive gaming, and the ventures he runs now.`,
     path: '/about',
     ogImage: 'about.png',
   },
