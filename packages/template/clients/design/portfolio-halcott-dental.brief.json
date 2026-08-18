@@ -1,0 +1,178 @@
+{
+  "theme": {
+    "preset": "meridian",
+    "scheme": "light",
+    "accent": "lake",
+    "fontPairing": "humanist"
+  },
+  "header": {
+    "nav": [
+      {
+        "label": "What we do",
+        "href": "#services"
+      },
+      {
+        "label": "Reviews",
+        "href": "#reviews"
+      },
+      {
+        "label": "Where we work",
+        "href": "#service-area"
+      },
+      {
+        "label": "Questions",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "text": "Get in touch",
+      "href": "/contact"
+    },
+    "showPhone": true
+  },
+  "order": [
+    "stats",
+    "services",
+    "reviews",
+    "serviceArea",
+    "faq"
+  ],
+  "sections": {
+    "hero": {
+      "variant": "split",
+      "eyebrow": "Halcott, New Jersey",
+      "badges": [
+        "Demonstration build",
+        "An invented business"
+      ]
+    },
+    "stickyCta": {
+      "enabled": true,
+      "callLabel": "Call",
+      "callNote": "Mon-Sat",
+      "secondary": {
+        "text": "Contact",
+        "href": "/contact"
+      }
+    },
+    "services": {
+      "eyebrow": "What we do",
+      "heading": "Three things, done properly",
+      "intro": "The work that comes through here, and how we approach it.",
+      "variant": "cards"
+    },
+    "reviews": {
+      "eyebrow": "What customers say",
+      "heading": "Nobody said any of this",
+      "intro": "Invented quotations on a demonstration build. They exist so the reviews section renders; no customer said them.",
+      "sourceLabel": "Invented for a demonstration build - not a customer, and not a quotation",
+      "variant": "grid"
+    },
+    "stats": {
+      "enabled": true,
+      "items": [
+        {
+          "value": 2,
+          "label": "Dentists",
+          "note": "You keep the same one"
+        },
+        {
+          "value": 45,
+          "label": "Minute examinations",
+          "note": "Long enough to explain"
+        },
+        {
+          "value": 6,
+          "label": "Days open",
+          "note": "Including Saturday mornings"
+        }
+      ]
+    },
+    "faq": {
+      "enabled": true,
+      "eyebrow": "Before you call",
+      "heading": "Questions we get asked",
+      "items": [
+        {
+          "q": "Is this a real business?",
+          "a": "No. Halcott Dental Studio is invented. This build is a demonstration of a design family, published so the design can be shown without linking a real client's site or a prospect's private pitch."
+        },
+        {
+          "q": "I have not been to a dentist in a long time.",
+          "a": "That is common and it is not a problem. The first visit is an examination and a conversation, and nothing is done that day unless you want it to be."
+        },
+        {
+          "q": "Will I know the cost before treatment?",
+          "a": "Yes. You get a written plan with the cost on it before anything starts."
+        },
+        {
+          "q": "Do you see children?",
+          "a": "Yes, alongside their parents where that helps."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": false,
+      "eyebrow": "Our work",
+      "heading": "Recent jobs",
+      "intro": "Not rendered on this build.",
+      "items": []
+    },
+    "serviceArea": {
+      "enabled": true,
+      "eyebrow": "Where we work",
+      "heading": "Halcott and the towns around it",
+      "intro": "Every place named here is invented, like the business.",
+      "areas": [],
+      "note": "Invented service area on a demonstration build."
+    },
+    "beforeAfter": {
+      "enabled": false,
+      "heading": "Before and after",
+      "before": {
+        "src": "/images/gallery-1.svg",
+        "alt": "Placeholder image.",
+        "width": 1200,
+        "height": 900
+      },
+      "after": {
+        "src": "/images/gallery-2.svg",
+        "alt": "Placeholder image.",
+        "width": 1200,
+        "height": 900
+      },
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "verified": false
+    },
+    "openNow": {
+      "enabled": true,
+      "openLabel": "Open now",
+      "closedLabel": "Closed right now"
+    },
+    "footer": {
+      "blurb": "This is a demonstration build. Halcott Dental Studio is an invented business created to show a design family \u2014 no such company exists, and nothing here describes anybody\u2019s real work.",
+      "showHours": true,
+      "columns": [
+        {
+          "heading": "The shop",
+          "links": [
+            {
+              "text": "What we do",
+              "href": "#services"
+            },
+            {
+              "text": "Where we work",
+              "href": "#service-area"
+            },
+            {
+              "text": "Questions",
+              "href": "#faq"
+            }
+          ]
+        }
+      ],
+      "legal": "Demonstration build. Halcott Dental Studio is an invented business and no such company exists."
+    }
+  }
+}
