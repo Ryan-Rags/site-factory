@@ -53,6 +53,16 @@ export const HAS_LINKEDIN = typeof LINKEDIN_URL === 'string' && LINKEDIN_URL.len
  * Emitted as width/height on the <img> so the photo occupies exactly the space
  * the placeholder did and swapping one for the other cannot shift the page —
  * this site measures CLS 0 and that is a number worth not losing to an image.
+ *
+ * 640×800 is MEASURED, not chosen, and `public/ryan.jpg` is processed to exactly
+ * it. `.headshot` caps at `max-width: 15rem`, so the rendered box is 240 CSS px
+ * at every viewport — 630 device px at the DPR Lighthouse emulates. The first
+ * cut of this slot shipped a 1200×1500 file into that 240 px box: the hero is
+ * the LCP element, so the waste was not free, and mobile LCP measured 1.85 s
+ * against a 0.89 s baseline. At 640 the file is 86 KB rather than 184 KB.
+ *
+ * The ratio is what protects CLS, so these two may change together — 4:5 — but
+ * never one without the other, and the file must be re-processed to match.
  */
-export const HEADSHOT_W = 800;
-export const HEADSHOT_H = 1000;
+export const HEADSHOT_W = 640;
+export const HEADSHOT_H = 800;

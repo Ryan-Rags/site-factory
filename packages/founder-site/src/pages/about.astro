@@ -21,6 +21,61 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
+
+/**
+ * ---- EDIT THE CAPTIONS HERE. This is the only place they live. ----
+ *
+ * The "Off the clock" row. Three photos, deliberately not four: three reads as
+ * a considered row and four starts reading as a feed, which is the failure mode
+ * for a personality row on a credibility page.
+ *
+ * `caption` is Ryan's to rewrite freely — one line each, and the register to
+ * match is the rest of this page: dry, plain, no exclamation marks. `alt` is
+ * NOT interchangeable with it. Alt text describes the picture for someone who
+ * cannot see it, so it stays literal and stays in sync with the image; a
+ * caption that merely repeats the alt earns nothing.
+ *
+ * SOURCING RULE, same as the prose above: nothing here names a place, a date or
+ * an event that Ryan did not supply. The photos show a museum courtyard, a
+ * roadside statue and a park trail, and that is exactly as specific as the
+ * captions get — the location names are guessable from the images and guessing
+ * is how invented facts get onto this page.
+ *
+ * Adding a fourth: drop the file in `public/off-the-clock/`, process it the way
+ * the others were (4:5, 480×600, EXIF stripped — phone photos carry GPS), and
+ * add an entry. The CSS row reflows on its own.
+ *
+ * 480×600 is MEASURED, not chosen: the rendered box is 176 CSS px at Lighthouse's
+ * mobile emulation and 221 px on desktop, so 480 covers the widest case at that
+ * device's DPR with nothing spare. The first cut of this row shipped 600×750 and
+ * Lighthouse's `uses-responsive-images` scored it 0.5 for ~286 KiB of waste.
+ */
+const OFF_THE_CLOCK = [
+  {
+    src: '/off-the-clock/trail.jpg',
+    alt: `${FULL_NAME} on a wooded park trail, wearing earbuds.`,
+    caption: 'The boring part of progress. Most of it looks like this.',
+  },
+  {
+    src: '/off-the-clock/museum.jpg',
+    alt: `${FULL_NAME} mirroring the pose of a gilded archer statue in a museum courtyard.`,
+    caption: 'A museum courtyard, and a technique that needs work.',
+  },
+  {
+    src: '/off-the-clock/rooster.jpg',
+    alt: `${FULL_NAME} squaring up to an oversized painted rooster statue outside a red barn.`,
+    caption: 'Some roadside attractions earn the stop.',
+  },
+];
+
+/**
+ * Intrinsic size of every file in the row, emitted as `width`/`height` on each
+ * `<img>`. All three are processed to exactly this, so the browser reserves the
+ * right box before the bytes arrive and the row cannot shift the page as it
+ * loads. This site measures CLS 0 and images are the classic way to lose it.
+ */
+const OFF_THE_CLOCK_W = 480;
+const OFF_THE_CLOCK_H = 600;
 ---
 
 <BaseLayout page={PAGES.about} ogAlt={`About ${FULL_NAME}`}>
@@ -113,6 +168,32 @@ import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
           at once without getting brittle about any of them.
         </p>
       </div>
+    </div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="shell stack">
+      <h2 class="h2 tick">Off the clock</h2>
+      <ul class="offclock" role="list">
+        {
+          OFF_THE_CLOCK.map((shot) => (
+            <li>
+              <figure class="offclock__figure">
+                <img
+                  class="offclock__img"
+                  src={shot.src}
+                  width={OFF_THE_CLOCK_W}
+                  height={OFF_THE_CLOCK_H}
+                  alt={shot.alt}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption class="offclock__caption">{shot.caption}</figcaption>
+              </figure>
+            </li>
+          ))
+        }
+      </ul>
     </div>
   </section>
 
