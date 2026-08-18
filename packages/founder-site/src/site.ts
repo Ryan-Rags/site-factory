@@ -73,7 +73,7 @@ export function mailto(address: string, subject: string): string {
  * footer has not told us anything different about their intent.
  */
 export const SUBJECT_AMENITY = `${AMENITY_BRAND} — proposal request`;
-export const SUBJECT_SITES = 'site-factory — website enquiry';
+export const SUBJECT_SITES = 'site-factory — website inquiry';
 export const SUBJECT_AI = 'AI voice agents — call flow';
 /** The footer's plain contact listings, which are actions too. */
 export const SUBJECT_GENERAL = 'Hello from raghubans.com';
@@ -114,6 +114,14 @@ export const YEARS_PROFESSIONAL = 4;
  * `data/` are gitignored — so the evidence file is the citation, and it is
  * pinned to a date because the fleet grows. When it does, this constant and
  * that date move together or the number is no longer sourced.
+ *
+ * WHAT THE NUMBER IS, IN THE COPY ITSELF: builds generated, deployed and
+ * tested by the pipeline — NOT signed clients. `/sites` says so in the same
+ * sentence, because "59 live sites" beside an empty signed-client slot reads
+ * as 59 paying clients, and the only builds this site may link are the five
+ * `portfolio-*` demonstrations. The other fifty-odd are private, unsigned
+ * prospect pitches. `/` avoids the bare figure entirely and points at the five
+ * a reader can open.
  *
  * Ruled 2026-08-18 on PR #66's Brief, item 5.
  */
@@ -223,7 +231,8 @@ export const PAGES = {
   },
   sites: {
     title: `Bergen County Web Developer for Small Business — ${FULL_NAME}`,
-    description: `site-factory is Bergen County web developer work for local businesses — built by a system that has shipped ${SITES_BUILT} live sites, each measured on a real phone.`,
+    description:
+      `site-factory is Bergen County web developer work for local businesses — a pipeline that has generated, deployed and tested ${SITES_BUILT} site builds, five live to open now.`,
     path: '/sites',
     ogImage: 'sites.png',
   },
