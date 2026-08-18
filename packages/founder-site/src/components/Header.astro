@@ -1,15 +1,23 @@
 ---
 /**
- * Two chromes, one component.
+ * One bar, on every page, in both palettes.
  *
- * `founder` is the site's own bar: name as wordmark, four links.
- * `amenity` is deliberately NOT that. /amenity has to read as a separate
- * company's site to a property manager who arrived from a cold email, so it
- * gets the brand wordmark and a single CTA — no developer portfolio nav across
- * the top, and no route back into the founder pages except the discreet line in
- * that page's footer.
+ * It used to be two different bars. The `amenity` chrome carried a brand
+ * wordmark and a single CTA and NO site nav at all, on the theory that
+ * /amenity should read as a separate company to a property manager arriving
+ * from a cold email. The cost of that theory, measured on the deployed site:
+ * /amenity's only route out was one discreet line in its own footer, so the
+ * other three routes were two taps away and the page read as a dead end.
+ * `check-live.mjs` now asserts every route is one tap from every other.
  *
- * No hamburger, no disclosure widget, no JavaScript: four short links wrap onto
+ * What survives of the separation is everything that still earns its keep — the
+ * amenity wordmark, the amenity CTA, and the whole `[data-surface='amenity']`
+ * token block. The nav is deliberately NOT restyled for that surface: `.topbar`
+ * is written against `--base`, `--line` and `--ink-muted`, so the light/brass
+ * tokens re-skin it automatically. A second rule set would be a second thing to
+ * keep in sync, and this way the palette-appropriate rendering is structural.
+ *
+ * No hamburger, no disclosure widget, no JavaScript: five short links wrap onto
  * a second row at 320px, which is a better mobile nav than a button that has to
  * boot a runtime before it can open.
  */
@@ -22,35 +30,36 @@ interface Props {
 }
 
 const { chrome, path } = Astro.props;
+
+const isAmenity = chrome === 'amenity';
 ---
 
 <header class="topbar">
   <div class="shell topbar__inner">
+    <a class="topbar__mark" href={isAmenity ? '/amenity' : '/'}>
+      {isAmenity ? AMENITY_BRAND : FULL_NAME}
+    </a>
+
+    <nav class="topbar__nav" aria-label="Site">
+      {
+        NAV.map((item) => (
+          <a href={item.href} aria-current={item.href === path ? 'page' : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
     {
-      chrome === 'amenity' ? (
-        <>
-          <a class="topbar__mark" href="/amenity">
-            {AMENITY_BRAND}
-          </a>
-          <nav class="topbar__nav" aria-label="Contact">
-            {/* Label, never the address: the local part of this mailbox is a
-                word that must not appear in this page's visible copy. */}
-            <a href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
-          </nav>
-        </>
-      ) : (
-        <>
-          <a class="topbar__mark" href="/">
-            {FULL_NAME}
-          </a>
-          <nav class="topbar__nav" aria-label="Sections">
-            {NAV.map((item) => (
-              <a href={item.href} aria-current={item.href === path ? 'page' : undefined}>
-                {item.label}
-              </a>
-            ))}
-          </nav>
-        </>
+      /* The amenity CTA stays in the bar: it is the one action that page exists
+         to invite, and burying it under a nav that did not used to be there
+         would trade one regression for another. Label, never the address — the
+         local part of this mailbox is a word `check-amenity-wording.mjs`
+         forbids anywhere a human or a crawler reads text. */
+      isAmenity && (
+        <a class="topbar__cta" href={`mailto:${EMAIL_AMENITY}`}>
+          Request a proposal
+        </a>
       )
     }
   </div>

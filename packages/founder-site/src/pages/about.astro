@@ -3,13 +3,21 @@
  * The only page with personal content, and the only one written in a
  * conversational register.
  *
- * Everything factual here comes from what Ryan told me: development work at CED
- * and Prudential, years around competitive gaming and streaming, three sports,
- * and the three ventures he runs now. What is deliberately ABSENT is every
- * specific I was not given — tenures, titles, team names, follower counts, times
- * and placings. Those are the details that make an about page good, and also the
- * ones that get invented to fill a rhythm, so the prose is shaped to read
- * naturally without them and Ryan can sharpen it in a pass of his own.
+ * SOURCING RULE, unchanged from the page's first version: every factual line
+ * here traces to something Ryan supplied. What is deliberately ABSENT is every
+ * specific he did not — tenures, dates, titles, degree, major, team names,
+ * follower counts, times and placings. Those are the details that make an about
+ * page good and also the ones that get invented to complete a rhythm, so the
+ * prose is shaped to read naturally without them.
+ *
+ * PR #59's ruling 4 said no session writes biography into this page. Ryan
+ * supplying the facts in the founder-site-v2 task prompt is what lifts that, and
+ * only for those facts — see the dated reversal in docs/decisions.md.
+ *
+ * One thing here is a CORRECTION, not an addition: the previous copy read "I
+ * started in enterprise development — at CED, and then at Prudential", which put
+ * CED in the past and ordered it first. CED is the current day job; Prudential
+ * came before it.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
@@ -28,21 +36,20 @@ import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
 
   <section class="section section--plain">
     <div class="shell stack">
-      <h2 class="h2 tick">Enterprise first</h2>
+      <h2 class="h2 tick">The day job</h2>
       <div class="prose">
         <p>
-          I started in enterprise development — at CED, and then at Prudential. Big systems, long
-          release trains, code that other people's jobs depended on. It is not a glamorous way to
-          learn, but it is a thorough one: you find out quickly that most software problems are
-          really communication problems, and that the person who can explain a tradeoff in plain
-          language is worth more than the person who can only implement it.
+          I am a full-stack developer at <strong>CED</strong> — Consolidated Electrical
+          Distributors — where I build internal software for warehouse operations. React and
+          TypeScript on the front, C# and .NET behind it.
         </p>
         <p>
-          The other thing that work gave me was a low tolerance for hand-waving. In a large
-          organisation you can ship something that nobody measures and never find out whether it
-          helped. I got tired of that. It is why every site I build now gets a real performance
-          number attached to it, and why I would rather tell a client an agent is not worth
-          building than sell them one.
+          Warehouse software is a good teacher because the people using it are not impressed by
+          it. Nobody opens a picking screen because they enjoy the picking screen. It either
+          makes the next hour of their shift easier or it is in the way, and you find out which
+          within a day of shipping. That is a much shorter feedback loop than most software
+          careers give you, and it has made me suspicious of anything that demos well and works
+          badly.
         </p>
       </div>
     </div>
@@ -50,14 +57,37 @@ import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
 
   <section class="section section--alt">
     <div class="shell stack">
+      <h2 class="h2 tick">Before that</h2>
+      <div class="prose">
+        <p>
+          I studied at <strong>Rowan University</strong>, and did software development at
+          <strong>Prudential</strong> before CED. Big systems, long release trains, code that
+          other people's jobs depended on. It is not a glamorous way to learn, but it is a
+          thorough one: you find out quickly that most software problems are really
+          communication problems, and that the person who can explain a tradeoff in plain
+          language is worth more than the person who can only implement it.
+        </p>
+        <p>
+          For a stretch I also taught STEM part-time at <strong>Mad Science</strong>. If you want
+          to know whether you actually understand something, try explaining it to a room of
+          children who will tell you immediately and without tact when you have lost them. I
+          have never had a client meeting that was harder than that, and I have never since
+          believed that jargon is the same thing as expertise.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell stack">
       <h2 class="h2 tick">Before that: an audience</h2>
       <div class="prose">
         <p>
           Earlier on I spent a long stretch in competitive gaming, and a good chunk of it
-          streaming. It reads like an odd line on a founder page until you consider what it
-          actually is: you go live, in real time, with no edit button, and either people stay or
-          they leave. You learn to hold attention, to read a room you cannot see, and to be
-          unbothered when something breaks on camera.
+          streaming and making content. It reads like an odd line on a founder page until you
+          consider what it actually is: you go live, in real time, with no edit button, and
+          either people stay or they leave. You learn to hold attention, to read a room you
+          cannot see, and to be unbothered when something breaks on camera.
         </p>
         <p>
           I use that more than I expected to. A cold call with a property manager and a
@@ -68,30 +98,30 @@ import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
     </div>
   </section>
 
-  <section class="section">
+  <section class="section section--alt">
     <div class="shell stack">
       <h2 class="h2 tick">Three sports, one habit</h2>
       <div class="prose">
         <p>
-          Track, basketball and soccer. Track taught me the thing I am most grateful for: that
-          progress is mostly boring, and that the work you do on a day you do not feel like it is
-          the work that counts. Basketball and soccer taught the opposite half — that you can be
-          the fittest person on the pitch and still lose because you would not pass.
+          Track and field, basketball and soccer. Track taught me the thing I am most grateful
+          for: that progress is mostly boring, and that the work you do on a day you do not feel
+          like it is the work that counts. Basketball and soccer taught the opposite half — that
+          you can be the fittest person on the pitch and still lose because you would not pass.
         </p>
         <p>
-          I still train. It is the only reliable way I have found to keep running three things at
-          once without getting brittle about any of them.
+          I still train. It is the only reliable way I have found to keep several things running
+          at once without getting brittle about any of them.
         </p>
       </div>
     </div>
   </section>
 
-  <section class="section section--alt">
+  <section class="section">
     <div class="shell stack">
       <h2 class="h2 tick">What I am building now</h2>
       <div class="prose">
         <p>
-          Three things, all out of {REGION}.
+          Four things, all out of {REGION}, all outside the day job.
         </p>
         <p>
           <strong>site-factory</strong> — fast, honest websites for local businesses. Most of the
@@ -107,6 +137,12 @@ import { AMENITY_BRAND, EMAIL_DEV, FULL_NAME, PAGES, REGION } from '../site';
           <strong>{AMENITY_BRAND}</strong> — curated smart markets in luxury residential
           buildings. This one came from noticing that the amenity floor of a very nice building is
           often the least considered part of it, and that the fix costs the building nothing.
+        </p>
+        <p>
+          <strong>Styled by Alhambra</strong> — an AI-powered personal styling app, built in
+          React Native and Expo, and the closest of the four to launch. It is the one that is
+          least like the others: consumer rather than local, a product rather than a service, and
+          a much harder problem than it looks from the outside.
         </p>
         <p>
           If any of that is useful to you, or you just want to compare notes, I am at{' '}

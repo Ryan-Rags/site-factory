@@ -53,7 +53,7 @@ canonical" are different claims:
 | `check-indexable` | robots allows, sitemap emitted + referenced, canonical per route, no `noindex` |
 | `check-metadata` | complete, unique, length-budgeted titles/descriptions/OG; og:image actually emitted; no `LocalBusiness` |
 | `check-amenity-wording` | the amenity category word never reaches readable text or metadata |
-| `check-placeholders` | exact placeholder counts per route; no `*.pages.dev` demo links |
+| `check-placeholders` | placeholder counts per route **for the current slot state**, the filled artifact when a slot is filled; no `*.pages.dev` demo links |
 | `check-no-forms` | no forms, no controls, no `<script>`, no inline handlers, no third-party hosts |
 | `check-headers` | `_headers` reaches `dist/` with all four directives intact |
 
@@ -62,7 +62,7 @@ machine with no Chromium) — run them before deploying:
 
 ```sh
 node scripts/check-textfit.mjs                      # 320px fit; serves its own dist/
-node scripts/check-live.mjs https://<origin>        # post-deploy: 200s, headers, no redirect hops
+node scripts/check-live.mjs https://<origin>        # post-deploy: 200s, headers, no redirect hops, one-tap nav
 ```
 
 Every gate was landed failure-first; the transcript is in
@@ -81,12 +81,59 @@ Rendered **visibly in-page** on purpose — a placeholder that only shows up in 
 diff is one that ships. `check-placeholders.mjs` asserts the exact count of each,
 so a slot cannot be silently dropped instead of filled.
 
-| Token | Where | Fill with |
-| --- | --- | --- |
-| `PHOTO_HERE` | `/` hero | headshot, 4:5 portrait, ≥800×1000 |
-| `DEMO_LINK` | `/sites`, ×5 | live client URL + name + one-line result, as clients sign off |
-| `CASE_STUDY` | `/ai`, ×3 | dental voice-agent problem / build / **measured** result |
-| `LINKEDIN_URL` | footer, all founder pages | public LinkedIn profile URL |
+| Token | Where | Fill with | How |
+| --- | --- | --- | --- |
+| `PHOTO_HERE` | `/` hero | headshot, 4:5 portrait, ≥800×1000 | **wired** — drop the file at `public/ryan.jpg` |
+| `LINKEDIN_URL` | footer, all founder pages | public LinkedIn profile URL | **wired** — set `LINKEDIN_URL` in `src/site.ts` |
+| `DEMO_LINK` | `/sites`, ×5 | live client URL + name + one-line result, as clients sign off | edit `sites.astro` |
+| `CASE_STUDY` | `/ai`, ×3 | dental voice-agent problem / build / **measured** result | edit `ai.astro` |
+
+The two **wired** slots need no code change. Drop `public/ryan.jpg` in, or set
+`LINKEDIN_URL` to a string, and the next build renders the real thing and stops
+rendering the placeholder. Leave them and the build still succeeds — that is the
+point, and both states are gated:
+
+```sh
+      13 placeholder slot(s) across 5 page(s), all as declared (headshot pending, linkedin pending)
+      8 placeholder slot(s) across 5 page(s), all as declared (headshot FILLED, linkedin FILLED)
+```
+
+Filling a slot must not weaken the gate. Unfilled, a missing placeholder fails.
+Filled, a missing `<img>` or `<a>` fails. `check-placeholders.mjs` reads the same
+ground truth the build reads — the file on disk, the constant in `site.ts` — so
+there is no state in which a slot is quietly nothing at all.
+
+> `src/assets.ts` resolves `public/ryan.jpg` from **`process.cwd()`**, not from
+> `import.meta.url`. Vite SSR-bundles that module before Astro runs it, so
+> `import.meta.url` is the bundled chunk's path and the relative hop misses
+> `public/` entirely — the file exists and the page renders the placeholder
+> anyway. The gate is what caught it; do not "simplify" it back.
+
+## Navigation: every route is one tap from every other
+
+One bar, on every page, in both palettes: **Home · Sites · Alcove · AI · About**.
+
+`/amenity` used to be the exception — brand wordmark, one CTA, no site nav, on
+the theory that it should read as a separate company to a property manager
+arriving from a cold email. Measured on the deployed site, the cost of that was
+that its only route out was one discreet line in its own footer, so the other
+three routes were two taps away and the page read as a dead end.
+
+What survives of the separation is everything that still earns its keep: the
+amenity wordmark, the amenity CTA, and the whole `[data-surface='amenity']`
+token block. The nav is deliberately **not** restyled for that surface —
+`.topbar` is written against `--base`, `--line` and `--ink-muted`, so the
+light/brass tokens re-skin it automatically. A second rule set would be a second
+thing to keep in sync.
+
+`check-live.mjs` asserts reachability on the **deployed** HTML: a 5×5 matrix
+with an empty diagonal, built from the documents it was already fetching, so it
+costs no extra requests. It is stated as reachability rather than as "the nav
+component is present" because the second one passes on a nav that renders zero
+links.
+
+> Known gap: this is a post-deploy gate, so a nav regression is caught after
+> publish rather than at build. See `docs/known-issues.md`.
 
 ## Renaming the amenity venture
 

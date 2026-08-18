@@ -71,6 +71,31 @@ export function siteUrl() {
 }
 
 /**
+ * The two operator-filled asset slots, read from the SAME ground truth the
+ * build reads: the file on disk, and the constant in src/site.ts.
+ *
+ * A gate that took "is the photo filled in?" as a parameter, or as its own
+ * copy of the answer, would be asserting against its own assumption rather than
+ * against the build. Reading the source of truth is what lets one gate cover
+ * both states — an unfilled slot must render its placeholder, and a filled one
+ * must render the real artifact. Neither is allowed to be silently missing.
+ */
+export function linkedinUrl() {
+  const src = readFileSync(join(pkgRoot, 'src', 'site.ts'), 'utf8');
+  const m = /LINKEDIN_URL:\s*string\s*\|\s*null\s*=\s*(?:'([^']*)'|null)/.exec(src);
+  if (!m) fail('could not read LINKEDIN_URL out of src/site.ts — the placeholder gate is blind.');
+  return m[1] && m[1].length > 0 ? m[1] : null;
+}
+
+/** The public path of the headshot, and whether Ryan has dropped the file in. */
+export function headshot() {
+  const src = readFileSync(join(pkgRoot, 'src', 'site.ts'), 'utf8');
+  const m = /HEADSHOT_SRC\s*=\s*'([^']+)'/.exec(src);
+  if (!m) fail('could not read HEADSHOT_SRC out of src/site.ts — the placeholder gate is blind.');
+  return { src: m[1], present: existsSync(join(pkgRoot, 'public', m[1].replace(/^\//, ''))) };
+}
+
+/**
  * Visible text: markup, <head>, comments and attribute values removed.
  *
  * Attributes matter here — `href="mailto:…"` is exactly the place the amenity

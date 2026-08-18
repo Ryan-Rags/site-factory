@@ -660,3 +660,53 @@ few minutes here).
 **Residual, accepted:** there is no cache purge in this workflow, because purging
 Pages requires zone-level access and this stream is explicitly barred from
 touching DNS or zones. Waiting is the whole mitigation.
+
+## founder-site: the one-tap nav assertion is post-deploy only
+
+**Status:** open, accepted. **Surface:** `packages/founder-site`.
+
+`check-live.mjs` asserts every route links every other route directly, on the
+deployed HTML. It is not in `pnpm build`, so a nav regression is caught *after*
+publish rather than at build time.
+
+**Repro.** Delete an entry from `NAV` in `src/site.ts`, run `pnpm build` — six
+gates green. The failure appears only on the next `node scripts/check-live.mjs
+<origin>`.
+
+**Why it is where it is.** The task placed it in check-live or the fit gate, and
+check-live already fetches all five documents, so the link graph costs no extra
+requests and stays inside the repo's audit budget. It also measures the thing
+that actually matters — what a visitor is served — rather than what `dist/`
+contains.
+
+**Fix sketch if it ever bites:** the same graph over `dist/` is ~15 lines using
+`htmlPages()` from `lib.mjs` and would run in `pnpm build` with no browser. Worth
+doing the first time a regression reaches production; not worth two copies of the
+rule before then.
+
+## founder-site: Cloudflare's managed robots.txt blocks named AI crawlers at the zone
+
+**Status:** open, **needs Ryan's decision**. **Surface:** `raghubans.com` zone.
+
+The apex domain serves a Cloudflare-injected block ahead of our `robots.txt`.
+It allows `User-agent: *` and carries `Content-Signal:
+search=yes,ai-train=no,use=reference`, then disallows Amazonbot,
+Applebot-Extended, Bytespider, CCBot, ClaudeBot, Google-Extended, GPTBot,
+meta-externalagent and CloudflareBrowserRenderingCrawler.
+
+**Repro.**
+
+```sh
+curl -s https://raghubans.com/robots.txt | head -40    # managed block present
+curl -s https://raghubans-com.pages.dev/robots.txt     # ours only, no block
+```
+
+**Why it matters.** Search indexing — the thing this site exists for — is
+unaffected. What is affected is whether an AI assistant asked "who is Ryan
+Raghubans?" may read the page, and this site's audience increasingly asks
+exactly that. It is a zone setting, deliberate or default-on, and this package
+is barred from touching zones. Raised as a Brief item on PR feat/founder-site-v2.
+
+**Not a code defect.** `check-live.mjs` was narrowed to assert only the
+`User-agent: *` group, which is the claim the gate exists to make.
+
