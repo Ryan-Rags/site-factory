@@ -25,7 +25,7 @@ import {
 } from "./report.js";
 import { readProspect, today, writeProspect } from "./schema.js";
 import { serveDir } from "./serve.js";
-import { captureAfter, captureBefore } from "./shots.js";
+import { captureAfter, captureBefore, type ShotSet } from "./shots.js";
 import { known, valueOf } from "./types.js";
 
 /**
@@ -336,15 +336,25 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
   const before = await timed("shots", () =>
     captureBefore(browser, opts.id, currentUrl, paths.shotsDir),
   );
+  /*
+   * Report what came back, not whether the desktop shot did.
+   *
+   * This line tested `before.desktop` alone, so a prospect with only a mobile
+   * shot printed "none — no reason recorded" while the manifest correctly
+   * recorded the file and its source. One of the 50 is in exactly that state
+   * (`charles-renovations-construction-company`), and the summary said the
+   * opposite of the data next to it.
+   */
+  const beforeShots = (["desktop", "mobile"] as const).filter((v) => before[v]);
+  const beforeFrom: Record<ShotSet["source"], string> = {
+    "audit-cache": "reused audit screenshots",
+    "on-disk": "reused the shots already on disk — their site was not navigated",
+    captured: "captured from their live site",
+    none: "no shots",
+  };
   step(
-    before.desktop
-      ? `before: ${
-          before.source === "audit-cache"
-            ? "reused audit screenshots"
-            : before.source === "on-disk"
-              ? "reused the before-shots already on disk — their site was not navigated"
-              : "captured from their live site"
-        }`
+    beforeShots.length > 0
+      ? `before: ${beforeShots.join(" + ")} — ${beforeFrom[before.source]}`
       : `before: none — ${before.reason ?? "no reason recorded"}`,
   );
 

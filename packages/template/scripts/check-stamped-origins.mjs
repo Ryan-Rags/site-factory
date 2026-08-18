@@ -142,8 +142,15 @@ async function fetchOnce(url) {
  * ONLY A NON-200 IS RETRIED. A wrong content type is not a race — an SVG does
  * not become a PNG by waiting — so rule 3 still fails on the first response and
  * the red demonstration stays instant.
+ *
+ * THE WINDOW IS SET FROM MEASUREMENT, NOT FROM TASTE. At 5 attempts over 20s,
+ * 47 of the 49 demos redeployed on 2026-08-18 went green from the deploy and
+ * two did not — both correct, both serving the right card, both confirmed by
+ * this same gate minutes later. A warning that is wrong twice in fifty is one
+ * an operator learns to scroll past, which is the failure the retry exists to
+ * prevent. 8 attempts over 35s covered them.
  */
-async function probe(url, attempts = 5, gapMs = 5000) {
+async function probe(url, attempts = 8, gapMs = 5000) {
   let res = await fetchOnce(url);
   for (let i = 1; i < attempts && res.status !== 200; i += 1) {
     await sleep(gapMs);
@@ -250,8 +257,8 @@ export async function checkStampedOrigins({ origin, dist, offline = false, log =
       const res = await probe(url);
       if (res.status !== 200) {
         problems.push(
-          `${url} does not resolve — ${res.error || `HTTP ${res.status}`}, still, after 5 ` +
-            `attempts over 20s. Stamped by ${stampedBy.length} tag(s), first ${stampedBy[0]}.`,
+          `${url} does not resolve — ${res.error || `HTTP ${res.status}`}, still, after 8 ` +
+            `attempts over 35s. Stamped by ${stampedBy.length} tag(s), first ${stampedBy[0]}.`,
         );
         continue;
       }
