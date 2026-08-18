@@ -27,6 +27,20 @@
  *   2. Every ASSET URL must return 200. A card that 404s is the blank-unfurl
  *      defect with the origin spelled correctly.
  *
+ *   3. The two CARD tags -- `og:image` and `twitter:image` -- must answer with
+ *      a content type a platform will draw: PNG or JPEG. 200 is not enough.
+ *      c3m answered 200 `image/svg+xml` and every gate was green while every
+ *      shared link unfurled blank, because rule 2 asks whether the file is
+ *      there and this asks whether it is a picture anyone will render.
+ *      Issue #61, measured on 6 of 6 demos.
+ *
+ *      RULE 3 IS SCOPED TO THOSE TWO TAGS ON PURPOSE, and the scope is not an
+ *      oversight to be tidied up later. The JSON-LD `image` and `logo` are
+ *      assets under rule 2 and stay there: `logo` is `/images/logo.svg` on all
+ *      nine hand-authored clients by design, nothing unfurls a graph node, and
+ *      widening rule 3 would fail every client for shipping what it is meant
+ *      to ship. See `CARD_LABELS` in `lib/stamped-origins.mjs`.
+ *
  * And one deliberate non-rule: a stamped IDENTITY URL on a host that is NOT
  * ours — `https://example.invalid`, or a client's own domain — is left alone.
  * The ledger of 2026-08-13 rules the canonical and `og:url` are identity
@@ -42,14 +56,22 @@
  *              knows it; nothing else does.
  *   --slug     Defaults to SITE_CLIENT. Names dist/<slug>/.
  *   --dist     A built directory to read instead of dist/<slug>/.
- *   --offline  Apply rule 1 only. For a dry run, and for proving the origin
- *              rule without spending requests.
+ *   --offline  Apply rule 1 only -- rules 2 and 3 are properties of the
+ *              response, so neither can be answered without fetching. For a
+ *              dry run, and for proving the origin rule without spending
+ *              requests.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ASSET, isPagesHost, stampedUrls } from './lib/stamped-origins.mjs';
+import {
+  ASSET,
+  CARD_LABELS,
+  DRAWABLE_CARD_TYPES,
+  isPagesHost,
+  stampedUrls,
+} from './lib/stamped-origins.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const pkgRoot = join(here, '..');
@@ -90,7 +112,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * measuring the asset. The body is read and discarded; this is two files per
  * site, deduplicated.
  */
-async function probe(url) {
+async function fetchOnce(url) {
   try {
     const res = await fetch(url, { redirect: 'follow' });
     await res.arrayBuffer();
@@ -100,6 +122,42 @@ async function probe(url) {
     const cause = err?.cause?.code ?? '';
     return { status: 0, type: '', error: cause ? `${err.message} (${cause})` : err.message };
   }
+}
+
+/**
+ * The same probe, given time for a just-published deploy to start serving.
+ *
+ * WHY THIS IS NOT OVER-PATIENCE. This gate's first caller is the deploy, and it
+ * runs the instant `wrangler pages deploy` returns. The project alias goes on
+ * serving the previous deployment for a few seconds after that, so an asset at
+ * a path the previous build did not have answers 404 — and the gate reported a
+ * demo that is completely correct as one advertising an address that is not
+ * itself. Measured on the c3m redeploy of 2026-08-18: red from the deploy,
+ * green from the CLI against the same origin and the same dist forty seconds
+ * later. Fifty of those in a batch is a gate nobody reads.
+ *
+ * `deploy.ts` already waits this way for the homepage, for this reason. The
+ * asset probe was the half that did not.
+ *
+ * ONLY A NON-200 IS RETRIED. A wrong content type is not a race — an SVG does
+ * not become a PNG by waiting — so rule 3 still fails on the first response and
+ * the red demonstration stays instant.
+ *
+ * THE WINDOW IS SET FROM MEASUREMENT, NOT FROM TASTE. At 5 attempts over 20s,
+ * 47 of the 49 demos redeployed on 2026-08-18 went green from the deploy and
+ * two did not — both correct, both serving the right card, both confirmed by
+ * this same gate minutes later. A warning that is wrong twice in fifty is one
+ * an operator learns to scroll past, which is the failure the retry exists to
+ * prevent. 8 attempts over 35s covered them.
+ */
+async function probe(url, attempts = 8, gapMs = 5000) {
+  let res = await fetchOnce(url);
+  for (let i = 1; i < attempts && res.status !== 200; i += 1) {
+    await sleep(gapMs);
+    res = await fetchOnce(url);
+    if (res.status === 200) res.retried = i;
+  }
+  return res;
 }
 
 /**
@@ -168,9 +226,13 @@ export async function checkStampedOrigins({ origin, dist, offline = false, log =
       }
 
       if (kind === ASSET) {
-        const list = assets.get(parsed.href) ?? [];
-        list.push(`${where} (${label})`);
-        assets.set(parsed.href, list);
+        const entry = assets.get(parsed.href) ?? { stampedBy: [], card: false };
+        entry.stampedBy.push(`${where} (${label})`);
+        // One URL can be stamped by both a card tag and a graph node. If ANY
+        // tag that names it is a card tag, the bytes have to satisfy rule 3 --
+        // the graph node sharing the URL does not buy it an exemption.
+        if (CARD_LABELS.has(label)) entry.card = true;
+        assets.set(parsed.href, entry);
       }
     }
   }
@@ -189,18 +251,34 @@ export async function checkStampedOrigins({ origin, dist, offline = false, log =
   // costs two requests rather than ten, and spaced regardless.
   if (!offline) {
     let first = true;
-    for (const [url, stampedBy] of assets) {
+    for (const [url, { stampedBy, card }] of assets) {
       if (!first) await sleep(500);
       first = false;
       const res = await probe(url);
       if (res.status !== 200) {
         problems.push(
-          `${url} does not resolve — ${res.error || `HTTP ${res.status}`}. Stamped by ` +
-            `${stampedBy.length} tag(s), first ${stampedBy[0]}.`,
+          `${url} does not resolve — ${res.error || `HTTP ${res.status}`}, still, after 8 ` +
+            `attempts over 35s. Stamped by ${stampedBy.length} tag(s), first ${stampedBy[0]}.`,
         );
-      } else {
-        log(`  · ${url}  200 ${res.type}`);
+        continue;
       }
+
+      // Rule 3 — a card has to be a picture a platform will draw.
+      if (card && !DRAWABLE_CARD_TYPES.has(res.type)) {
+        problems.push(
+          `${url} answers 200 ${res.type || '(no content-type)'}, which no platform will draw ` +
+            `as a card. Facebook, X, LinkedIn, iMessage, WhatsApp and Slack all decline ` +
+            `anything but a raster image, so this link unfurls blank while every other check ` +
+            `passes. Stamped by ${stampedBy.length} tag(s), first ${stampedBy[0]}. ` +
+            `Expected one of ${[...DRAWABLE_CARD_TYPES].join(', ')}.`,
+        );
+        continue;
+      }
+
+      log(
+        `  · ${url}  200 ${res.type}${card ? '  (card)' : ''}` +
+          (res.retried ? `  (served after ${res.retried} retr${res.retried === 1 ? 'y' : 'ies'})` : ''),
+      );
     }
   }
 
@@ -257,7 +335,7 @@ if (invokedDirectly) {
   for (const p of result.problems) console.error(`    ${p}`);
   console.error(
     '\nRebuild this slug with the origin it is actually served from, then redeploy:\n\n' +
-      `  PREVIEW_ORIGIN=${result.serving} pnpm demo -- --id <slug> --skip-ingest\n`,
+      `  PREVIEW_ORIGIN=${result.serving} pnpm demo -- --prospect <slug> --skip-ingest\n`,
   );
   process.exit(1);
 }
