@@ -134,6 +134,49 @@ function schemeOf(
   return tone;
 }
 
+/**
+ * The colours a demo actually renders in, read back off its own design block.
+ *
+ * The social card has to be drawn in the palette of the page it links to, and
+ * `buildDesign` has already made every one of those choices — the tone, the
+ * accent, and whether the prospect's own brand colour survived the contrast
+ * check. Re-running `rotate()` from the card renderer would be a second
+ * opinion about a decision already taken, and the two would diverge the first
+ * time either changed.
+ *
+ * So this reads the finished `DesignBlock["theme"]` and nothing else.
+ * `accent: "brand"` is not a swatch id in `presets.json` — it is the marker
+ * `buildDesign` writes when the prospect's own colour passed — so that case
+ * resolves out of `brandAccent`, which is where the colour itself lives.
+ *
+ * @throws if the preset or tone is missing, for `schemeOf`'s reason: a card
+ *   drawn in a guessed palette is worse than a run that stops.
+ */
+export function resolveTone(theme: DesignBlock["theme"]): {
+  palette: DesignPalette;
+  accent: string;
+  onAccent: string;
+} {
+  const tone = schemeOf(presetById(theme.preset), theme.scheme);
+
+  if (theme.accent === "brand" && theme.brandAccent) {
+    return {
+      palette: tone.palette,
+      accent: theme.brandAccent.accent,
+      onAccent: theme.brandAccent.onAccent,
+    };
+  }
+
+  const swatch = tone.accents.find((a) => a.id === theme.accent) ?? tone.accents[0];
+  if (!swatch) {
+    throw new Error(
+      `presets.json: preset "${theme.preset}" has no accents in its "${theme.scheme}" tone, ` +
+        `so there is no colour to draw the card in.`,
+    );
+  }
+  return { palette: tone.palette, accent: swatch.accent, onAccent: swatch.onAccent };
+}
+
 /* --------------------------------------------------------------- variety */
 
 /**

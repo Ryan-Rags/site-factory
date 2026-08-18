@@ -43,6 +43,7 @@ export const OG_CARD_SIZE = { width: 1200, height: 630 };
  * @property {string} place     "Locality, REGION" — may be empty.
  * @property {string} tagline   one line under the name — may be empty.
  * @property {string} logoDataUri  the mark, already inlined as a data URI.
+ *   Empty draws no mark at all — see `ogCardHtml`.
  * @property {{ base: string, ink: string, inkMuted: string }} palette
  * @property {string} accent    the accent colour of the tone in play.
  */
@@ -60,6 +61,20 @@ const esc = (s) =>
  */
 export function ogCardHtml(info) {
   const { palette, accent, name, tagline, place, logoDataUri } = info;
+  /*
+   * No mark rather than an empty one.
+   *
+   * `<img src="">` is not "no image": browsers resolve it against the document
+   * URL and draw a broken-image box, which on a 1200x630 card is a grey
+   * rectangle beside the town name. A hand-authored client always has a logo
+   * so this branch never fires for one; a generated demo whose owner has not
+   * given us their logo deliberately carries no mark, because the template's
+   * stock monogram is not theirs. See `ownLogoFile` in the prospect package.
+   */
+  const mark = logoDataUri
+    ? `<img src="${logoDataUri}" width="72" height="72" alt="">
+    `
+    : '';
   return `<!doctype html><html><body style="margin:0">
 <div style="width:1200px;height:630px;box-sizing:border-box;padding:72px;
             background:${palette.base};color:${palette.ink};
@@ -67,8 +82,7 @@ export function ogCardHtml(info) {
             display:flex;flex-direction:column;justify-content:space-between;
             border-bottom:16px solid ${accent};">
   <div style="display:flex;align-items:center;gap:20px;">
-    <img src="${logoDataUri}" width="72" height="72" alt="">
-    <span style="font-size:28px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    ${mark}<span style="font-size:28px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
                  color:${accent};">${esc(place)}</span>
   </div>
   <div>
