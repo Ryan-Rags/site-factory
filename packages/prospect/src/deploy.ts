@@ -1,4 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { join } from "node:path";
+
+import { templateDir } from "./paths.js";
 
 /**
  * Deploy one prospect's built site to its own Cloudflare Pages project.
@@ -69,6 +72,45 @@ export interface DeployResult {
   services: string;
   verified: boolean;
   substituted: boolean;
+  /** Every absolute URL the published pages stamp names this origin, and the assets answer 200. */
+  stampedOk: boolean;
+  /** What the stamped-origin gate said, when it failed. */
+  stampedProblems: string[];
+}
+
+/**
+ * Run `check-stamped-origins.mjs` against what was just published.
+ *
+ * Spawned rather than imported: it is a template gate written in plain `.mjs`,
+ * this is TypeScript in another package, and a spawn is the boundary
+ * `buildSite` already uses for the same reason.
+ *
+ * THE ORIGIN IS PASSED IN, and that is the whole reason this catches what
+ * nothing else did. Every other check derives the origin from the slug exactly
+ * as the build does, so the two agree with each other and can be wrong
+ * together — which is what happened to c3m. Here the input is the project name
+ * wrangler actually deployed to, substitution included.
+ */
+function verifyStampedOrigins(
+  slug: string,
+  origin: string,
+  distDir: string,
+): { ok: boolean; problems: string[] } {
+  const gate = join(templateDir, "scripts", "check-stamped-origins.mjs");
+  const res = spawnSync(
+    process.execPath,
+    [gate, "--slug", slug, "--origin", origin, "--dist", distDir],
+    { encoding: "utf8" },
+  );
+  if (res.status === 0) return { ok: true, problems: [] };
+  const out = `${res.stdout ?? ""}${res.stderr ?? ""}`;
+  return {
+    ok: false,
+    problems: out
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== ""),
+  };
 }
 
 export async function deploySite(slug: string, distDir: string): Promise<DeployResult> {
@@ -92,12 +134,25 @@ export async function deploySite(slug: string, distDir: string): Promise<DeployR
   const home = await status(`${url}/`);
   const services = await status(`${url}/services/`);
 
+  /*
+   * The published bytes must name the host they were published to.
+   *
+   * Run unconditionally, not only when `substituted` is true. Substitution is
+   * the cause we know about; "the artifact advertises somewhere else" is the
+   * defect, and a gate that only fires on the one cause already recorded is a
+   * gate that will miss the second one — a project pointed at another client's
+   * dist, a stale build, an override typed wrong.
+   */
+  const stamped = verifyStampedOrigins(slug, url, distDir);
+
   return {
     project: name,
     url,
     home,
     services,
-    verified: home === "200" && services === "200",
+    verified: home === "200" && services === "200" && stamped.ok,
     substituted,
+    stampedOk: stamped.ok,
+    stampedProblems: stamped.problems,
   };
 }

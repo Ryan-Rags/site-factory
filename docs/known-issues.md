@@ -517,18 +517,25 @@ Not this stream's to pick.
 
 ## 11. `live-smoke` and `check-form-fields` resolve slugs through `clients/index.ts`, so neither can see a prospect demo
 
-**Status:** open. **Tracked as** [#56](https://github.com/Ryan-Rags/site-factory/issues/56).
-**Owner:** whoever owns `scripts/live-smoke/`.
-**Found by:** PR #54 (Brief item 5, unruled); half fixed by PR #58.
+**Status:** CLOSED 2026-08-18 by `ops/calling-week-hardening`.
+**Was tracked as** [#56](https://github.com/Ryan-Rags/site-factory/issues/56).
+**Found by:** PR #54 (Brief item 5, unruled); half fixed by PR #58, the rest here.
 
 Two tools assumed a client config is the only deployable thing, while
 `pnpm demo` deploys from gitignored `prospects/`.
 
 - `check-form-fields.mjs` — **fixed** in PR #58: its bijection is now
   `clients/index.ts ∪ prospects/known.json`.
-- `scripts/live-smoke/` — **still open.** It resolves a slug through
-  `clients/index.ts` and throws `Unknown client`, so none of the 50 deployed
-  demos can be smoked by it.
+- `scripts/live-smoke/` — **fixed** here, by the same union, in
+  `scripts/live-smoke/slugs.mjs`. `--client` now accepts a generated demo and
+  is repeatable, so a sample runs under one politeness ledger. 58 slugs are
+  smokeable where 8 were.
+
+**And the origin no longer comes from the slug.** `originFor()` reads
+`prospects/<slug>/demo.json`'s `liveUrl` — what wrangler actually returned —
+and falls back to `https://<slug>-preview.pages.dev` only when there is no
+manifest, saying which it used. Deriving the URL is what recorded a live site
+as dead during the fleet sweep; see #13 below.
 
 **Repro.**
 
@@ -542,10 +549,10 @@ samples, the hand-run form-path probes recorded in
 `docs/evidence/r1-form-path-smoke.txt`. They have no LCP, no metadata and no
 contrast verification against the *live* origin — only against `dist/`.
 
-**Fix sketch.** `live-smoke` reads `prospects/known.json` (committed, slugs only)
-for the deployable set and `prospects/<slug>/site.config.json` for anything it
-needs about a demo, the same way the build already does through
-`SITE_CONFIG_FILE`.
+**Fixed by** `scripts/live-smoke/slugs.mjs`: `prospects/known.json` (committed,
+slugs only) supplies the second half of the deployable set, and
+`prospects/<slug>/demo.json` supplies the origin. Nothing about a prospect
+entered the repo.
 
 ---
 
@@ -580,8 +587,10 @@ judgment call rather than an obvious fix.
 
 ## 13. A substituted Pages project name leaves the demo advertising a host that does not resolve
 
-**Status:** open, measured live on 1 of 50. **Owner:** spans
-`packages/prospect/src/deploy.ts` and `packages/template/src/lib/preview-origin.mjs`.
+**Status:** CLOSED 2026-08-18 by `ops/calling-week-hardening` — the one affected
+demo is rebuilt and redeployed on its real origin, and the class is now caught
+at the deploy. **Owner:** spans `packages/prospect/src/deploy.ts` and
+`packages/template/src/lib/preview-origin.mjs`.
 **Found by:** `ops/batch-2-readiness`, PR #58, on the live fleet sweep.
 
 `previewOriginFor(slug)` returns `https://<slug>-preview.pages.dev` and the build
@@ -607,19 +616,38 @@ reads the manifest's `liveUrl` rather than deriving it.
 **Why `check-metadata.mjs` passed it.** The gate asserts the card origin equals
 `previewOriginFor(slug)`. Build and gate agree with each other and both are wrong
 about where the site ended up — there is nothing in the build that knows about
-substitution.
+substitution. That is the reason the new gate takes the origin as an argument
+rather than deriving it: a check that derives the same value the build derived
+can only ever confirm the build's own opinion.
+
+**Measured, both sides.** Before: 8 stamped URLs on 5 pages, all on the dead
+host — `docs/evidence/stamped-origins-red.md`. After: all 8 on the `-rr` host,
+both assets answering 200 — `docs/evidence/stamped-origins-green.md`.
 
 **Anything deriving a demo URL from a slug is wrong for this one demo.** The
 sweep in `docs/evidence/r1-r2-r3-live-fleet.txt` reads manifests for that reason;
 a first attempt guessed `<slug>-preview.pages.dev` and recorded the site as dead.
 
-**Fix sketch,** three options, and picking between them is a judgment call:
+**Fixed as option 3 of the three sketched below, plus the detection that makes it
+safe.** `scripts/check-stamped-origins.mjs` runs in both deploy paths, after the
+deploy, taking the *resolved* project origin as an input — the one thing no
+other check does, which is why build and gate could agree with each other and
+both be wrong. Every absolute URL on a `*.pages.dev` host must equal that
+origin, and every asset URL must answer 200. `PREVIEW_ORIGIN` is the operator's
+correction, printed by the failure itself, and it moves both the identity claims
+(`run.ts`'s `siteUrl`) and the fetched assets (`cardOrigin`).
+
+The three options as they stood, for the record:
 1. `ensureProject` reserves the name *before* the build, and the resolved project
    name is passed to the build as the preview origin. Correct, and the largest change.
+   **Still the better end state — see the Decision Brief of the PR that closed this.**
 2. Never substitute: fail the deploy on a collision and make the operator choose a
    slug. Loud, cheap, and costs a demo until someone intervenes.
 3. Detect substitution after the fact and rebuild + redeploy that one slug with an
    origin override. Cheapest to add, and leaves a wrong artifact briefly live.
+   **Chosen**, because the detection is worth more than the prevention: it catches
+   a wrong artifact whatever caused it, where option 1 only closes the one cause
+   already recorded.
 
 ---
 ## 14. A Cloudflare Pages alias serves stale redirects after an output-format change

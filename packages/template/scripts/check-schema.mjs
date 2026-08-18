@@ -31,6 +31,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { previewOriginFor } from '../src/lib/preview-origin.mjs';
+
 const here = fileURLToPath(new URL('.', import.meta.url));
 const distRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist');
 
@@ -244,6 +246,50 @@ function checkClient(slug) {
       }
 
       if (graph['@type'] === 'LocalBusiness') {
+        /* --- the graph's two fetched fields, on a preview build ---------- */
+        /*
+         * `image` and `logo` are URLs a crawler goes and gets. Everything else
+         * in this file is settled by reading `dist/`; these two cannot be,
+         * because the file was always correct and it was the host in front of
+         * the path that was wrong — the same blindness `check-metadata.mjs`
+         * describes for the card, at the second location issue #35 records.
+         *
+         * On a `noindex` build they must sit at the origin that build is
+         * served from. `@id` and `url` are deliberately NOT checked here: they
+         * are identity claims that keep `seo.siteUrl`, which on a hand-authored
+         * mockup is the prospect's own domain and on a generated demo is the
+         * Pages origin, and reading the config to tell those apart is exactly
+         * what this gate does not do.
+         *
+         * `noindex` is read off the built HTML rather than the config, the way
+         * `check-metadata.mjs` reads it, so the build and the gate cannot
+         * quietly disagree about which kind of build this is.
+         */
+        if (/<meta[^>]+name=["']robots["'][^>]+content=["']noindex/i.test(html)) {
+          const want = previewOriginFor(slug);
+          for (const field of ['image', 'logo']) {
+            const value = graph[field];
+            if (typeof value !== 'string' || value === '') {
+              say(`LocalBusiness.${field} is missing on a noindex build, so its origin cannot be checked against ${want}`);
+              continue;
+            }
+            let got = null;
+            try {
+              got = new URL(value).origin;
+            } catch {
+              /* Reported just below; `got` stays null. */
+            }
+            if (got === null) {
+              say(`LocalBusiness.${field} is not an absolute URL, so its origin cannot be resolved: ${value}`);
+            } else if (got !== want) {
+              say(
+                `LocalBusiness.${field} is rooted at ${got}, but this preview is served from ` +
+                  `${want} — the structured data cites a host that cannot serve the file (issue #35)`,
+              );
+            }
+          }
+        }
+
         for (const area of graph.areaServed ?? []) {
           const name = String(area?.name ?? '').trim();
           if (name && !siteText.includes(name.toLowerCase())) {

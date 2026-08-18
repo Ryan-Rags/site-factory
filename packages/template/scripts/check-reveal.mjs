@@ -66,6 +66,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
+import { assertServedSlug } from './lib/served-slug.mjs';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, '..');
 
@@ -220,17 +222,7 @@ try {
     process.exit(1);
   }
 
-  const servedSlug = await page.evaluate(() => {
-    const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? '';
-    return /\/icons\/([^/]+)\//.exec(manifest)?.[1] ?? null;
-  });
-  if (servedSlug !== SLUG) {
-    console.error(
-      `${BASE} is serving "${servedSlug ?? 'an unrecognised build'}", not "${SLUG}".\n` +
-        `Start your preview on a known port and set PREVIEW_URL.`,
-    );
-    process.exit(1);
-  }
+  await assertServedSlug(page, { slug: SLUG, base: BASE });
 
   /*
    * Which motion contract this page is under, and the orthogonality proof.

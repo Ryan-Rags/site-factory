@@ -22,6 +22,8 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
+import { checkStampedOrigins } from '../../packages/template/scripts/check-stamped-origins.mjs';
+
 const PROJECT_SUFFIX = '-preview';
 // Fallback suffix when a project name is already taken in someone else's account.
 const COLLISION_SUFFIX = '-rr';
@@ -253,20 +255,48 @@ for (const slug of slugs) {
     // nav links resolve, which the old shared-subpath project broke.
     const home = await status(`${url}/`);
     const sub = await status(`${url}/services/`);
-    if (home !== '200' || sub !== '200') failed += 1;
+
+    /*
+     * Both routes answering 200 proves the site is up. It does not prove the
+     * site knows where it is.
+     *
+     * `ensureProject` above substitutes a `-rr` name when the derived one is
+     * held in another account, and it does so AFTER the build — so the pages
+     * being published here can advertise a host that does not resolve while
+     * every one of them serves perfectly. That is not hypothetical: it is
+     * `docs/known-issues.md` #13, measured on a live demo. The resolved name
+     * is known right here and nowhere else, which is why the check belongs at
+     * this line.
+     */
+    const stamped = await checkStampedOrigins({
+      origin: url,
+      dist: path.join(dist, slug),
+      log: (line) => console.log(line),
+    });
+    if (stamped.problems.length > 0) {
+      console.log(`  ✗ ${stamped.problems.length} stamped-origin problem(s):`);
+      for (const p of stamped.problems) console.log(`      ${p}`);
+      console.log(
+        `      Rebuild this slug on the origin it is served from, then redeploy:\n` +
+          `        PREVIEW_ORIGIN=${url} SITE_CLIENT=${slug} pnpm -C packages/template build`,
+      );
+    }
+
+    const ok = home === '200' && sub === '200' && stamped.problems.length === 0;
+    if (!ok) failed += 1;
     console.log(`  ${url}  home=${home} services=${sub}${substituted ? '  (name substituted)' : ''}`);
-    rows.push({ slug, project: name, url, home, sub, substituted });
+    rows.push({ slug, project: name, url, home, sub, substituted, stamped: stamped.problems.length === 0 ? 'ok' : 'WRONG' });
   } catch (err) {
     failed += 1;
     console.log(`  FAILED: ${err.message}`);
-    rows.push({ slug, project: '-', url: '-', home: 'failed', sub: 'failed' });
+    rows.push({ slug, project: '-', url: '-', home: 'failed', sub: 'failed', stamped: '-' });
   }
 }
 
-console.log('\n| slug | project | url | home | /services/ |');
-console.log('| --- | --- | --- | --- | --- |');
+console.log('\n| slug | project | url | home | /services/ | origins |');
+console.log('| --- | --- | --- | --- | --- | --- |');
 for (const r of rows) {
-  console.log(`| ${r.slug} | ${r.project} | ${r.url} | ${r.home} | ${r.sub} |`);
+  console.log(`| ${r.slug} | ${r.project} | ${r.url} | ${r.home} | ${r.sub} | ${r.stamped ?? '-'} |`);
 }
 
 if (failed > 0) {

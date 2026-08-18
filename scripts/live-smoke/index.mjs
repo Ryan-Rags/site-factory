@@ -23,8 +23,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { assertKnownClient, listClients } from '../mockup/clients.mjs';
-import { defaultDemoUrl, outreachDir, repoRoot } from '../pitch/paths.mjs';
+import { outreachDir, repoRoot } from '../pitch/paths.mjs';
+import { assertSmokeable, listSmokeable, originFor } from './slugs.mjs';
 import { renderBoard } from './board.mjs';
 import { CHECK_ORDER } from './checks/index.mjs';
 import { Politeness, hostOf, loadAudit, loadPlaywright, request } from './fleet.mjs';
@@ -42,13 +42,19 @@ import * as lighthouseCheck from './checks/lighthouse.mjs';
 
 const USAGE = `
 Usage:
-  node scripts/live-smoke/index.mjs --client <slug> [--demo <url>]
+  node scripts/live-smoke/index.mjs --client <slug> [--client <slug> ...] [--demo <url>]
   node scripts/live-smoke/index.mjs --all
 
 Options:
-  --client, -c <slug>  One client. Default origin https://<slug>-preview.pages.dev
-  --all                Every registered client except the zz- fixtures
-  --demo <url>         Override the origin for a single client
+  --client, -c <slug>  One demo; repeatable, so a sample runs under one
+                       politeness ledger. Hand-authored clients and generated
+                       prospect demos both. The origin comes from
+                       prospects/<slug>/demo.json when there is one, and is
+                       derived as https://<slug>-preview.pages.dev otherwise.
+  --all                Every registered demo except the zz- fixtures — that is
+                       clients/index.ts u prospects/known.json, which is
+                       currently dozens of live sites. Expect a long run.
+  --demo <url>         Override the origin. One --client only.
   --help, -h           This
 `;
 
@@ -70,12 +76,15 @@ const BOARD_SHOT_SKIP = '/about/';
 const rel = (p) => relative(repoRoot, p).split('\\').join('/');
 
 function parseArgs(argv) {
-  const opts = { all: false, client: null, demo: null, help: false };
+  // `--client` accumulates. A sample of five under one run is one navigation
+  // ledger and one report; five runs are five of each, and the ledger is how
+  // this suite proves it kept to claude.md's rate limit.
+  const opts = { all: false, clients: [], demo: null, help: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--') continue;
     else if (arg === '--all') opts.all = true;
-    else if (arg === '--client' || arg === '-c') opts.client = argv[++i];
+    else if (arg === '--client' || arg === '-c') opts.clients.push(argv[++i]);
     else if (arg === '--demo') opts.demo = argv[++i];
     else if (arg === '--help' || arg === '-h') opts.help = true;
     else throw new Error(`Unrecognised argument "${arg}".${USAGE}`);
@@ -219,10 +228,10 @@ async function main() {
     return;
   }
 
-  const known = listClients().filter((slug) => !slug.startsWith(FIXTURE_PREFIX));
+  const known = listSmokeable({ fixturePrefix: FIXTURE_PREFIX });
   let slugs;
   if (opts.all) {
-    if (opts.client) {
+    if (opts.clients.length > 0) {
       console.error('Pass either --all or --client <slug>, not both.');
       process.exit(2);
     }
@@ -230,11 +239,24 @@ async function main() {
       console.error('--demo names one site, so it cannot be used with --all.');
       process.exit(2);
     }
-    slugs = known;
-  } else if (opts.client) {
-    slugs = [assertKnownClient(opts.client, known)];
+    slugs = known.map((entry) => entry.slug);
+  } else if (opts.clients.length > 0) {
+    if (opts.demo && opts.clients.length > 1) {
+      console.error('--demo overrides one origin, so it cannot be used with several --client flags.');
+      process.exit(2);
+    }
+    try {
+      slugs = opts.clients.map((slug) => assertSmokeable(slug, known).slug);
+    } catch (err) {
+      console.error(err.message);
+      process.exit(2);
+    }
   } else {
-    console.error(`No client selected.${USAGE}\nKnown clients: ${known.join(', ')}`);
+    console.error(
+      `No demo selected.${USAGE}\n${known.length} known: ` +
+        `${known.filter((e) => e.from === 'clients/index.ts').length} in clients/index.ts, ` +
+        `${known.filter((e) => e.from !== 'clients/index.ts').length} in prospects/known.json.`,
+    );
     process.exit(2);
   }
 
@@ -250,7 +272,18 @@ async function main() {
 
   const clients = [];
   for (const slug of slugs) {
-    const origin = (opts.demo ?? defaultDemoUrl(slug)).replace(/\/+$/, '');
+    /*
+     * The origin is read from the deploy's own manifest where there is one.
+     * Deriving `https://<slug>-preview.pages.dev` is right for every demo whose
+     * Pages project name was not substituted, and wrong — silently, reported as
+     * "not deployed" — for the one whose was. See `slugs.mjs` and
+     * known-issues #13.
+     */
+    const resolved = opts.demo
+      ? { origin: opts.demo.replace(/\/+$/, ''), source: '--demo' }
+      : originFor(slug);
+    const origin = resolved.origin;
+    log(`  origin: ${origin}  (${resolved.source})`);
     try {
       clients.push(await smokeOne(slug, origin, { politeness, chromium, audit, shotsDir, log }));
     } catch (err) {
