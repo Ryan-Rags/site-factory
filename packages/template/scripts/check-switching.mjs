@@ -36,6 +36,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
+
+import { assertServedSlug } from './lib/served-slug.mjs';
 import { clearsGate } from '../src/design/contrast.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -302,18 +304,7 @@ try {
    * measured against another client's site for one run. A gate that can report
    * a green on the wrong build is worse than no gate.
    */
-  const servedSlug = await page.evaluate(() => {
-    const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? '';
-    return /\/icons\/([^/]+)\//.exec(manifest)?.[1] ?? null;
-  });
-  if (servedSlug !== SLUG) {
-    console.error(
-      `${BASE} is serving "${servedSlug ?? 'an unrecognised build'}", not "${SLUG}".\n` +
-        `Another preview server is probably on that port — astro preview moves to the\n` +
-        `next free one silently. Start yours on a known port and set PREVIEW_URL.`,
-    );
-    process.exit(1);
-  }
+  await assertServedSlug(page, { slug: SLUG, base: BASE });
 
   if ((await page.$('#d-cust-toggle')) === null) {
     console.error(

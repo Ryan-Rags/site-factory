@@ -146,8 +146,30 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
   const seed = await loadClientConfig(opts.id);
   const assets = readFolder(paths.assetsDir);
   const assetPlan = planAssets(assets);
+  /*
+   * Where this demo will be served from — and the one place a run can be told
+   * that the answer is not the derived one.
+   *
+   * `projectNameFor(slug)` is a guess made before the deploy runs, and on
+   * 2026-08-17 it was wrong for one prospect of fifty: `ensureProject` appends
+   * a `-rr` suffix when the name is held in another account, which happens
+   * after this line, so the config written below advertised a host that does
+   * not resolve. Every absolute URL on that demo — the canonical, `og:url`,
+   * the card and the graph — inherited it from `siteUrl` here.
+   * `docs/known-issues.md` #13.
+   *
+   * `PREVIEW_ORIGIN` is the operator's correction, and it must move BOTH
+   * halves: `siteUrl` (the identity claims) and the template's `cardOrigin`
+   * (the fetched assets, via the build environment). Moving one and not the
+   * other would produce a page whose canonical and card disagree about which
+   * of our hosts is serving it, which is not an improvement on either being
+   * wrong together. The deploy prints the exact command when it detects the
+   * substitution it cannot prevent.
+   */
+  const previewOrigin = (process.env["PREVIEW_ORIGIN"] ?? "").trim();
   const projectName = projectNameFor(opts.id);
-  const siteUrl = `https://${projectName}.pages.dev`;
+  const siteUrl = previewOrigin || `https://${projectName}.pages.dev`;
+  if (previewOrigin) step(`origin: PREVIEW_ORIGIN overrides the derived host — ${previewOrigin}`);
 
   /*
    * The demo form endpoint, resolved once per prospect and passed to both the
@@ -285,6 +307,21 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
           `deploy: ${deployed.url}  home=${deployed.home} services=${deployed.services}` +
             (deployed.substituted ? "  (project name substituted)" : ""),
         );
+        /*
+         * A demo that serves perfectly and advertises another host is the
+         * failure this reports. It is a warning rather than a step, because
+         * the log scrolls and this one costs the link its unfurl, its
+         * canonical and its structured data all at once — see the banner
+         * `warnings` is printed under.
+         */
+        if (!deployed.stampedOk) {
+          const problem =
+            `${opts.id}: deployed to ${deployed.url}, but the published pages advertise a ` +
+            `different origin. The demo works and its link is wrong.\n` +
+            deployed.stampedProblems.map((line) => `      ${line}`).join("\n");
+          warnings.push(problem);
+          console.warn(`  WARNING: ${problem}`);
+        }
       } catch (err) {
         step(`deploy: FAILED — ${(err as Error).message}`);
       }

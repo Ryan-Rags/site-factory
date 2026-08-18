@@ -16,6 +16,28 @@ import { dirname, join } from 'node:path';
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const clientsDir = join(pkgRoot, 'clients');
 
+/*
+ * `PREVIEW_ORIGIN` names ONE origin, and this builds many clients.
+ *
+ * It exists so a slug whose Pages project name was substituted can be rebuilt
+ * on the host it is really served from (`src/lib/preview-origin.mjs`). Left set
+ * in a shell, it would stamp that one host into all eight builds — every card,
+ * every canonical, every graph — and every build would still pass its own
+ * gates, because the build and the gate read the same variable. That is the
+ * c3m failure with the blast radius multiplied by eight, so the batch refuses
+ * to start rather than trusting whoever exported it to remember.
+ */
+if ((process.env['PREVIEW_ORIGIN'] ?? '').trim() !== '') {
+  console.error(
+    `✗ PREVIEW_ORIGIN is set (${process.env['PREVIEW_ORIGIN']}), and it names one origin.\n` +
+      '  A batch would stamp it into every client in dist/. It is for rebuilding a single\n' +
+      '  slug whose Pages project name was substituted:\n\n' +
+      '    PREVIEW_ORIGIN=https://<host> SITE_CLIENT=<slug> pnpm build\n\n' +
+      '  Unset it, then run build:all again.',
+  );
+  process.exit(1);
+}
+
 // Slugs come from the filenames, since plain Node cannot import the
 // TypeScript registry. `clients/index.ts` stays the source of truth for what
 // is *buildable*, so we cross-check the two and fail on any drift rather than

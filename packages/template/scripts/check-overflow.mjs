@@ -7,8 +7,14 @@
  * being fixed.
  *
  * Usage:
- *   pnpm build && pnpm preview --port 4321   # in one terminal
- *   pnpm check:overflow                      # in another
+ *   SITE_CLIENT=<slug> pnpm build && pnpm preview --port 4321   # in one terminal
+ *   SITE_CLIENT=<slug> pnpm check:overflow                      # in another
+ *
+ * `SITE_CLIENT` is REQUIRED, and that is new. This was the one browser gate
+ * with no served-slug guard — the third recorded port collision, issue #37 —
+ * and a guard has to know which client it is meant to be looking at. There is
+ * no safe default: a guessed slug either fails on every client but the guess,
+ * or is quietly ignored, which is the defect it exists to stop.
  *
  * Set CHROME_PATH if Chrome is not at the Windows/macOS/Linux default.
  * Exits non-zero on any overflow, so it can gate a deploy.
@@ -16,7 +22,20 @@
 import { existsSync } from 'node:fs';
 import puppeteer from 'puppeteer-core';
 
+import { assertServedSlug } from './lib/served-slug.mjs';
+
 const BASE = process.env['PREVIEW_URL'] ?? 'http://localhost:4321';
+
+const SLUG = (process.env['SITE_CLIENT'] ?? '').trim();
+if (SLUG === '') {
+  console.error(
+    'check:overflow needs SITE_CLIENT — the client whose preview is on PREVIEW_URL.\n' +
+      'Without it there is nothing to check the served build against, and a stale\n' +
+      'preview of another client on a recycled port reports green (issue #37).\n\n' +
+      '  SITE_CLIENT=<slug> pnpm check:overflow',
+  );
+  process.exit(1);
+}
 const WIDTHS = [320, 390];
 const ROUTES = ['/', '/services', '/about', '/contact', '/404'];
 
@@ -57,6 +76,17 @@ const browser = await puppeteer.launch({
 
 let failures = 0;
 
+/**
+ * The served-slug guard runs once, on the first page loaded, and before a
+ * single measurement is taken — the ruling of 2026-08-13 is "verifies the
+ * served slug BEFORE it measures", and a guard that ran after the sweep would
+ * only tell you the afternoon was wasted rather than saving it.
+ *
+ * Once rather than per route: every page of a build carries the same manifest
+ * link, so nine more reads would be nine copies of one answer.
+ */
+let guarded = false;
+
 try {
   for (const width of WIDTHS) {
     const page = await browser.newPage();
@@ -71,6 +101,11 @@ try {
         console.error(`FAIL  ${width}px  ${route}  — HTTP ${status || 'no response'}`);
         failures += 1;
         continue;
+      }
+
+      if (!guarded) {
+        await assertServedSlug(page, { slug: SLUG, base: BASE });
+        guarded = true;
       }
 
       const result = await page.evaluate((viewportWidth) => {
