@@ -38,6 +38,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { OG_CARD_SIZE, ogCardHtml } from './lib/og-card.mjs';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, '..');
 
@@ -141,28 +143,24 @@ function iconHtml(info) {
 </div></body></html>`;
 }
 
+/**
+ * A client's card, drawn by the shared renderer.
+ *
+ * The layout itself moved to `lib/og-card.mjs` so a generated prospect demo
+ * gets the same card from the same code — see that file. What stays here is
+ * the part that is specific to a hand-authored client: its brand comes out of
+ * `clients/<slug>.config.ts` and its accent out of the tone resolved above.
+ */
 function ogHtml(info) {
   const { palette, swatch, name, tagline, locality, region } = info;
-  const place = [locality, region].filter(Boolean).join(', ');
-  return `<!doctype html><html><body style="margin:0">
-<div style="width:1200px;height:630px;box-sizing:border-box;padding:72px;
-            background:${palette.base};color:${palette.ink};
-            font-family:ui-sans-serif,system-ui,'Segoe UI',Roboto,Arial,sans-serif;
-            display:flex;flex-direction:column;justify-content:space-between;
-            border-bottom:16px solid ${swatch.accent};">
-  <div style="display:flex;align-items:center;gap:20px;">
-    <img src="${logoDataUri}" width="72" height="72" alt="">
-    <span style="font-size:28px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-                 color:${swatch.accent};">${esc(place)}</span>
-  </div>
-  <div>
-    <div style="font-size:76px;line-height:1.05;font-weight:800;letter-spacing:-.02em;">
-      ${esc(name)}
-    </div>
-    <div style="margin-top:24px;font-size:32px;line-height:1.35;max-width:900px;
-                color:${palette.inkMuted};">${esc(tagline)}</div>
-  </div>
-</div></body></html>`;
+  return ogCardHtml({
+    name,
+    place: [locality, region].filter(Boolean).join(', '),
+    tagline,
+    logoDataUri,
+    palette,
+    accent: swatch.accent,
+  });
 }
 
 const manifest = (info) => ({
@@ -236,7 +234,7 @@ for (const slug of slugs) {
     JSON.stringify(manifest(info), null, 2) + '\n',
   );
 
-  await page.setViewportSize({ width: 1200, height: 630 });
+  await page.setViewportSize(OG_CARD_SIZE);
   await page.setContent(ogHtml(info));
   writeFileSync(
     join(ogDir, `${slug}.png`),

@@ -32,6 +32,29 @@ export const ASSET = 'asset';
 export const IDENTITY = 'identity';
 
 /**
+ * The two asset tags an unfurler actually fetches to draw a preview.
+ *
+ * Split out from the other assets because ONE RULE APPLIES TO THESE AND NOT TO
+ * THE REST: the bytes behind them have to be a format the platforms will
+ * render. Facebook, X, LinkedIn, iMessage, WhatsApp and Slack all decline SVG,
+ * so a card that answers 200 with `image/svg+xml` is a link that unfurls blank
+ * — measured on 6 of 6 demos, issue #61.
+ *
+ * THE EXEMPTION IS DELIBERATE AND MUST NOT BE "FIXED". The JSON-LD graph's
+ * `image` and `logo` are ASSET too, and `logo` is `/images/logo.svg` on all
+ * nine hand-authored clients BY DESIGN — it is a mark in a structured-data
+ * graph, not a preview card, and nothing unfurls it. Widening the raster rule
+ * to every asset would turn all nine clients red for shipping exactly what
+ * they are supposed to ship, and a gate that is red in normal operation is a
+ * gate somebody switches off. Same reasoning as the asset/identity split
+ * above; ruled in `docs/decisions.md`, 2026-08-18, prospect brand cards.
+ */
+export const CARD_LABELS = new Set(['og:image', 'twitter:image']);
+
+/** Content types a social platform will actually draw a card from. */
+export const DRAWABLE_CARD_TYPES = new Set(['image/png', 'image/jpeg']);
+
+/**
  * `<meta>` content by `property=` or `name=`, in either attribute order.
  *
  * The key is interpolated into the pattern unescaped, which is safe because

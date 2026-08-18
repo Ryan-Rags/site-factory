@@ -81,8 +81,16 @@ async function shoot(
 export interface ShotSet {
   desktop?: string;
   mobile?: string;
-  /** Where the shots came from, for the manifest and the card. */
-  source: "audit-cache" | "captured" | "none";
+  /**
+   * Where the shots came from, for the manifest and the card.
+   *
+   * `on-disk` is its own value and not folded into `audit-cache`: they are
+   * different provenances — one is the audit package's crawl, the other is
+   * this pipeline's own earlier capture of the same site — and a manifest that
+   * called the second one the first would be recording something untrue about
+   * where a picture came from.
+   */
+  source: "audit-cache" | "on-disk" | "captured" | "none";
   /** Why there is no before shot, when there is none. */
   reason?: string;
 }
@@ -111,7 +119,17 @@ export async function captureAfter(
  *
  * Reuses `audit/out/<slug>/` when the audit package has already been there —
  * that is a page navigation we do not need to repeat against someone else's
- * server. Otherwise it captures the two shots itself, one second apart.
+ * server. Failing that, it reuses the before-shots THIS pipeline already left
+ * in `outDir` on an earlier run. Otherwise it captures the two shots itself,
+ * one second apart.
+ *
+ * The second source was added for the #61 rebuild, which re-ran all 50 demos
+ * to change one image. 30 of them have a live site, so a plain re-run meant 60
+ * navigations against third parties to re-learn what was already on disk —
+ * and worse, it put yesterday's evidence at the mercy of today's uptime: a
+ * shop whose site is down this morning would have had a real "before" replaced
+ * by `none`, silently degrading the leave-behind. A re-run must never be able
+ * to make a demo worse.
  *
  * A prospect with no current website returns `source: 'none'` with a reason.
  * That is an expected outcome, not a failure: three of the five prospects in
@@ -137,6 +155,16 @@ export async function captureBefore(
     foundCached = true;
   }
   if (foundCached) return cached;
+
+  const onDisk: ShotSet = { source: "on-disk" };
+  let foundOnDisk = false;
+  for (const viewport of VIEWPORTS) {
+    const file = join(outDir, `before-${viewport.name}.png`);
+    if (!existsSync(file)) continue;
+    onDisk[viewport.name] = file;
+    foundOnDisk = true;
+  }
+  if (foundOnDisk) return onDisk;
 
   if (!siteUrl) {
     return {

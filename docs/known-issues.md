@@ -738,6 +738,50 @@ is barred from touching zones. Raised as a Brief item on PR feat/founder-site-v2
 **Not a code defect.** `check-live.mjs` was narrowed to assert only the
 `User-agent: *` group, which is the claim the gate exists to make.
 
+## Every deployed demo ships all nine hand-authored clients' social cards
+
+**Status:** open. **Surface:** every build — the 8 client mockups and all 50
+generated demos.
+
+`packages/template/public/` is copied wholesale into every `dist/`, and
+`public/og/` holds nine committed client cards. So a prospect's demo serves
+`ks-welding.png`, `kh-machine-works.png` and seven more, each a 1200x630 image
+carrying another business's name and town. Nothing links to them and no gate
+looks at them.
+
+**Repro** (after any demo build):
+
+```sh
+ls packages/template/dist/<any-prospect-slug>/og/
+# 10 files: this demo's card, plus all nine clients'
+curl -sI https://<slug>-preview.pages.dev/og/ks-welding.png   # 200 image/png
+```
+
+**Why it matters.** It is enumerable client data on a URL we hand to a
+prospect: anyone shown a demo can list the other businesses we build for. Not
+contact data, so not a CLAUDE.md breach, but it is the same category and it is
+one directory listing away from being embarrassing on a sales call.
+
+**Predates this work** — the cards have shipped this way since
+`gen-brand-assets.mjs` landed. PR feat/prospect-brand-cards makes it more
+visible rather than worse, by putting each demo's own card in the same
+directory.
+
+**Fix sketch.** Two options, neither taken here because both touch the build
+for every client and this stream's grant did not cover it:
+
+1. Move the per-client cards out of `public/` and have the build copy only the
+   card belonging to `SITE_CLIENT` into `dist/<slug>/og/`. Cleanest; changes
+   where nine committed files live.
+2. Emit a `_headers` or `_redirects` rule denying `/og/*` except the current
+   slug. Cheaper, but it hides the files rather than not shipping them.
+
+**Related, same mechanism.** A run killed between `stageBrandCard` and its
+`finally` leaves one demo's card in `public/og/`, and the next build ships it
+too. The cleanup is idempotent and runs on the throw path, so this needs an
+actual process kill; the recovery is `git status` in
+`packages/template/public/og/` and deleting anything untracked.
+
 ## The five portfolio demonstration builds are outside `check-fabrication`
 
 **Status:** open. **Surface:** `packages/template/clients/portfolio-*.config.ts`.

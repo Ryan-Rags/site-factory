@@ -1,7 +1,7 @@
 import { slugify } from "@site-factory/discover";
 
 import { writeCopy, type CopyResult } from "./copy.js";
-import { buildDesign } from "./design.js";
+import { buildDesign, type DesignBlock } from "./design.js";
 import type { SiteConfig, SiteIconName } from "./site-config.js";
 import { type ProspectConfig, type ProspectService, isKnown, valueOf } from "./types.js";
 
@@ -73,10 +73,32 @@ export interface ProjectOptions {
    * absent means none is configured and the form falls back as it did before.
    */
   formEndpoint?: string | undefined;
+  /**
+   * The public path of this demo's own social card, when one was rendered.
+   *
+   * Absent, `brand.ogImage` falls back exactly as it did before — the seed's
+   * card for a hand-authored client, `STOCK.og` otherwise. That fallback is
+   * the placeholder SVG no platform will unfurl (issue #61), so it is what a
+   * generated demo must stop using; it stays the default because the eight
+   * hand-authored clients never pass this and must keep rendering
+   * byte-identical.
+   */
+  ogImage?: string | undefined;
 }
 
 export interface ProjectionResult {
   site: SiteConfig;
+  /**
+   * The same object as `site.design`, typed.
+   *
+   * `SiteConfig.design` is `unknown` on purpose — see `site-config.ts`, it is
+   * emitted as JSON and validated at the far end. But the social card has to
+   * be drawn in the tone this block names, and a caller reaching for that
+   * through a cast would be asserting a shape nothing checks. Handing back the
+   * value `buildDesign` returned costs nothing and keeps the cast out of
+   * `run.ts`.
+   */
+  design: DesignBlock;
   /** Content files the build needs that do not exist yet. */
   requiredContent: { about: string; services: { slug: string; title: string }[] };
   /** Decisions worth printing, e.g. what fell back to a marker. */
@@ -140,7 +162,7 @@ export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): P
     brand: {
       logo: opts.assetPaths?.logo ?? seed?.brand.logo ?? STOCK.logo,
       favicon: seed?.brand.favicon ?? STOCK.favicon,
-      ogImage: seed?.brand.ogImage ?? STOCK.og,
+      ogImage: opts.ogImage ?? seed?.brand.ogImage ?? STOCK.og,
     },
     hero: heroFor(seed, { name, leadService, place, photos: opts.assetPaths?.photos ?? [] }),
     trustStrip: trustStrip(seed, { foundedYear, rating, hours: hours !== undefined, place }),
@@ -238,6 +260,7 @@ export function projectToSite(prospect: ProspectConfig, opts: ProjectOptions): P
 
   return {
     site,
+    design: designed.design,
     requiredContent: {
       about: "about",
       services: site.services.map((s) => ({ slug: s.slug, title: s.title })),

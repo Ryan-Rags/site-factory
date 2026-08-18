@@ -29,7 +29,13 @@ const MIME: Record<string, string> = {
   ".svg": "image/svg+xml",
 };
 
-function dataUrl(file: string): string | null {
+/**
+ * A local image file as a `data:` URI, or `null` when it is not there.
+ *
+ * Exported because `og-card.ts` inlines the same logo the same way, and two
+ * MIME tables are one retune away from disagreeing about `.webp`.
+ */
+export function dataUrl(file: string): string | null {
   if (!existsSync(file)) return null;
   const mime = MIME[extname(file).toLowerCase()] ?? "image/png";
   return `data:${mime};base64,${readFileSync(file).toString("base64")}`;

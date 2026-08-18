@@ -3,9 +3,11 @@ import { join } from "node:path";
 
 import type { Browser } from "playwright";
 
+import { stageBrandCard } from "./brand-card.js";
 import { buildSite, copyAssets, planAssets } from "./build.js";
 import { renderComparisonCard, renderQrCard } from "./cards.js";
 import { ensureContent } from "./content.js";
+import { renderOgCard } from "./og-card.js";
 import { deploySite, projectNameFor } from "./deploy.js";
 import { ingestProspect, type IngestOptions } from "./ingest/index.js";
 import { readFolder } from "./ingest/folder.js";
@@ -23,7 +25,7 @@ import {
 } from "./report.js";
 import { readProspect, today, writeProspect } from "./schema.js";
 import { serveDir } from "./serve.js";
-import { captureAfter, captureBefore } from "./shots.js";
+import { captureAfter, captureBefore, type ShotSet } from "./shots.js";
 import { known, valueOf } from "./types.js";
 
 /**
@@ -198,6 +200,53 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
   );
   for (const note of projection.notes) step(`project: ${note}`);
 
+  /* -- the social card ---------------------------------------------------- */
+
+  /*
+   * Drawn here, between the projection and the build, because it needs both
+   * halves of what the projection produced — the business name and town for
+   * the artwork, and the design block for the tone the demo renders in — and
+   * because `astro build` has to find it in `public/` before the metadata gate
+   * runs. See `brand-card.ts` for why it cannot be copied in afterwards the
+   * way the prospect's photos are.
+   *
+   * `brand.ogImage` is set by assignment rather than by projecting twice. The
+   * path is not a copy decision that anything downstream derives from — the
+   * design block reads `prospect.brand.colors` and never the image paths — and
+   * a second `projectToSite` would re-run the copy engine to change one
+   * string. It happens before `site.config.json` is written, so the file, the
+   * build and the manifest all record the same value.
+   */
+  mkdirSync(paths.cardsDir, { recursive: true });
+  const ogCardFile = join(paths.cardsDir, "og.png");
+  let brandCard = { publicPath: null as string | null, cleanup: () => {} };
+  try {
+    const card = await renderOgCard(
+      browser,
+      { slug: opts.id, site: projection.site, design: projection.design },
+      ogCardFile,
+    );
+    brandCard = stageBrandCard(opts.id, card.file);
+    if (brandCard.publicPath === null) {
+      // Only reachable if a demo slug collides with a committed client card.
+      warnings.push(
+        `${opts.id}: a brand card already exists at packages/template/public/og/${opts.id}.png ` +
+          `and was left alone, so this demo keeps the placeholder SVG card that no platform ` +
+          `will unfurl. Rename the demo or remove the collision.`,
+      );
+    } else {
+      projection.site.brand.ogImage = brandCard.publicPath;
+      step(`${card.note}`);
+    }
+  } catch (err) {
+    // A card that cannot be drawn must not cost the demo. It falls back to the
+    // placeholder, which is the pre-#61 behaviour, and says so loudly.
+    warnings.push(
+      `${opts.id}: the social card could not be rendered (${(err as Error).message}), so this ` +
+        `demo keeps the placeholder SVG and its link will unfurl blank.`,
+    );
+  }
+
   // Everything the manifest needs to describe this run, whatever happens next.
   // Assembled here so the failed-build path reports the same facts as the
   // successful one — a demo that failed to build is exactly when you want to
@@ -227,8 +276,11 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
       return buildSite(opts.id, paths.siteConfigFile, formEndpoint.url);
     } finally {
       // Always clean up, including when the build throws: the template package
-      // must be left exactly as it was found.
+      // must be left exactly as it was found. `public/` is copied into every
+      // build, so a card left behind would ship inside the next client's dist
+      // and inside all 49 other demos.
       content.cleanup();
+      brandCard.cleanup();
     }
   });
 
@@ -284,9 +336,25 @@ export async function runProspect(browser: Browser, opts: RunOptions): Promise<R
   const before = await timed("shots", () =>
     captureBefore(browser, opts.id, currentUrl, paths.shotsDir),
   );
+  /*
+   * Report what came back, not whether the desktop shot did.
+   *
+   * This line tested `before.desktop` alone, so a prospect with only a mobile
+   * shot printed "none — no reason recorded" while the manifest correctly
+   * recorded the file and its source. One of the 50 is in exactly that state
+   * (`charles-renovations-construction-company`), and the summary said the
+   * opposite of the data next to it.
+   */
+  const beforeShots = (["desktop", "mobile"] as const).filter((v) => before[v]);
+  const beforeFrom: Record<ShotSet["source"], string> = {
+    "audit-cache": "reused audit screenshots",
+    "on-disk": "reused the shots already on disk — their site was not navigated",
+    captured: "captured from their live site",
+    none: "no shots",
+  };
   step(
-    before.desktop
-      ? `before: ${before.source === "audit-cache" ? "reused audit screenshots" : "captured from their live site"}`
+    beforeShots.length > 0
+      ? `before: ${beforeShots.join(" + ")} — ${beforeFrom[before.source]}`
       : `before: none — ${before.reason ?? "no reason recorded"}`,
   );
 
