@@ -11,7 +11,7 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Placeholder from '../components/Placeholder.astro';
-import { EMAIL_DEV, PAGES, PLACEHOLDERS } from '../site';
+import { EMAIL_DEV, PAGES, PLACEHOLDERS, SUBJECT_AI, mailto } from '../site';
 
 const capabilities = [
   {
@@ -59,17 +59,17 @@ const caseSections = [
         its books. I build voice agents that pick up, understand what the caller wants, and put a
         real appointment on the calendar.
       </p>
-      <a class="btn" href={`mailto:${EMAIL_DEV}`}>Talk through your call flow</a>
+      <a class="btn" href={mailto(EMAIL_DEV, SUBJECT_AI)}>Talk through your call flow</a>
     </div>
   </section>
 
   <section class="section section--plain">
     <div class="shell stack">
-      <div>
+      <div class="reveal">
         <p class="eyebrow">Capabilities</p>
         <h2 class="h2 tick">What the agent does</h2>
       </div>
-      <div class="grid grid--2" style="width:100%">
+      <div class="grid grid--2 reveal reveal--stagger" style="width:100%">
         {
           capabilities.map((item) => (
             <div class="card">
@@ -84,7 +84,7 @@ const caseSections = [
 
   <section class="section section--alt">
     <div class="shell stack">
-      <div>
+      <div class="reveal">
         <p class="eyebrow">Case study</p>
         <h2 class="h2 tick">Dental practice voice agent</h2>
       </div>
@@ -108,8 +108,8 @@ const caseSections = [
 
   <section class="section">
     <div class="shell stack">
-      <h2 class="h2 tick">Whether it fits your business</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Whether it fits your business</h2>
+      <div class="prose reveal">
         <p>
           It fits if you take appointments by phone and miss some of them. Tell me how your calls
           arrive today and what your front desk does with them, and I will tell you honestly
@@ -117,7 +117,7 @@ const caseSections = [
           enough.
         </p>
       </div>
-      <a class="btn" href={`mailto:${EMAIL_DEV}`}>Email {EMAIL_DEV}</a>
+      <a class="btn reveal" href={mailto(EMAIL_DEV, SUBJECT_AI)}>Email {EMAIL_DEV}</a>
     </div>
   </section>
 </BaseLayout>

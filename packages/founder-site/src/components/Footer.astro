@@ -17,6 +17,9 @@ import {
   LINKEDIN_URL,
   PLACEHOLDERS,
   REGION,
+  SUBJECT_AMENITY,
+  SUBJECT_GENERAL,
+  mailto,
 } from '../site';
 import { HAS_LINKEDIN } from '../assets';
 import Placeholder from './Placeholder.astro';
@@ -39,7 +42,7 @@ const year = 2026;
             <p>Curated smart markets for luxury residential buildings. New Jersey.</p>
           </div>
           <div class="stack" style="gap:0.75rem">
-            <a class="btn" href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+            <a class="btn" href={mailto(EMAIL_AMENITY, SUBJECT_AMENITY)}>Request a proposal</a>
             <p style="font-size:0.8125rem">
               A venture of <a href="/">{FULL_NAME}</a>, {REGION}.
             </p>
@@ -55,9 +58,9 @@ const year = 2026;
 
           <dl>
             <dt>Websites &amp; AI</dt>
-            <dd><a href={`mailto:${EMAIL_DEV}`}>{EMAIL_DEV}</a></dd>
+            <dd><a href={mailto(EMAIL_DEV, SUBJECT_GENERAL)}>{EMAIL_DEV}</a></dd>
             <dt>{AMENITY_BRAND}</dt>
-            <dd><a href={`mailto:${EMAIL_AMENITY}`}>{EMAIL_AMENITY}</a></dd>
+            <dd><a href={mailto(EMAIL_AMENITY, SUBJECT_AMENITY)}>{EMAIL_AMENITY}</a></dd>
             <dt>LinkedIn</dt>
             <dd>
               {

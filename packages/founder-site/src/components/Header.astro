@@ -21,7 +21,7 @@
  * a second row at 320px, which is a better mobile nav than a button that has to
  * boot a runtime before it can open.
  */
-import { AMENITY_BRAND, EMAIL_AMENITY, FULL_NAME, NAV } from '../site';
+import { AMENITY_BRAND, EMAIL_AMENITY, FULL_NAME, NAV, SUBJECT_AMENITY, mailto } from '../site';
 
 interface Props {
   chrome: 'founder' | 'amenity';
@@ -57,7 +57,7 @@ const isAmenity = chrome === 'amenity';
          local part of this mailbox is a word `check-amenity-wording.mjs`
          forbids anywhere a human or a crawler reads text. */
       isAmenity && (
-        <a class="topbar__cta" href={`mailto:${EMAIL_AMENITY}`}>
+        <a class="topbar__cta" href={mailto(EMAIL_AMENITY, SUBJECT_AMENITY)}>
           Request a proposal
         </a>
       )

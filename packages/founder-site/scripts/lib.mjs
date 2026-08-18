@@ -62,6 +62,25 @@ export function forbiddenAmenityWord() {
   return m[1].toLowerCase();
 }
 
+/**
+ * Both inboxes, read from `src/site.ts` rather than spelled here.
+ *
+ * Same reasoning as `forbiddenAmenityWord`: a gate that carries its own copy of
+ * the address can drift from the address the page actually links, and then it
+ * is asserting against itself. The CTA check in `check-live.mjs` uses these to
+ * say which mailbox each page is ALLOWED to address — a founder-page CTA
+ * pointing at the amenity inbox is a real defect and reads as fine.
+ */
+export function emails() {
+  const src = readFileSync(join(pkgRoot, 'src', 'site.ts'), 'utf8');
+  const read = (name) => {
+    const m = new RegExp(String.raw`${name}\s*=\s*'([^']+)'`).exec(src);
+    if (!m) fail(`could not read ${name} out of src/site.ts — the CTA gate is blind.`);
+    return m[1];
+  };
+  return { dev: read('EMAIL_DEV'), amenity: read('EMAIL_AMENITY') };
+}
+
 /** SITE_URL, likewise read from the single source. */
 export function siteUrl() {
   const src = readFileSync(join(pkgRoot, 'src', 'site.ts'), 'utf8');

@@ -15,7 +15,7 @@
  * `scripts/check-amenity-wording.mjs` fails the build if that slips.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { AMENITY_BRAND, EMAIL_AMENITY, PAGES } from '../site';
+import { AMENITY_BRAND, EMAIL_AMENITY, PAGES, SUBJECT_AMENITY, mailto } from '../site';
 
 const included = [
   {
@@ -58,17 +58,17 @@ const assortment = [
         Zero cost and zero work for the building: we handle stocking, service and insurance, with
         units custom-wrapped to match your interiors.
       </p>
-      <a class="btn" href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+      <a class="btn" href={mailto(EMAIL_AMENITY, SUBJECT_AMENITY)}>Request a proposal</a>
     </div>
   </section>
 
   <section class="section section--plain">
     <div class="shell stack">
-      <div>
+      <div class="reveal">
         <p class="eyebrow">How it works</p>
         <h2 class="h2 tick">An amenity, not a machine</h2>
       </div>
-      <div class="prose">
+      <div class="prose reveal">
         <p>
           A resident taps a card, the door unlocks, they take what they want and the door closes.
           No keypad, no coin slot, no spiral to jam and nothing for your front desk to apologise
@@ -76,7 +76,7 @@ const assortment = [
           looks empty rather than after someone complains about it.
         </p>
       </div>
-      <div class="grid grid--2" style="width:100%">
+      <div class="grid grid--2 reveal reveal--stagger" style="width:100%">
         {
           included.map((item) => (
             <div class="card">
@@ -91,14 +91,14 @@ const assortment = [
 
   <section class="section section--alt">
     <div class="shell stack">
-      <div>
+      <div class="reveal">
         <p class="eyebrow">What is on the shelf</p>
         <h2 class="h2 tick">Curated, and rotated</h2>
       </div>
-      <ul class="list">
+      <ul class="list reveal">
         {assortment.map((line) => <li>{line}</li>)}
       </ul>
-      <div class="prose">
+      <div class="prose reveal">
         <p>
           The assortment is chosen per building. A lease-up full of young professionals and an
           established tower with long-term residents do not want the same shelf, and the local
@@ -110,14 +110,14 @@ const assortment = [
 
   <section class="section">
     <div class="shell stack">
-      <h2 class="h2 tick">Bringing one to your building</h2>
-      <div class="prose">
+      <h2 class="h2 tick reveal">Bringing one to your building</h2>
+      <div class="prose reveal">
         <p>
           Tell us the building, the space you have in mind, and roughly how many units it serves.
           We will come look at it, propose a placement and an assortment, and handle the rest.
         </p>
       </div>
-      <a class="btn" href={`mailto:${EMAIL_AMENITY}`}>Request a proposal</a>
+      <a class="btn reveal" href={mailto(EMAIL_AMENITY, SUBJECT_AMENITY)}>Request a proposal</a>
     </div>
   </section>
 </BaseLayout>
