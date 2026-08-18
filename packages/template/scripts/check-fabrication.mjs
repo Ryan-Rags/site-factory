@@ -128,6 +128,36 @@ function visibleBlocks(html) {
   };
 }
 
+/**
+ * The two prefixes that are record-less BY CONSTRUCTION, and why each is
+ * treated differently from a record that is merely missing.
+ *
+ * A missing record is normally the finding. It means a real business's pages
+ * were built against no source at all — a slug typo, a half-written
+ * `prospects/<slug>/`, an ingest that died between the fetch and the write —
+ * and it is the only thing in the pipeline that notices. That error does not
+ * soften, and nothing below may be widened to a general "no record, never
+ * mind". Only these two literal prefixes are exempt from it.
+ *
+ *   `zz-fixture-` is a test fixture proving a behaviour to some other gate. It
+ *   describes no business, real or invented, and `build-all.mjs` keeps it out
+ *   of `dist/` so it is never deployed. Skipped, and the skip is printed.
+ *
+ *   `portfolio-` is a demonstration build of an INVENTED business. It has no
+ *   record because there is no source one could come from — nobody can verify
+ *   a business that does not exist — and it is nonetheless publicly deployed
+ *   and linked from raghubans.com/sites, which makes it the one record-less
+ *   thing here that a stranger actually reads. So it is scanned with an EMPTY
+ *   allowance list: the strictest run this file can perform, in which every
+ *   claim pattern is a finding and the only permitted four-digit number is the
+ *   footer's copyright year. An invented business may describe what it does;
+ *   it may not accumulate a history, a certification or a guarantee, because a
+ *   reader has no way to tell those from a real shop's, and the page exists to
+ *   demonstrate our work rather than to flesh out a fiction.
+ */
+const FIXTURE_PREFIX = 'zz-fixture-';
+const DEMONSTRATION_PREFIX = 'portfolio-';
+
 function checkClient(slug) {
   const dir = join(distRoot, slug);
 
@@ -155,6 +185,7 @@ function checkClient(slug) {
   // source does not stop being one because another turned up beside it.
   // Demonstrated in docs/evidence/beta-2-fabrication-union/.
   let allowed;
+  let unsourced = false;
   try {
     const ingested = ingestedAllowances(prospectsDir, factsFrom);
     // No ingested record: the copy pack is the only source, and `prospectFor`
@@ -172,13 +203,23 @@ function checkClient(slug) {
       String(new Date().getFullYear()),
     ].map((a) => a.toLowerCase());
   } catch (error) {
-    console.error(
-      `✗ ${slug}: no prospect record, so nothing here can be checked against a source.\n` +
-        `  ${error instanceof Error ? error.message : String(error)}\n` +
-        `  A generated prospect should have prospects/${slug}/prospect.json; a\n` +
-        `  hand-authored client should have a record in @site-factory/copy.`,
-    );
-    return false;
+    if (slug.startsWith(FIXTURE_PREFIX)) {
+      console.log(`- ${slug}: test fixture, describes no business — not checked.`);
+      return true;
+    }
+    if (slug.startsWith(DEMONSTRATION_PREFIX)) {
+      // Scanned against nothing at all. See DEMONSTRATION_PREFIX above.
+      unsourced = true;
+      allowed = [String(new Date().getFullYear())];
+    } else {
+      console.error(
+        `✗ ${slug}: no prospect record, so nothing here can be checked against a source.\n` +
+          `  ${error instanceof Error ? error.message : String(error)}\n` +
+          `  A generated prospect should have prospects/${slug}/prospect.json; a\n` +
+          `  hand-authored client should have a record in @site-factory/copy.`,
+      );
+      return false;
+    }
   }
 
   const files = walk(dir).filter((f) => f.endsWith('.html'));
@@ -215,7 +256,11 @@ function checkClient(slug) {
 
   if (findings.length === 0) {
     const note = excludedQuotes > 0 ? ` (${excludedQuotes} testimonial quote(s) excluded)` : '';
-    console.log(`✓ ${slug}: every claim in the built pages traces to a sourced fact${note}.`);
+    console.log(
+      unsourced
+        ? `✓ ${slug}: invented demonstration build — scanned against an empty allowance list, and no claim of any kind reached the built pages${note}.`
+        : `✓ ${slug}: every claim in the built pages traces to a sourced fact${note}.`,
+    );
     return true;
   }
 
@@ -225,9 +270,15 @@ function checkClient(slug) {
   }
   if (findings.length > 25) console.error(`    … and ${findings.length - 25} more`);
   console.error(
-    `  Each one is a sentence this business would be making a claim with.\n` +
-      `  Fix by adding the fact to packages/copy/src/prospects/${slug}.ts with its\n` +
-      `  source, by marking it, or by rewriting the line. Do not delete this check.\n`,
+    unsourced
+      ? `  This is an invented business, so there is no fact to add and nothing to\n` +
+          `  mark — a source cannot be produced for a shop that does not exist.\n` +
+          `  Rewrite the line in clients/${slug}.config.ts so it describes the work\n` +
+          `  without claiming a history, a credential or a guarantee.\n` +
+          `  Do not delete this check.\n`
+      : `  Each one is a sentence this business would be making a claim with.\n` +
+          `  Fix by adding the fact to packages/copy/src/prospects/${slug}.ts with its\n` +
+          `  source, by marking it, or by rewriting the line. Do not delete this check.\n`,
   );
   return false;
 }
