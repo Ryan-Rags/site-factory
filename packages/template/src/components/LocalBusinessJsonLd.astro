@@ -1,5 +1,5 @@
 ---
-import { site } from '../../site.config';
+import { site, cardOrigin } from '../../site.config';
 
 /**
  * schema.org LocalBusiness, built entirely from site.config.ts.
@@ -29,6 +29,29 @@ interface Props {
 
 const { faq: withFaq = false } = Astro.props;
 const { business, brand, seo } = site;
+
+/**
+ * The graph's two FETCHED fields resolve against the serving origin; its two
+ * IDENTITY fields do not.
+ *
+ * `image` and `logo` are URLs a crawler goes and gets, exactly like
+ * `og:image` — so they belong at the origin actually serving this build, and
+ * they were the second location of the defect issue #25 fixed for the card.
+ * On the demo configs carrying `siteUrl: 'https://example.invalid'` both
+ * pointed at a host that resolves nowhere; on the rest they pointed at the
+ * prospect's own domain, which does not serve the file either.
+ *
+ * `@id` and `url` stay on `seo.siteUrl` and must: they are claims about where
+ * this business lives, and moving them would tell a crawler the prospect's
+ * business is hosted on a pages.dev subdomain. Same split, same reasoning and
+ * the same `noindex` trigger as `Seo.astro`'s canonical — see the ledger entry
+ * of 2026-08-13 and issue #35.
+ *
+ * `cardOrigin` is `''` on a delivered build, so this is byte-for-byte what it
+ * always was there — `astro.config.mjs` sets `site: site.seo.siteUrl`, so the
+ * fallback is the same string the two identity fields below use.
+ */
+const assetBase = cardOrigin !== '' ? cardOrigin : (Astro.site ?? seo.siteUrl);
 
 const openingHours = (business.hours ?? [])
   .filter((h) => !h.closed && h.opens && h.closes)
@@ -92,8 +115,8 @@ const jsonLd = {
   ...(business.foundedYear !== undefined
     ? { foundingDate: String(business.foundedYear) }
     : {}),
-  image: new URL(brand.ogImage, seo.siteUrl).href,
-  logo: new URL(brand.logo, seo.siteUrl).href,
+  image: new URL(brand.ogImage, assetBase).href,
+  logo: new URL(brand.logo, assetBase).href,
   address: {
     '@type': 'PostalAddress',
     ...(business.address.street ? { streetAddress: business.address.street } : {}),

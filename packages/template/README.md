@@ -270,8 +270,12 @@ pnpm build
 pnpm check:contrast
 pnpm check:contact-links   # every number tappable, no dead sms: link
 pnpm preview --port 4321   # then, in another terminal:
-pnpm check:overflow
+SITE_CLIENT=<slug> pnpm check:overflow
 ```
+
+`check:overflow` requires `SITE_CLIENT`: like the other browser gates it now
+verifies the served build names that slug before it measures, and a guard with
+nothing to compare against is not a guard (issue #37).
 
 From the repo root, for a site that is going to be demoed on a phone:
 
@@ -467,7 +471,7 @@ worker-demo/                the shared demo endpoint behind every prospect demo
 | `pnpm preview` | Serve `dist/` — what Lighthouse should measure |
 | `pnpm typecheck` | `astro check` |
 | `pnpm check:contrast` | WCAG AA assertion on the two brand colours |
-| `pnpm check:overflow` | Horizontal overflow check (needs `pnpm preview` running) |
+| `SITE_CLIENT=<slug> pnpm check:overflow` | Horizontal overflow check (needs `pnpm preview` running) |
 | `pnpm check:contact-links` | Every phone number is inside a `tel:`/`sms:` link — `--all` for every built client |
 | `pnpm gen:placeholders` | Regenerate placeholder images |
 | `pnpm clean` | Remove `dist/` and `.astro/` |
@@ -521,7 +525,7 @@ enumerated and proved.
 pnpm build:client ks-welding      # one client
 pnpm build:all                    # all of them, + marker and contrast gates
 pnpm check:contrast               # 234 AA assertions over the whole matrix
-pnpm check:overflow               # 320px / 390px, every route
+SITE_CLIENT=<slug> pnpm check:overflow   # 320px / 390px, every route
 pnpm gen:brand                    # icon set, webmanifest and OG card per client
 pnpm compare                      # dist/compare.html - three families side by side
 pnpm record:switch                # dist/theme-switch.webm

@@ -21,6 +21,14 @@ import { dataDir, readLeads, slugify, type LeadRow } from "@site-factory/discove
  * a lead whose `name` column carries a legal suffix slugifies to a key that
  * matches nothing. That failure is silent there; here it surfaces as "no lead
  * row", and the run report says so.
+ *
+ * The `&` divergence is matched on BOTH spellings, through {@link slugsFor} —
+ * the same read-path workaround {@link findPlaceId} already carries, and for
+ * the same reason. Fourteen of the fifty records in the 2026-08-16 batch are
+ * filed under the expanded spelling while `slugify` produces the dropped one,
+ * so a single-spelling lookup misses exactly those fourteen — and a miss here
+ * is indistinguishable from a business nobody discovered, which is what makes
+ * it silent. Issue #57.
  */
 export function findLeadRow(id: string): LeadRow | null {
   if (!existsSync(dataDir)) return null;
@@ -35,7 +43,7 @@ export function findLeadRow(id: string): LeadRow | null {
     } catch {
       continue;
     }
-    const hit = rows.find((row) => slugify(row.name) === id);
+    const hit = rows.find((row) => slugsFor(row.name).includes(id));
     if (hit) return hit;
   }
   return null;
@@ -103,9 +111,16 @@ export function findPlaceId(id: string): { placeId: string; file: string } | nul
  * `slugify` would move 14 already-deployed `<slug>-preview.pages.dev` URLs that
  * are printed on a call sheet, which is a far worse outcome than accepting two
  * spellings on the read path. The divergence itself is recorded in
- * `docs/known-issues.md` — this is the workaround, not the fix.
+ * `docs/known-issues.md` #10 — this is the workaround, not the fix.
+ *
+ * Exported because both readers in this file need it. It was private while only
+ * `findPlaceId` matched both spellings, which left `findLeadRow` — the reader
+ * that supplies a prospect's niche, phone and current URL — missing the same
+ * fourteen records the place-id backfill had just been taught to find. One
+ * read path knowing something the other does not is how a workaround becomes a
+ * second bug. Issue #57.
  */
-function slugsFor(name: string): string[] {
+export function slugsFor(name: string): string[] {
   const dropped = slugify(name);
   const expanded = slugify(name.replace(/&/g, " and "));
   return dropped === expanded ? [dropped] : [dropped, expanded];

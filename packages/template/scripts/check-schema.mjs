@@ -31,6 +31,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { previewOriginFor } from '../src/lib/preview-origin.mjs';
+
 const here = fileURLToPath(new URL('.', import.meta.url));
 const distRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist');
 
@@ -216,7 +218,24 @@ function checkClient(slug) {
               if (v.includes(marker)) say(`${path}.${k} carries the marker ${marker}`);
             }
           }
-          // Anything that is meant to be a URL must be one, and must be ours.
+          /*
+           * Anything meant to be a URL must be one, and must be ours — but
+           * "ours" is two different origins, and conflating them is what issue
+           * #35 was about.
+           *
+           * `url` and `@id` are identity claims and belong on the canonical
+           * origin, which is this site's own address. `image` and `logo` are
+           * fetched by a crawler on another machine, so on a `noindex` build
+           * they belong at the origin serving that build — which for a mockup
+           * is a Pages host and NOT the canonical origin. Requiring all four to
+           * match the canonical was the rule that kept the graph's two fetched
+           * URLs pointed at `example.invalid`, a host that resolves nowhere,
+           * on five of the eight clients.
+           *
+           * On a delivered build `cardOrigin` is empty, `previewOriginFor` is
+           * not consulted, and all four are compared against the canonical
+           * exactly as before.
+           */
           if (['url', '@id', 'image', 'logo'].includes(k)) {
             let u;
             try {
@@ -225,8 +244,16 @@ function checkClient(slug) {
               say(`${path}.${k} is not an absolute URL: ${v}`);
               continue;
             }
-            if (origin && u.origin !== origin) {
-              say(`${path}.${k} points at ${u.origin}, not this site's ${origin}`);
+            const fetched = k === 'image' || k === 'logo';
+            const want = fetched && noindex ? previewOriginFor(slug) : origin;
+            if (want && u.origin !== want) {
+              say(
+                `${path}.${k} points at ${u.origin}, not ${want}` +
+                  (fetched && noindex
+                    ? ' — the origin this preview is served from. A crawler fetches this URL, ' +
+                      'so it has to name a host that serves the file (issue #35).'
+                    : " — this site's own address."),
+              );
             }
           }
         }
@@ -244,6 +271,29 @@ function checkClient(slug) {
       }
 
       if (graph['@type'] === 'LocalBusiness') {
+        /* --- the graph's two fetched fields must be present at all ------- */
+        /*
+         * Their ORIGIN is checked in the per-key loop above, which knows the
+         * asset/identity split. What that loop cannot see is a field that is
+         * absent — it iterates the keys the graph actually has.
+         *
+         * Fail-closed on a preview, per the ruling of 2026-08-12: a graph with
+         * no `image` is a graph whose card origin nobody checked, and the whole
+         * defect behind issue #35 was a check that looked at a mockup and found
+         * nothing to say.
+         */
+        if (noindex) {
+          for (const field of ['image', 'logo']) {
+            const value = graph[field];
+            if (typeof value !== 'string' || value === '') {
+              say(
+                `LocalBusiness.${field} is missing on a noindex build, so nothing checks that ` +
+                  `the graph cites a host that serves the file (issue #35)`,
+              );
+            }
+          }
+        }
+
         for (const area of graph.areaServed ?? []) {
           const name = String(area?.name ?? '').trim();
           if (name && !siteText.includes(name.toLowerCase())) {

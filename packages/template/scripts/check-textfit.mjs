@@ -50,6 +50,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
+
+import { assertServedSlug } from './lib/served-slug.mjs';
 import { clearsGate } from '../src/design/contrast.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -499,22 +501,12 @@ try {
 
   /*
    * Prove the server is serving the client this run is about to make claims
-   * about. `astro preview` walks to the next free port silently, this repo is
-   * worked on in a dozen worktrees at once, and a gate that can report green on
-   * another stream's build is worse than no gate. `check-switching.mjs` learned
-   * this the expensive way; the check is copied deliberately.
+   * about. `check-switching.mjs` learned this the expensive way and the check
+   * was then copied here deliberately — and to `check-reveal.mjs`, and not to
+   * `check-overflow.mjs`, which is issue #37 and why it now lives in
+   * `lib/served-slug.mjs` instead of in four places.
    */
-  const servedSlug = await page.evaluate(() => {
-    const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? '';
-    return /\/icons\/([^/]+)\//.exec(manifest)?.[1] ?? null;
-  });
-  if (servedSlug !== SLUG) {
-    console.error(
-      `${BASE} is serving "${servedSlug ?? 'an unrecognised build'}", not "${SLUG}".\n` +
-        `Start your preview on a known port and set PREVIEW_URL.`,
-    );
-    process.exit(1);
-  }
+  await assertServedSlug(page, { slug: SLUG, base: BASE });
 
   const isPitch = (await page.$('#d-cust-toggle')) !== null;
 
