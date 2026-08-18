@@ -240,3 +240,25 @@ node scripts/check-live.mjs https://raghubans-com.pages.dev
 
 DNS, zones and custom domains are Ryan's to attach; nothing in this package
 touches them.
+
+### Continuous deploy
+
+`.github/workflows/deploy-founder-site.yml` runs exactly that sequence on every
+push to `main` that touches `packages/founder-site/**`, plus `pnpm typecheck`
+and a Chromium install for the browser gate. It needs two repo secrets,
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; the token needs
+**Account → Cloudflare Pages → Edit** and nothing else.
+
+Two things it does differently from a human run, both on purpose:
+
+- `check-live` runs against `https://raghubans-com.pages.dev`, retrying for the
+  alias to pick up the upload. A failure there fails the job — a green build
+  that published a broken page is the case this workflow exists to catch.
+- It then runs `check-live` against `https://www.raghubans.com` **advisory
+  only**. The apex's zone rewrites `mailto:` CTAs into
+  `/cdn-cgi/l/email-protection`, so that run reports zero CTAs on an artifact
+  that has seventeen. That is zone configuration, not the build — see
+  `docs/known-issues.md` for the fix and for when to make the step blocking.
+
+Deploying by hand still works and is still the documented path; the workflow
+just means nobody has to remember to.

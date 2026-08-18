@@ -820,3 +820,47 @@ paths, two of them the same commit — `docs/evidence/client-parity-island-uid.m
 compare within one worktree. A naive cross-worktree diff will report eight
 changed files and every one of them is innocent, which is the dangerous part —
 it invites either a false alarm or the habit of ignoring the check.
+
+## The apex rewrites every mailto: CTA into a JS-decoded link, so check-live reports zero CTAs there
+
+**Status:** open, live. **Surface:** the `raghubans.com` zone, not
+`packages/founder-site` — the artifact is innocent.
+
+Cloudflare Scrape Shield's **Email Address Obfuscation** is on for the zone. It
+rewrites every `mailto:` href in the served HTML into
+`/cdn-cgi/l/email-protection#<hex>` and injects
+`/cdn-cgi/scripts/.../email-decode.min.js` to decode it on click. Two consequences,
+in order of how much they matter:
+
+1. **Every CTA on the site now needs JavaScript to work.** This site's entire
+   conversion path is `mailto:` — there is no form, by design. With scripting
+   off or that script blocked, all 17 CTAs are inert links to a `cdn-cgi` path.
+2. It injects a `<script>` into a site whose build fails on any `<script>`
+   (`check-no-forms.mjs`) and whose `_headers` deliberately ships no `script-src`
+   CSP because there has never been a script to protect. The zone reintroduces
+   the exact surface the package refuses.
+
+**Repro,** same deployment on both origins, measured 2026-08-18:
+
+```sh
+node scripts/check-live.mjs https://raghubans-com.pages.dev
+#   5 document route(s) + 8 asset(s) checked, 17 mailto CTA(s) resolved
+# ok    check-live
+
+node scripts/check-live.mjs https://www.raghubans.com
+# FAIL  check-live: 5 problem(s)
+#   - /: no mailto: CTA at all. Every page on this site ends in one.   (x5 routes)
+
+curl -s https://www.raghubans.com/ | grep -c 'mailto:'                  # 0
+curl -s https://www.raghubans.com/ | grep -o '/cdn-cgi/l/email-protection'  # present
+curl -s https://raghubans-com.pages.dev/ | grep -c 'mailto:'            # 1
+```
+
+**Fix:** Cloudflare dashboard → the `raghubans.com` zone → **Scrape Shield** →
+turn **Email Address Obfuscation** off (or a Configuration Rule scoped to the
+zone that disables it). Zones are Ryan's; nothing in this package can reach it.
+
+Until then `.github/workflows/deploy-founder-site.yml` runs check-live against
+the **alias** as the blocking gate and against the apex as an advisory step. When
+the setting is off, drop that step's `continue-on-error: true` and the apex
+becomes a real gate.
