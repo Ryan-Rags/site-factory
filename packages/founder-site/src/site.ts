@@ -48,16 +48,22 @@ export const EMAIL_AMENITY = 'vending@raghubans.com';
 export const AMENITY_SHORT = AMENITY_BRAND.split(' ')[0] ?? AMENITY_BRAND;
 
 /**
- * Ryan's public LinkedIn profile. `null` until he supplies it — and `null` is a
- * shipping state, not a broken one: the footer renders the `LINKEDIN_URL`
- * placeholder while it is null and a real anchor the moment it is a string.
+ * Ryan's public LinkedIn profile. `null` is a shipping state, not a broken one:
+ * the footer renders the `LINKEDIN_URL` placeholder while it is null and a real
+ * anchor the moment it is a string.
  *
  * Do not invent this value. `check-placeholders.mjs` reads this same export and
  * flips its expectation with it, so both states are gated and neither can be
  * half-done — a filled constant with no anchor in the built HTML fails just as
  * loudly as a dropped placeholder.
+ *
+ * SUPPLIED by Ryan in the founder-site-photos task prompt and filled on his
+ * ruling there. Stored canonically: the URL he pasted carried `utm_source`,
+ * `utm_medium` and `utm_content` from the iOS share sheet. Those describe the
+ * one link he sent, not the profile's address — shipping them would tag every
+ * visitor's click as having come from his phone share, forever.
  */
-export const LINKEDIN_URL: string | null = null;
+export const LINKEDIN_URL: string | null = 'https://www.linkedin.com/in/ryan-raghubans-10870a361';
 
 /**
  * The hero headshot, as a public path. The FILE is what decides whether it

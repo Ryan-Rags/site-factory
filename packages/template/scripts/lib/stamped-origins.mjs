@@ -47,7 +47,7 @@ export const IDENTITY = 'identity';
  * to every asset would turn all nine clients red for shipping exactly what
  * they are supposed to ship, and a gate that is red in normal operation is a
  * gate somebody switches off. Same reasoning as the asset/identity split
- * above; ruled on PR #64's Brief.
+ * above; ruled in `docs/decisions.md`, 2026-08-18, prospect brand cards.
  */
 export const CARD_LABELS = new Set(['og:image', 'twitter:image']);
 

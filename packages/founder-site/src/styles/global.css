@@ -449,6 +449,53 @@ p {
   border-radius: var(--radius-card);
 }
 
+/* The "Off the clock" row on /about.
+ *
+ * `auto-fit` + `minmax` rather than a hard `repeat(3, 1fr)`: the row is data-
+ * driven from OFF_THE_CLOCK, so adding or removing a photo must not also need a
+ * CSS edit — and at 320px a fixed three-up would crush each frame to something
+ * not worth shipping. One column on a phone, three on anything comfortably wide.
+ *
+ * `max-width` keeps the row from running the full shell. The photos are a
+ * supporting note on a credibility page, not its main event, and a row that
+ * spans edge to edge is the thing that turns this section into a feed. */
+.offclock {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 44rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offclock__figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* `aspect-ratio` matches the width/height attributes on the element itself, so
+ * the box the browser reserves before the bytes arrive and the box it finally
+ * paints are the same box at every viewport width. This site measures CLS 0 and
+ * an image row is the classic way to lose it. */
+.offclock__img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.offclock__caption {
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .foot {
   border-top: 1px solid var(--line);
   background: var(--surface-alt);
