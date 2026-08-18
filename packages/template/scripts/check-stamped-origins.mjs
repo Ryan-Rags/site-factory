@@ -112,7 +112,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * measuring the asset. The body is read and discarded; this is two files per
  * site, deduplicated.
  */
-async function probe(url) {
+async function fetchOnce(url) {
   try {
     const res = await fetch(url, { redirect: 'follow' });
     await res.arrayBuffer();
@@ -122,6 +122,35 @@ async function probe(url) {
     const cause = err?.cause?.code ?? '';
     return { status: 0, type: '', error: cause ? `${err.message} (${cause})` : err.message };
   }
+}
+
+/**
+ * The same probe, given time for a just-published deploy to start serving.
+ *
+ * WHY THIS IS NOT OVER-PATIENCE. This gate's first caller is the deploy, and it
+ * runs the instant `wrangler pages deploy` returns. The project alias goes on
+ * serving the previous deployment for a few seconds after that, so an asset at
+ * a path the previous build did not have answers 404 — and the gate reported a
+ * demo that is completely correct as one advertising an address that is not
+ * itself. Measured on the c3m redeploy of 2026-08-18: red from the deploy,
+ * green from the CLI against the same origin and the same dist forty seconds
+ * later. Fifty of those in a batch is a gate nobody reads.
+ *
+ * `deploy.ts` already waits this way for the homepage, for this reason. The
+ * asset probe was the half that did not.
+ *
+ * ONLY A NON-200 IS RETRIED. A wrong content type is not a race — an SVG does
+ * not become a PNG by waiting — so rule 3 still fails on the first response and
+ * the red demonstration stays instant.
+ */
+async function probe(url, attempts = 5, gapMs = 5000) {
+  let res = await fetchOnce(url);
+  for (let i = 1; i < attempts && res.status !== 200; i += 1) {
+    await sleep(gapMs);
+    res = await fetchOnce(url);
+    if (res.status === 200) res.retried = i;
+  }
+  return res;
 }
 
 /**
@@ -221,8 +250,8 @@ export async function checkStampedOrigins({ origin, dist, offline = false, log =
       const res = await probe(url);
       if (res.status !== 200) {
         problems.push(
-          `${url} does not resolve — ${res.error || `HTTP ${res.status}`}. Stamped by ` +
-            `${stampedBy.length} tag(s), first ${stampedBy[0]}.`,
+          `${url} does not resolve — ${res.error || `HTTP ${res.status}`}, still, after 5 ` +
+            `attempts over 20s. Stamped by ${stampedBy.length} tag(s), first ${stampedBy[0]}.`,
         );
         continue;
       }
@@ -239,7 +268,10 @@ export async function checkStampedOrigins({ origin, dist, offline = false, log =
         continue;
       }
 
-      log(`  · ${url}  200 ${res.type}${card ? '  (card)' : ''}`);
+      log(
+        `  · ${url}  200 ${res.type}${card ? '  (card)' : ''}` +
+          (res.retried ? `  (served after ${res.retried} retr${res.retried === 1 ? 'y' : 'ies'})` : ''),
+      );
     }
   }
 
