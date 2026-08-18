@@ -40,6 +40,33 @@ export const EMAIL_DEV = 'ryan@raghubans.com';
 export const EMAIL_AMENITY = 'vending@raghubans.com';
 
 /**
+ * Short form of the amenity brand, for the nav. Derived rather than spelled,
+ * because `AMENITY_BRAND` is the single source for this venture's name and a
+ * second hand-written copy in the nav is exactly the one that survives a
+ * rename and goes stale. One word is what fits a five-item bar at 320px.
+ */
+export const AMENITY_SHORT = AMENITY_BRAND.split(' ')[0] ?? AMENITY_BRAND;
+
+/**
+ * Ryan's public LinkedIn profile. `null` until he supplies it — and `null` is a
+ * shipping state, not a broken one: the footer renders the `LINKEDIN_URL`
+ * placeholder while it is null and a real anchor the moment it is a string.
+ *
+ * Do not invent this value. `check-placeholders.mjs` reads this same export and
+ * flips its expectation with it, so both states are gated and neither can be
+ * half-done — a filled constant with no anchor in the built HTML fails just as
+ * loudly as a dropped placeholder.
+ */
+export const LINKEDIN_URL: string | null = null;
+
+/**
+ * The hero headshot, as a public path. The FILE is what decides whether it
+ * renders: drop `public/ryan.jpg` in and the next build swaps the placeholder
+ * for the photo, with no code change and no config edit. See `src/assets.ts`.
+ */
+export const HEADSHOT_SRC = '/ryan.jpg';
+
+/**
  * Operator-filled placeholders. Each is rendered visibly in-page by
  * `Placeholder.astro`, so an unfilled slot is impossible to miss while
  * reviewing a build, and each is enumerated in the PR body.
@@ -59,11 +86,24 @@ export interface NavItem {
   label: string;
 }
 
-/** Founder-site chrome. /amenity is in the nav but does not wear this chrome. */
+/**
+ * The whole site, on every page, in both chromes.
+ *
+ * `Home` is a text link rather than only the wordmark because /amenity's
+ * wordmark is the AMENITY BRAND, not Ryan's name — so on that page the wordmark
+ * points at /amenity and there would otherwise be nothing pointing home. It is
+ * mildly redundant on the founder pages and that is the cheaper half of the
+ * trade: one duplicate link beats one stranded page.
+ *
+ * Labels are short on purpose. Five items have to wrap onto a second row at
+ * 320px without becoming a third; `check-textfit.mjs` is what decides whether
+ * they do, and `check-live.mjs` asserts the resulting reachability.
+ */
 export const NAV: readonly NavItem[] = [
-  { href: '/sites', label: 'Websites' },
-  { href: '/ai', label: 'AI Voice' },
-  { href: '/amenity', label: AMENITY_BRAND },
+  { href: '/', label: 'Home' },
+  { href: '/sites', label: 'Sites' },
+  { href: '/amenity', label: AMENITY_SHORT },
+  { href: '/ai', label: 'AI' },
   { href: '/about', label: 'About' },
 ];
 
@@ -101,7 +141,7 @@ export const PAGES = {
   },
   sites: {
     title: `Bergen County Web Developer for Small Business — ${FULL_NAME}`,
-    description: `A Bergen County web developer building fast, mobile-first websites for local businesses — designed, built and measured on a real phone before they ship.`,
+    description: `site-factory is Bergen County web developer work for local businesses — fast, mobile-first sites, measured on a real phone before they ship.`,
     path: '/sites',
     ogImage: 'sites.png',
   },
@@ -119,7 +159,7 @@ export const PAGES = {
   },
   about: {
     title: `About ${FULL_NAME} — Developer, Founder, ${REGION}`,
-    description: `How ${FULL_NAME} got here: enterprise development at CED and Prudential, years around competitive gaming, three sports, and what he builds now.`,
+    description: `How ${FULL_NAME} got here: warehouse software at CED by day, Prudential before it, a stretch in competitive gaming, and four ventures now.`,
     path: '/about',
     ogImage: 'about.png',
   },

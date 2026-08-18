@@ -9,7 +9,16 @@
  * that page's visible text ever contains the amenity mailbox's local part, and a
  * shared footer that printed the address would trip it on every deploy.
  */
-import { AMENITY_BRAND, EMAIL_AMENITY, EMAIL_DEV, FULL_NAME, PLACEHOLDERS, REGION } from '../site';
+import {
+  AMENITY_BRAND,
+  EMAIL_AMENITY,
+  EMAIL_DEV,
+  FULL_NAME,
+  LINKEDIN_URL,
+  PLACEHOLDERS,
+  REGION,
+} from '../site';
+import { HAS_LINKEDIN } from '../assets';
 import Placeholder from './Placeholder.astro';
 
 interface Props {
@@ -51,7 +60,19 @@ const year = 2026;
             <dd><a href={`mailto:${EMAIL_AMENITY}`}>{EMAIL_AMENITY}</a></dd>
             <dt>LinkedIn</dt>
             <dd>
-              <Placeholder token={PLACEHOLDERS.linkedin} note="Paste the public LinkedIn profile URL here." />
+              {
+                /* Filled the moment LINKEDIN_URL stops being null; until then the
+                   placeholder ships visibly, which is the point of it.
+                   `rel="me"` is the one piece of markup that makes this an
+                   identity claim rather than an outbound link. */
+                HAS_LINKEDIN ? (
+                  <a href={LINKEDIN_URL} rel="me">
+                    {FULL_NAME}
+                  </a>
+                ) : (
+                  <Placeholder token={PLACEHOLDERS.linkedin} note="Paste the public LinkedIn profile URL here." />
+                )
+              }
             </dd>
           </dl>
         </div>

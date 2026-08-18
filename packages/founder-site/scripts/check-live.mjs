@@ -15,7 +15,7 @@
  *
  * Read-only GETs, one request at a time, well inside the repo's audit budget.
  */
-import { problem, report } from './lib.mjs';
+import { escapeRe, headshot, linkedinUrl, problem, report } from './lib.mjs';
 
 const base = process.argv[2];
 if (!base) {
@@ -37,6 +37,14 @@ const ASSET_ROUTES = [
   '/og/amenity.png',
   '/og/about.png',
 ];
+
+/** Pages wearing the founder footer, and therefore the LinkedIn slot. */
+const FOUNDER_ROUTES = ['/', '/sites', '/ai', '/about'];
+
+const linkedin = linkedinUrl();
+const photo = headshot();
+const servedHeadshot = new RegExp(`<img[^>]*\\ssrc="${escapeRe(photo.src)}"`, 'i');
+const servedLinkedin = linkedin ? new RegExp(`href="${escapeRe(linkedin)}"`, 'i') : /$^/;
 
 const REQUIRED_HEADERS = {
   'x-content-type-options': 'nosniff',
@@ -66,7 +74,47 @@ async function get(url, { redirect = 'manual' } = {}) {
   return { status: 0, headers: new Headers(), _error: last };
 }
 
+/**
+ * Internal document routes this page links to, normalised to the form
+ * DOCUMENT_ROUTES uses.
+ *
+ * Absolute hrefs on our own origin count: the canonical origin and the
+ * pages.dev alias are the same site, and a nav written with absolute URLs would
+ * still be a working nav. `mailto:`, fragments and asset paths are not routes.
+ */
+function internalLinks(html) {
+  const found = new Set();
+  for (const m of html.matchAll(/<a\b[^>]*\shref=["']([^"']+)["']/gi)) {
+    let href = m[1].trim();
+    if (/^(mailto:|tel:|#)/i.test(href)) continue;
+
+    if (/^https?:\/\//i.test(href)) {
+      let url;
+      try {
+        url = new URL(href);
+      } catch {
+        continue;
+      }
+      // Only our own origins — the deployed one under test, and the canonical.
+      if (url.origin !== origin && url.hostname !== 'raghubans.com') continue;
+      href = url.pathname;
+    } else if (!href.startsWith('/')) {
+      continue;
+    } else {
+      href = href.split(/[?#]/)[0];
+    }
+
+    // `/sites/` and `/sites` are the same document to a reader.
+    const route = href.length > 1 ? href.replace(/\/$/, '') : '/';
+    if (DOCUMENT_ROUTES.includes(route)) found.add(route);
+  }
+  return found;
+}
+
 console.log(`      verifying ${origin}`);
+
+/** route → the set of document routes it links. Filled by the loop below. */
+const linkGraph = new Map();
 
 for (const route of DOCUMENT_ROUTES) {
   const res = await get(`${origin}${route}`);
@@ -89,8 +137,50 @@ for (const route of DOCUMENT_ROUTES) {
   const html = await res.text();
   const canonical = /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i.exec(html);
   if (!canonical) problem(`${route}: no canonical in the served HTML.`);
-  if (/data-placeholder="/.test(html) === false && route !== '/amenity') {
-    problem(`${route}: served HTML carries no placeholder markers — expected some until filled.`);
+
+  /*
+   * The two wired slots, checked against what is actually being SERVED.
+   *
+   * This compares the deployed HTML to the local slot state, which is only a
+   * meaningful comparison immediately after deploying this build — which is
+   * precisely when this gate runs, per the README's deploy sequence. It catches
+   * the case the build gate cannot: a deploy that published a stale dist/, so
+   * the photo is in the repo and not on the site.
+   */
+  if (photo.present && route === '/' && !servedHeadshot.test(html)) {
+    problem(`/: public${photo.src} exists locally but the served hero has no <img src="${photo.src}">.`);
+  }
+  if (linkedin && FOUNDER_ROUTES.includes(route) && !servedLinkedin.test(html)) {
+    problem(`${route}: LINKEDIN_URL is set locally but the served footer does not link it.`);
+  }
+  if (!photo.present && route === '/' && !/data-placeholder="PHOTO_HERE"/.test(html)) {
+    problem('/: no photo placeholder and no photo — the hero slot is neither filled nor marked.');
+  }
+
+  linkGraph.set(route, internalLinks(html));
+}
+
+/**
+ * ONE TAP: every route reaches every other route directly.
+ *
+ * /amenity shipped as a one-exit page — brand chrome, a mailto CTA and a single
+ * discreet footer link back to `/`, so the other three routes were two taps
+ * away and the page read as a dead end to anyone who did not find that line.
+ * The fix is a persistent nav on both chromes; this is what stops it regressing,
+ * and it is stated as reachability rather than as "the nav component is present"
+ * because the second one passes on a nav that renders zero links.
+ *
+ * Costs no extra requests: the documents were already fetched above.
+ */
+for (const from of DOCUMENT_ROUTES) {
+  const links = linkGraph.get(from);
+  if (!links) continue; // already reported as unreachable
+  const missing = DOCUMENT_ROUTES.filter((to) => to !== from && !links.has(to));
+  if (missing.length > 0) {
+    problem(
+      `${from}: no direct link to ${missing.join(', ')} — every route must be one tap ` +
+        'from every other, so a visitor who lands deep is never stranded.',
+    );
   }
 }
 
@@ -101,12 +191,63 @@ for (const route of ASSET_ROUTES) {
   }
 }
 
-// robots.txt on the live origin must still allow, and must name a sitemap that
-// is itself reachable.
+/**
+ * Only the `User-agent: *` group speaks for general crawling.
+ *
+ * MEASURED, 2026-08-18: a flat `/Disallow:\s*\S+/` over the whole file failed
+ * on the apex domain and passed on the pages.dev alias, which is why it had
+ * never fired. Cloudflare's managed-robots feature prepends a block on the ZONE
+ * — content signals, `Allow: /` for `*`, and `Disallow: /` for a list of named
+ * AI crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended and others). Those
+ * per-agent groups are a zone-level policy of Ryan's, they say nothing about
+ * search indexing, and this package is explicitly barred from touching zones.
+ *
+ * So the assertion is narrowed to the claim the gate actually exists to make:
+ * a general crawler — the one that builds the search result this site is for —
+ * is not blocked.
+ */
+function starGroupBlocked(text) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/#.*$/, '').trim())
+    .filter(Boolean);
+
+  let sawStar = false;
+  let inStar = false;
+  let collectingAgents = false;
+  let blocked = false;
+
+  for (const line of lines) {
+    const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
+    if (!m) continue;
+    const field = m[1].toLowerCase();
+    const value = m[2].trim();
+
+    if (field === 'user-agent') {
+      // A run of consecutive User-agent lines is ONE group; the first one after
+      // a rule line starts a new group, which is where `inStar` must reset.
+      if (!collectingAgents) inStar = false;
+      collectingAgents = true;
+      if (value === '*') {
+        inStar = true;
+        sawStar = true;
+      }
+      continue;
+    }
+
+    collectingAgents = false;
+    if (inStar && field === 'disallow' && value === '/') blocked = true;
+  }
+
+  return { sawStar, blocked };
+}
+
 const robots = await get(`${origin}/robots.txt`, { redirect: 'follow' });
 if (robots.status === 200) {
   const text = await robots.text();
-  if (/^\s*Disallow:\s*\S+/im.test(text)) problem('live robots.txt blocks crawling.');
+  const { sawStar, blocked } = starGroupBlocked(text);
+  if (!sawStar) problem('live robots.txt has no `User-agent: *` group — general crawling is undefined.');
+  if (blocked) problem('live robots.txt blocks general crawling (`Disallow: /` under `User-agent: *`).');
   if (!/^\s*Sitemap:\s*\S+/im.test(text)) problem('live robots.txt names no sitemap.');
 }
 
