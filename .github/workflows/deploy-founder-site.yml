@@ -54,7 +54,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
           # Relative to the repo root, not to working-directory.
           cache-dependency-path: packages/founder-site/pnpm-lock.yaml
