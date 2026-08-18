@@ -69,12 +69,31 @@ if (unregistered.length > 0) {
  * Build one on purpose with `SITE_CLIENT=<slug> pnpm build`, and delete its
  * `dist/<slug>/` before running a deploy.
  */
-const FIXTURE_PREFIX = 'zz-fixture-';
-const fixtures = fromFiles.filter((slug) => slug.startsWith(FIXTURE_PREFIX));
-const CLIENT_SLUGS = fromFiles.filter((slug) => !slug.startsWith(FIXTURE_PREFIX));
+/*
+ * TWO prefixes are excluded, for the same reason and with different names.
+ *
+ * `zz-fixture-` is a test fixture: registered, buildable, and proving a
+ * behaviour to a gate.
+ *
+ * `portfolio-` is a demonstration build of an INVENTED business, deployed to
+ * its own `portfolio-<slug>` Pages project and linked publicly from
+ * raghubans.com/sites. It must stay out of `dist/` during a batch for exactly
+ * the reason above: `deploy-mockups.mjs` publishes every directory it finds
+ * there, so a batch run would republish five invented businesses into the
+ * prospect mockup fleet under `-preview` hostnames nobody links. Their real
+ * deploy is one project each, on purpose.
+ *
+ * Build one deliberately with `SITE_CLIENT=<slug> pnpm exec astro build`, and
+ * delete its `dist/<slug>/` before running a deploy.
+ */
+const EXCLUDED_PREFIXES = ['zz-fixture-', 'portfolio-'];
+const isExcluded = (slug) => EXCLUDED_PREFIXES.some((prefix) => slug.startsWith(prefix));
+
+const fixtures = fromFiles.filter(isExcluded);
+const CLIENT_SLUGS = fromFiles.filter((slug) => !isExcluded(slug));
 
 if (fixtures.length > 0) {
-  console.log(`skipping ${fixtures.length} test fixture(s): ${fixtures.join(', ')}`);
+  console.log(`skipping ${fixtures.length} fixture/demonstration build(s): ${fixtures.join(', ')}`);
 }
 
 /*
